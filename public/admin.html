@@ -513,7 +513,7 @@
           </td>
           <td>
             <div style="display:flex;gap:0.35rem;align-items:center;">
-              <button class="copy-badge" style="padding:0.3rem 0.6rem;font-size:0.75rem;background:rgba(255,255,255,0.85);" onclick="copyAppDetails('${app.application_number}', '${app.date_of_birth}', '${app.app_password}', this)" title="Copy Application Number, DOB, and Password">📋 Copy All</button>
+              <button class="copy-badge" style="padding:0.3rem 0.6rem;font-size:0.75rem;background:rgba(255,255,255,0.85);" onclick="copyAppDetails('${app.application_number}', '${app.date_of_birth}', '${app.app_password}', this)" title="Copy 1-Line: ${app.application_number} DOB Password">📋 Copy 1-Line</button>
               <button class="view-btn" style="background:rgba(0,113,227,0.15);" onclick="openSingleAppReview(${app.id})">🔍 Review</button>
             </div>
           </td>
@@ -602,7 +602,7 @@
               <span style="font-size:0.78rem;color:var(--text-secondary);display:block;">Copy individual items or copy all credentials together</span>
             </div>
             <button class="copy-all-btn" onclick="copyAppDetails('${app.application_number}', '${app.date_of_birth}', '${app.app_password}', this)">
-              📋 Copy All (App #, DOB, Password)
+              📋 Copy in 1-Line (App# DOB Password)
             </button>
           </div>
 
@@ -827,7 +827,7 @@
           <div style="background:rgba(255,255,255,0.65);border-radius:10px;padding:0.6rem 0.9rem;margin-bottom:0.85rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;border:1px solid var(--glass-border-subtle);">
             <span style="font-size:0.82rem;font-weight:600;color:var(--text-main);">Application Credentials</span>
             <button class="copy-all-btn" style="padding:0.35rem 0.75rem;font-size:0.78rem;" onclick="copyAppDetails('${app.application_number}', '${app.date_of_birth}', '${app.app_password}', this)">
-              📋 Copy All (App #, DOB, Pass)
+              📋 Copy 1-Line (App# DOB Pass)
             </button>
           </div>
 
@@ -927,10 +927,28 @@
       }
     }
 
+    // Format YYYY-MM-DD or YYYY/MM/DD to DD-MM-YYYY
+    function formatDob(dobStr) {
+      if (!dobStr) return '';
+      const str = dobStr.toString().trim();
+      const ymdMatch = str.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
+      if (ymdMatch) {
+        const y = ymdMatch[1];
+        const m = ymdMatch[2].padStart(2, '0');
+        const d = ymdMatch[3].padStart(2, '0');
+        return `${d}-${m}-${y}`;
+      }
+      return str;
+    }
+
     // Clipboard copy helper functions
     function copyItem(text, btnElement, label) {
       if (window.event) window.event.stopPropagation();
-      copyToClipboard(text);
+      let valToCopy = (text || '').toString().trim();
+      if (label === 'DOB') {
+        valToCopy = formatDob(valToCopy);
+      }
+      copyToClipboard(valToCopy);
       if (btnElement) {
         const originalText = btnElement.innerHTML;
         btnElement.innerHTML = `✅ Copied!`;
@@ -944,13 +962,15 @@
       }
     }
 
+    // Copy in exact single line like: "1234567890 10-12-2007 ABC123"
     function copyAppDetails(appNum, dob, password, btnElement) {
       if (window.event) window.event.stopPropagation();
-      const content = `Application Number: ${appNum}\nDate of Birth: ${dob}\nPassword: ${password}`;
-      copyToClipboard(content);
+      const formattedDob = formatDob(dob);
+      const oneLine = `${(appNum || '').toString().trim()} ${formattedDob} ${(password || '').toString().trim()}`;
+      copyToClipboard(oneLine);
       if (btnElement) {
         const originalText = btnElement.innerHTML;
-        btnElement.innerHTML = `✅ All Copied!`;
+        btnElement.innerHTML = `✅ Copied 1-Line!`;
         btnElement.style.color = '#15803d';
         btnElement.style.borderColor = '#15803d';
         setTimeout(() => {
