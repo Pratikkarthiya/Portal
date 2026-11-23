@@ -902,6 +902,57 @@ tr:hover td {
   border: 1px solid rgba(52, 199, 89, 0.3);
 }
 
+/* Quick Copy Buttons */
+.copy-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid var(--glass-border);
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--accent-blue);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.copy-badge:hover {
+  background: #ffffff;
+  color: var(--accent-blue);
+  box-shadow: 0 2px 6px rgba(0, 113, 227, 0.15);
+  transform: translateY(-1px);
+}
+
+.copy-badge:active {
+  transform: translateY(0);
+}
+
+.copy-all-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(0, 113, 227, 0.1);
+  color: var(--accent-blue);
+  border: 1px solid rgba(0, 113, 227, 0.25);
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--radius-ios-sm);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.copy-all-btn:hover {
+  background: var(--accent-blue);
+  color: white;
+  box-shadow: 0 4px 12px rgba(0, 113, 227, 0.25);
+}
+
+
 /* ==========================================================================
    PARTICULAR DASHBOARD SECTIONS & APPLE SEGMENTED CONTROLS
    ========================================================================== */

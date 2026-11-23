@@ -476,7 +476,12 @@
             <strong>${app.user_name || 'Candidate'}</strong>
             <div style="font-size:0.75rem;color:var(--text-secondary);">${app.user_email || ''}</div>
           </td>
-          <td><strong style="font-family:monospace;font-size:0.9rem;">${app.application_number}</strong></td>
+          <td>
+            <div style="display:flex;align-items:center;gap:4px;">
+              <strong style="font-family:monospace;font-size:0.9rem;">${app.application_number}</strong>
+              <button class="copy-badge" onclick="copyItem('${app.application_number}', this, 'App #')" title="Copy Application Number">📋 Copy</button>
+            </div>
+          </td>
           <td>
             ${app.photo_url ? `
               <a href="${app.photo_url}" target="_blank" title="Enlarge applicant photo">
@@ -485,8 +490,14 @@
             ` : '<span style="font-size:0.75rem;color:var(--text-tertiary);">No photo</span>'}
           </td>
           <td>
-            <div style="font-size:0.8rem;">DOB: ${app.date_of_birth}</div>
-            <div style="font-size:0.75rem;color:var(--text-secondary);">Pass: <code>${app.app_password}</code></div>
+            <div style="font-size:0.8rem;display:flex;align-items:center;margin-bottom:2px;">
+              <span>DOB: <strong>${app.date_of_birth}</strong></span>
+              <button class="copy-badge" style="padding:1px 5px;font-size:0.68rem;" onclick="copyItem('${app.date_of_birth}', this, 'DOB')" title="Copy Date of Birth">📋</button>
+            </div>
+            <div style="font-size:0.75rem;color:var(--text-secondary);display:flex;align-items:center;">
+              <span>Pass: <code>${app.app_password}</code></span>
+              <button class="copy-badge" style="padding:1px 5px;font-size:0.68rem;" onclick="copyItem('${app.app_password}', this, 'Password')" title="Copy Password">📋</button>
+            </div>
           </td>
           <td>
             ${app.payment_status === 'paid' ? 
@@ -501,7 +512,10 @@
             ${app.admin_remarks ? `<div style="font-size:0.72rem;color:var(--text-secondary);margin-top:2px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${app.admin_remarks}">💬 ${app.admin_remarks}</div>` : ''}
           </td>
           <td>
-            <button class="view-btn" style="background:rgba(0,113,227,0.15);" onclick="openSingleAppReview(${app.id})">🔍 Review</button>
+            <div style="display:flex;gap:0.35rem;align-items:center;">
+              <button class="copy-badge" style="padding:0.3rem 0.6rem;font-size:0.75rem;background:rgba(255,255,255,0.85);" onclick="copyAppDetails('${app.application_number}', '${app.date_of_birth}', '${app.app_password}', this)" title="Copy Application Number, DOB, and Password">📋 Copy All</button>
+              <button class="view-btn" style="background:rgba(0,113,227,0.15);" onclick="openSingleAppReview(${app.id})">🔍 Review</button>
+            </div>
           </td>
         </tr>
       `).join('');
@@ -580,6 +594,18 @@
               <span class="badge badge-${app.status}">${app.status}</span>
             </div>
           </div>
+
+          <!-- Quick Copy Banner -->
+          <div style="background:rgba(255,255,255,0.65);border-radius:10px;padding:0.75rem 1rem;margin-bottom:1rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;border:1px solid var(--glass-border-subtle);">
+            <div>
+              <span style="font-size:0.85rem;font-weight:600;color:var(--text-main);">Application Credentials:</span>
+              <span style="font-size:0.78rem;color:var(--text-secondary);display:block;">Copy individual items or copy all credentials together</span>
+            </div>
+            <button class="copy-all-btn" onclick="copyAppDetails('${app.application_number}', '${app.date_of_birth}', '${app.app_password}', this)">
+              📋 Copy All (App #, DOB, Password)
+            </button>
+          </div>
+
           <div class="review-card-content">
             <!-- Left Side: Applicant Photo -->
             ${app.photo_url ? `
@@ -591,12 +617,32 @@
               </div>
             ` : '<div style="font-size:0.85rem;color:var(--text-secondary);">No photo</div>'}
 
-            <!-- Right Side: Details & Payment Info -->
+            <!-- Right Side: Details & Payment Info with Copy Buttons -->
             <div class="field-grid">
-              <span class="label">Application #:</span><span><strong>${app.application_number}</strong></span>
-              <span class="label">Date of Birth:</span><span><strong>${app.date_of_birth}</strong></span>
-              <span class="label">App Password:</span><span><code style="background:rgba(255,255,255,0.7);padding:2px 6px;border-radius:4px;">${app.app_password}</code></span>
-              <span class="label">Bank UTR Number:</span><span><code style="background:rgba(255,255,255,0.8);padding:3px 8px;border-radius:6px;color:#d97706;font-weight:700;font-size:0.92rem;">${app.payment_id || 'PENDING 5TH APP'}</code></span>
+              <span class="label">Application #:</span>
+              <span>
+                <strong style="font-family:monospace;">${app.application_number}</strong>
+                <button class="copy-badge" onclick="copyItem('${app.application_number}', this, 'App #')">📋 Copy</button>
+              </span>
+
+              <span class="label">Date of Birth:</span>
+              <span>
+                <strong>${app.date_of_birth}</strong>
+                <button class="copy-badge" onclick="copyItem('${app.date_of_birth}', this, 'DOB')">📋 Copy</button>
+              </span>
+
+              <span class="label">App Password:</span>
+              <span>
+                <code style="background:rgba(255,255,255,0.7);padding:2px 6px;border-radius:4px;">${app.app_password}</code>
+                <button class="copy-badge" onclick="copyItem('${app.app_password}', this, 'Password')">📋 Copy</button>
+              </span>
+
+              <span class="label">Bank UTR Number:</span>
+              <span>
+                <code style="background:rgba(255,255,255,0.8);padding:3px 8px;border-radius:6px;color:#d97706;font-weight:700;font-size:0.92rem;">${app.payment_id || 'PENDING 5TH APP'}</code>
+                ${app.payment_id ? `<button class="copy-badge" onclick="copyItem('${app.payment_id}', this, 'UTR')">📋 Copy</button>` : ''}
+              </span>
+
               <span class="label">Payment Mode:</span><span>${app.payment_status === 'paid' ? '5-App Batch UPI to pratikkarthiya6@oksbi' : 'Awaiting 5-app batch settlement'}</span>
               <span class="label">Submitted:</span><span>${new Date(app.submitted_at).toLocaleString()}</span>
               <span class="label">Payment Receipt:</span>
@@ -776,6 +822,15 @@
               <span class="badge badge-${app.status}">${app.status}</span>
             </div>
           </div>
+
+          <!-- Quick Copy Banner -->
+          <div style="background:rgba(255,255,255,0.65);border-radius:10px;padding:0.6rem 0.9rem;margin-bottom:0.85rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;border:1px solid var(--glass-border-subtle);">
+            <span style="font-size:0.82rem;font-weight:600;color:var(--text-main);">Application Credentials</span>
+            <button class="copy-all-btn" style="padding:0.35rem 0.75rem;font-size:0.78rem;" onclick="copyAppDetails('${app.application_number}', '${app.date_of_birth}', '${app.app_password}', this)">
+              📋 Copy All (App #, DOB, Pass)
+            </button>
+          </div>
+
           <div class="review-card-content">
             <!-- Left Side: Applicant Photo -->
             ${app.photo_url ? `
@@ -787,11 +842,32 @@
               </div>
             ` : '<div style="font-size:0.85rem;color:var(--text-secondary);">No photo</div>'}
 
-            <!-- Right Side: Details & Payment Info -->
+            <!-- Right Side: Details & Payment Info with Copy Buttons -->
             <div class="field-grid">
-              <span class="label">Date of Birth:</span><span><strong>${app.date_of_birth}</strong></span>
-              <span class="label">App Password:</span><span><code style="background:rgba(255,255,255,0.7);padding:2px 6px;border-radius:4px;">${app.app_password}</code></span>
-              <span class="label">Bank UTR Number:</span><span><code style="background:rgba(255,255,255,0.8);padding:3px 8px;border-radius:6px;color:#d97706;font-weight:700;font-size:0.92rem;">${app.payment_id || 'PENDING 5TH APP'}</code></span>
+              <span class="label">Application #:</span>
+              <span>
+                <strong style="font-family:monospace;">${app.application_number}</strong>
+                <button class="copy-badge" onclick="copyItem('${app.application_number}', this, 'App #')">📋 Copy</button>
+              </span>
+
+              <span class="label">Date of Birth:</span>
+              <span>
+                <strong>${app.date_of_birth}</strong>
+                <button class="copy-badge" onclick="copyItem('${app.date_of_birth}', this, 'DOB')">📋 Copy</button>
+              </span>
+
+              <span class="label">App Password:</span>
+              <span>
+                <code style="background:rgba(255,255,255,0.7);padding:2px 6px;border-radius:4px;">${app.app_password}</code>
+                <button class="copy-badge" onclick="copyItem('${app.app_password}', this, 'Password')">📋 Copy</button>
+              </span>
+
+              <span class="label">Bank UTR Number:</span>
+              <span>
+                <code style="background:rgba(255,255,255,0.8);padding:3px 8px;border-radius:6px;color:#d97706;font-weight:700;font-size:0.92rem;">${app.payment_id || 'PENDING 5TH APP'}</code>
+                ${app.payment_id ? `<button class="copy-badge" onclick="copyItem('${app.payment_id}', this, 'UTR')">📋 Copy</button>` : ''}
+              </span>
+
               <span class="label">Payment Mode:</span><span>${app.payment_status === 'paid' ? '5-App Batch UPI to pratikkarthiya6@oksbi' : 'Awaiting 5-app batch settlement'}</span>
               <span class="label">Submitted:</span><span>${new Date(app.submitted_at).toLocaleString()}</span>
               <span class="label">Payment Receipt:</span>
@@ -849,6 +925,65 @@
         loadUsers();
         loadAllApplications();
       }
+    }
+
+    // Clipboard copy helper functions
+    function copyItem(text, btnElement, label) {
+      if (window.event) window.event.stopPropagation();
+      copyToClipboard(text);
+      if (btnElement) {
+        const originalText = btnElement.innerHTML;
+        btnElement.innerHTML = `✅ Copied!`;
+        btnElement.style.color = '#15803d';
+        btnElement.style.borderColor = '#15803d';
+        setTimeout(() => {
+          btnElement.innerHTML = originalText;
+          btnElement.style.color = '';
+          btnElement.style.borderColor = '';
+        }, 2000);
+      }
+    }
+
+    function copyAppDetails(appNum, dob, password, btnElement) {
+      if (window.event) window.event.stopPropagation();
+      const content = `Application Number: ${appNum}\nDate of Birth: ${dob}\nPassword: ${password}`;
+      copyToClipboard(content);
+      if (btnElement) {
+        const originalText = btnElement.innerHTML;
+        btnElement.innerHTML = `✅ All Copied!`;
+        btnElement.style.color = '#15803d';
+        btnElement.style.borderColor = '#15803d';
+        setTimeout(() => {
+          btnElement.innerHTML = originalText;
+          btnElement.style.color = '';
+          btnElement.style.borderColor = '';
+        }, 2000);
+      }
+    }
+
+    function copyToClipboard(text) {
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
+      } else {
+        fallbackCopy(text);
+      }
+    }
+
+    function fallbackCopy(text) {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.style.position = "fixed";
+      textArea.style.left = "-999999px";
+      textArea.style.top = "-999999px";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        document.execCommand('copy');
+      } catch (err) {
+        console.error('Fallback copy error', err);
+      }
+      document.body.removeChild(textArea);
     }
 
     function closeModal() {
