@@ -98,6 +98,17 @@ router.get('/users', requireAdmin, (req, res) => {
   res.json({ users });
 });
 
+// Get all applications across all users with user name and email
+router.get('/applications', requireAdmin, (req, res) => {
+  const applications = queryAll(`
+    SELECT a.*, u.name as user_name, u.email as user_email, u.application_fee
+    FROM applications a
+    JOIN users u ON a.user_id = u.id
+    ORDER BY a.submitted_at DESC
+  `);
+  res.json({ applications });
+});
+
 // Get specific user's applications & profile details
 router.get('/users/:userId/applications', requireAdmin, (req, res) => {
   const user = queryOne('SELECT id, name, email, application_fee, created_at FROM users WHERE id = ?', [Number(req.params.userId)]);

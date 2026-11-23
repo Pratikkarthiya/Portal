@@ -52,7 +52,7 @@ router.post('/logout', (req, res) => {
 // Check session
 router.get('/me', (req, res) => {
   if (req.session.userId) {
-    const user = queryOne('SELECT id, name, email FROM users WHERE id = ?', [req.session.userId]);
+    const user = queryOne('SELECT id, name, email, application_fee, created_at FROM users WHERE id = ?', [req.session.userId]);
     return res.json({ loggedIn: true, userType: 'user', user });
   }
   if (req.session.adminId) {

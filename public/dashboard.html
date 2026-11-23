@@ -22,80 +22,272 @@
   </nav>
 
   <div class="dashboard">
-    <div class="dashboard-header">
-      <h2>Applications Hub</h2>
+    <div class="dashboard-header" style="margin-bottom:1.25rem;">
+      <h2>Candidate Portal</h2>
     </div>
 
-    <!-- 5-Application Batch Progress Pill -->
-    <div style="background:var(--glass-bg-card);backdrop-filter:var(--ios-blur);border:1px solid var(--glass-border);border-radius:var(--radius-ios-md);padding:1.25rem 1.5rem;margin-bottom:1.75rem;box-shadow:var(--glass-shadow);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;">
-      <div style="flex:1;min-width:260px;">
-        <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.4rem;">
-          <span style="font-size:1.2rem;">📦</span>
-          <span style="font-weight:700;font-size:1rem;color:var(--text-main);">5-Application Batch Cycle</span>
-          <span class="badge" id="batchBadge" style="background:rgba(0,113,227,0.15);color:var(--accent-blue);font-size:0.75rem;">Slot 1 of 5</span>
-        </div>
-        <div style="font-size:0.82rem;color:var(--text-secondary);" id="batchExplainer">
-          Applications 1 to 4 submit without payment. On the 5th application, pay for all 5 applications together.
+    <!-- Particular Section Switcher: Apple iOS Segmented Tabs -->
+    <div class="ios-segmented-tabs" id="userTabs">
+      <button class="ios-tab-btn active" onclick="switchSection('batch')">📦 Batch Cycle</button>
+      <button class="ios-tab-btn" onclick="switchSection('submit')">📝 Submit Application</button>
+      <button class="ios-tab-btn" onclick="switchSection('apps')">📑 My Applications</button>
+      <button class="ios-tab-btn" onclick="switchSection('profile')">👤 My Profile & Fee</button>
+      <button class="ios-tab-btn" onclick="switchSection('payments')">💳 Payments & Receipts</button>
+    </div>
+
+    <!-- ========================================================
+         SECTION 1: 5-APPLICATION BATCH CYCLE & OVERVIEW
+         ======================================================== -->
+    <div class="dashboard-section active" id="section-batch">
+      <!-- 5-Application Batch Progress Pill -->
+      <div style="background:var(--glass-bg-card);backdrop-filter:var(--ios-blur);border:1px solid var(--glass-border);border-radius:var(--radius-ios-md);padding:1.5rem 1.75rem;margin-bottom:1.5rem;box-shadow:var(--glass-shadow);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1.25rem;">
+        <div style="flex:1;min-width:280px;">
+          <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.4rem;">
+            <span style="font-size:1.3rem;">📦</span>
+            <span style="font-weight:700;font-size:1.05rem;color:var(--text-main);">5-Application Batch Cycle</span>
+            <span class="badge" id="batchBadge" style="background:rgba(0,113,227,0.15);color:var(--accent-blue);font-size:0.75rem;">Slot 1 of 5</span>
+          </div>
+          <div style="font-size:0.85rem;color:var(--text-secondary);line-height:1.45;" id="batchExplainer">
+            Applications 1 to 4 submit without payment. On the 5th application, pay for all 5 applications together.
+          </div>
+
+          <!-- 5-Segment Progress Bar -->
+          <div style="display:flex;gap:7px;margin-top:0.85rem;" id="progressSegments">
+            <div class="segment" style="flex:1;height:10px;border-radius:5px;background:rgba(255,255,255,0.5);border:1px solid var(--glass-border);"></div>
+            <div class="segment" style="flex:1;height:10px;border-radius:5px;background:rgba(255,255,255,0.5);border:1px solid var(--glass-border);"></div>
+            <div class="segment" style="flex:1;height:10px;border-radius:5px;background:rgba(255,255,255,0.5);border:1px solid var(--glass-border);"></div>
+            <div class="segment" style="flex:1;height:10px;border-radius:5px;background:rgba(255,255,255,0.5);border:1px solid var(--glass-border);"></div>
+            <div class="segment" style="flex:1;height:10px;border-radius:5px;background:rgba(255,255,255,0.5);border:1px solid var(--glass-border);"></div>
+          </div>
         </div>
 
-        <!-- 5-Segment Progress Bar -->
-        <div style="display:flex;gap:6px;margin-top:0.75rem;" id="progressSegments">
-          <div class="segment" style="flex:1;height:8px;border-radius:4px;background:rgba(255,255,255,0.5);border:1px solid var(--glass-border);"></div>
-          <div class="segment" style="flex:1;height:8px;border-radius:4px;background:rgba(255,255,255,0.5);border:1px solid var(--glass-border);"></div>
-          <div class="segment" style="flex:1;height:8px;border-radius:4px;background:rgba(255,255,255,0.5);border:1px solid var(--glass-border);"></div>
-          <div class="segment" style="flex:1;height:8px;border-radius:4px;background:rgba(255,255,255,0.5);border:1px solid var(--glass-border);"></div>
-          <div class="segment" style="flex:1;height:8px;border-radius:4px;background:rgba(255,255,255,0.5);border:1px solid var(--glass-border);"></div>
+        <div style="text-align:right;">
+          <div style="font-size:0.75rem;color:var(--text-secondary);text-transform:uppercase;font-weight:600;">5-App Batch Total</div>
+          <div style="font-size:1.8rem;font-weight:800;color:var(--accent-blue);" id="batchTotalDisplay">₹250.00</div>
+          <div style="font-size:0.75rem;color:var(--text-tertiary);" id="singleFeeNote">(₹50.00 / application)</div>
         </div>
       </div>
 
-      <div style="text-align:right;">
-        <div style="font-size:0.75rem;color:var(--text-secondary);text-transform:uppercase;font-weight:600;">5-App Batch Total</div>
-        <div style="font-size:1.6rem;font-weight:800;color:var(--accent-blue);" id="batchTotalDisplay">₹250.00</div>
-        <div style="font-size:0.75rem;color:var(--text-tertiary);" id="singleFeeNote">(₹50.00 / application)</div>
+      <!-- Quick Action Cards Grid -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));gap:1.25rem;margin-bottom:1.5rem;">
+        <div class="profile-card" style="display:flex;flex-direction:column;justify-content:space-between;">
+          <div>
+            <h4><span>📝</span> Submit Application</h4>
+            <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:1rem;">
+              Fill in application number, DOB, password, and attach mandatory candidate photo.
+            </p>
+          </div>
+          <button class="btn btn-primary" onclick="switchSection('submit')" style="width:100%;">
+            ➕ Go to Application Form
+          </button>
+        </div>
+
+        <div class="profile-card" style="display:flex;flex-direction:column;justify-content:space-between;">
+          <div>
+            <h4><span>📑</span> Track Submissions</h4>
+            <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:1rem;">
+              Check approval status, review admin remarks, and verify bank UTR settlement.
+            </p>
+          </div>
+          <button class="btn btn-primary" onclick="switchSection('apps')" style="width:100%;background:rgba(0,113,227,0.15);color:var(--accent-blue);box-shadow:none;">
+            👁️ View My Applications (<span id="quickAppCount">0</span>)
+          </button>
+        </div>
+
+        <div class="profile-card" style="display:flex;flex-direction:column;justify-content:space-between;">
+          <div>
+            <h4><span>⚡</span> Payment Policy</h4>
+            <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:1rem;">
+              Pay via UPI to <strong>pratikkarthiya6@oksbi</strong> when the 5th application is reached.
+            </p>
+          </div>
+          <button class="btn btn-primary" onclick="switchSection('payments')" style="width:100%;background:rgba(52,199,89,0.15);color:var(--accent-green);box-shadow:none;">
+            💳 View Payment Records
+          </button>
+        </div>
       </div>
     </div>
 
-    <!-- Submit New Application Glass Card -->
-    <div class="submit-card">
-      <h3 id="formTitle"><span>📝</span> Submit Application #1</h3>
-      <div class="alert alert-error" id="submitError"></div>
-      <div class="alert alert-success" id="submitSuccess"></div>
+    <!-- ========================================================
+         SECTION 2: SUBMIT APPLICATION
+         ======================================================== -->
+    <div class="dashboard-section" id="section-submit">
+      <div class="submit-card">
+        <h3 id="formTitle"><span>📝</span> Submit Application</h3>
+        <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:1.25rem;">
+          Submit your candidate application details and passport photograph.
+        </p>
+        <div class="alert alert-error" id="submitError"></div>
+        <div class="alert alert-success" id="submitSuccess"></div>
 
-      <form id="submitForm" enctype="multipart/form-data">
-        <div class="form-row">
-          <div class="form-group">
-            <label>Application Number</label>
-            <input type="text" name="applicationNumber" id="appNumberInput" required placeholder="e.g. APP-2026-8801">
+        <form id="submitForm" enctype="multipart/form-data">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Application Number *</label>
+              <input type="text" name="applicationNumber" id="appNumberInput" required placeholder="e.g. APP-2026-8801">
+            </div>
+            <div class="form-group">
+              <label>Date of Birth *</label>
+              <input type="date" name="dateOfBirth" id="dobInput" required>
+            </div>
           </div>
-          <div class="form-group">
-            <label>Date of Birth</label>
-            <input type="date" name="dateOfBirth" id="dobInput" required>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Application Password *</label>
+              <input type="password" name="appPassword" id="appPasswordInput" required placeholder="Enter password for this app">
+            </div>
+            <div class="form-group">
+              <label>Applicant Photo (Required) *</label>
+              <input type="file" name="photo" id="photoInput" accept="image/*" required onchange="previewPhoto(this)">
+              <div class="photo-preview-box" id="photoPreviewBox">
+                <img id="photoPreviewImg" src="" alt="Photo preview">
+                <span style="font-size:0.8rem;color:var(--text-secondary);" id="photoPreviewName"></span>
+              </div>
+            </div>
           </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Application Password</label>
-            <input type="password" name="appPassword" id="appPasswordInput" required placeholder="Enter password for this app">
-          </div>
-          <div class="form-group">
-            <label>Applicant Photo (Required)</label>
-            <input type="file" name="photo" id="photoInput" accept="image/*" required>
-          </div>
-        </div>
 
-        <!-- Dynamic Action Button -->
-        <button type="submit" class="btn btn-primary" id="submitBtn" style="width:100%;padding:0.9rem;font-size:1rem;margin-top:0.5rem;">
-          🚀 Submit Application (Free for Now)
-        </button>
-      </form>
+          <!-- Dynamic Action Button -->
+          <button type="submit" class="btn btn-primary" id="submitBtn" style="width:100%;padding:0.9rem;font-size:1rem;margin-top:0.5rem;">
+            🚀 Submit Application (Free for Now)
+          </button>
+        </form>
+      </div>
     </div>
 
-    <!-- Applications List -->
-    <h3 style="margin-bottom:1.25rem;color:white;font-size:1.3rem;text-shadow:0 2px 8px rgba(0,0,0,0.25);">Your Submitted Applications</h3>
-    <div class="app-list" id="appList">
-      <div class="empty-state">
-        <div class="icon">📭</div>
-        <p>Loading applications...</p>
+    <!-- ========================================================
+         SECTION 3: MY APPLICATIONS (WITH FILTERS & SEARCH)
+         ======================================================== -->
+    <div class="dashboard-section" id="section-apps">
+      <div class="toolbar-bar">
+        <div class="search-input-wrapper">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="appSearchInput" placeholder="Search by Application Number..." oninput="filterUserApplications()">
+        </div>
+
+        <div class="filter-pills" id="appFilterPills">
+          <button class="filter-pill active" onclick="setAppFilter('all')">All</button>
+          <button class="filter-pill" onclick="setAppFilter('pending')">Pending</button>
+          <button class="filter-pill" onclick="setAppFilter('approved')">Approved</button>
+          <button class="filter-pill" onclick="setAppFilter('rejected')">Rejected</button>
+          <button class="filter-pill" onclick="setAppFilter('paid')">Batch Paid</button>
+          <button class="filter-pill" onclick="setAppFilter('unpaid')">Unpaid</button>
+        </div>
+      </div>
+
+      <div class="app-list" id="appList">
+        <div class="empty-state">
+          <div class="icon">📭</div>
+          <p>Loading applications...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================
+         SECTION 4: MY PROFILE & APPLICATION FEE CONTROLS
+         ======================================================== -->
+    <div class="dashboard-section" id="section-profile">
+      <div class="section-header-card">
+        <div>
+          <h3><span>👤</span> Candidate Profile & Pricing Terms</h3>
+          <p>Your candidate account information and administrator-assigned application fee rate.</p>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="switchSection('submit')">➕ Submit New App</button>
+      </div>
+
+      <div class="profile-grid">
+        <div class="profile-card">
+          <h4><span>ℹ️</span> Account Information</h4>
+          <div class="profile-item">
+            <span class="label">Full Name</span>
+            <span class="value" id="profName">-</span>
+          </div>
+          <div class="profile-item">
+            <span class="label">Email Address (Login ID)</span>
+            <span class="value" id="profEmail">-</span>
+          </div>
+          <div class="profile-item">
+            <span class="label">Candidate ID</span>
+            <span class="value" id="profId">-</span>
+          </div>
+          <div class="profile-item">
+            <span class="label">Registration Date</span>
+            <span class="value" id="profRegistered">-</span>
+          </div>
+        </div>
+
+        <div class="profile-card">
+          <h4><span>💰</span> Application Fee Structure</h4>
+          <div class="profile-item">
+            <span class="label">Single Application Fee</span>
+            <span class="value" style="color:var(--accent-blue);" id="profSingleFee">₹50.00</span>
+          </div>
+          <div class="profile-item">
+            <span class="label">5-Batch Cycle Fee</span>
+            <span class="value" style="font-weight:700;color:var(--accent-blue);" id="profBatchFee">₹250.00</span>
+          </div>
+          <div class="profile-item">
+            <span class="label">Billing Mode</span>
+            <span class="value"><span class="badge badge-approved" style="font-size:0.75rem;">5-App Batch</span></span>
+          </div>
+          <div class="profile-item">
+            <span class="label">Payment Status</span>
+            <span class="value" id="profBatchDue">Apps 1–4 Free</span>
+          </div>
+        </div>
+
+        <div class="profile-card">
+          <h4><span>📊</span> Submission Summary</h4>
+          <div class="profile-item">
+            <span class="label">Total Applications</span>
+            <span class="value" id="profTotalApps">0</span>
+          </div>
+          <div class="profile-item">
+            <span class="label">Approved</span>
+            <span class="value" style="color:var(--accent-green);" id="profApproved">0</span>
+          </div>
+          <div class="profile-item">
+            <span class="label">Pending Review</span>
+            <span class="value" style="color:var(--accent-orange);" id="profPending">0</span>
+          </div>
+          <div class="profile-item">
+            <span class="label">Total Fees Settled</span>
+            <span class="value" style="color:var(--accent-green);font-weight:700;" id="profTotalPaid">₹0.00</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================
+         SECTION 5: PAYMENTS & RECEIPTS LEDGER
+         ======================================================== -->
+    <div class="dashboard-section" id="section-payments">
+      <div class="section-header-card">
+        <div>
+          <h3><span>💳</span> Batch Payments & Bank UTR Ledger</h3>
+          <p>Record of settled 5-application batches, transaction references, and payment receipts.</p>
+        </div>
+        <div style="font-size:0.85rem;color:var(--text-secondary);">
+          Beneficiary: <strong>Pratik Karthiya</strong> (<code>pratikkarthiya6@oksbi</code>)
+        </div>
+      </div>
+
+      <div class="users-table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Batch Applications</th>
+              <th>Amount Settled</th>
+              <th>Bank UTR / Ref #</th>
+              <th>Date Settled</th>
+              <th>Receipt Screenshot</th>
+              <th>Payment Status</th>
+            </tr>
+          </thead>
+          <tbody id="paymentLedgerBody">
+            <tr><td colspan="7" style="text-align:center;padding:2.5rem;color:var(--text-secondary)">No payment records yet.</td></tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
@@ -119,80 +311,117 @@
         <div style="font-size:0.8rem;color:var(--text-tertiary);margin-bottom:0.4rem;">UPI VPA: <code>pratikkarthiya6@oksbi</code></div>
         <div style="font-size:2.3rem;font-weight:800;color:var(--accent-blue);margin-bottom:1rem;" id="modalFeeAmount">₹250.00</div>
 
-        <!-- Dynamic QR Container -->
-        <div style="background:white;padding:16px;border-radius:20px;display:inline-block;box-shadow:0 10px 30px rgba(0,0,0,0.12);margin-bottom:1rem;" id="qrCodeContainer">
-          <div id="qrcode"></div>
+        <!-- High-contrast QR code container -->
+        <div style="display:flex;justify-content:center;margin-bottom:1.25rem;">
+          <div id="qrcode" style="background:#ffffff;padding:12px;border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,0.12);display:inline-block;min-width:180px;min-height:180px;"></div>
         </div>
 
-        <div style="font-size:0.88rem;font-weight:600;color:var(--text-main);margin-bottom:0.25rem;">Scan & Pay Total with any UPI App</div>
-        <div style="font-size:0.78rem;color:var(--text-secondary);margin-bottom:1rem;">GPay • PhonePe • Paytm • CRED • BHIM • SBI Yono</div>
+        <!-- Open in UPI app (GPay / PhonePe / Paytm / BHIM) -->
+        <a id="upiIntentLink" href="#" class="btn btn-primary" style="display:block;margin-bottom:1.25rem;text-decoration:none;font-size:0.95rem;padding:0.75rem;">
+          📱 Open in GPay / PhonePe / UPI App
+        </a>
 
-        <div style="margin-bottom:1.25rem;">
-          <a id="upiIntentLink" href="#" class="btn btn-outline" style="width:100%;font-size:0.88rem;padding:0.65rem;">
-            📱 Pay Directly via UPI App
-          </a>
-        </div>
-
-        <!-- Manual UTR Entry Box -->
-        <div style="background:rgba(255,255,255,0.7);border:1.5px solid var(--accent-orange);border-radius:var(--radius-ios-sm);padding:1rem;margin-bottom:1rem;text-align:left;">
-          <label style="font-size:0.85rem;font-weight:700;display:block;margin-bottom:0.35rem;color:#b45309;">
-            📌 12-Digit Bank UTR / Ref Number (Required)
+        <!-- 12-Digit Manual Bank UTR & Screenshot Verification Input -->
+        <div style="background:rgba(255,255,255,0.6);border:1px solid var(--glass-border);border-radius:12px;padding:1.1rem;text-align:left;">
+          <label style="font-weight:700;font-size:0.85rem;display:block;margin-bottom:0.35rem;color:var(--text-main);">
+            Enter 12-Digit Bank UTR / Transaction ID *
           </label>
-          <input type="text" id="manualUtrInput" required placeholder="e.g. 423189920192" maxlength="22" style="width:100%;padding:0.65rem 0.85rem;border:1.5px solid var(--glass-border);border-radius:8px;font-size:0.95rem;background:white;font-weight:600;letter-spacing:1px;">
-        </div>
+          <input type="text" id="manualUtrInput" placeholder="e.g. 432109876543 (Required)" maxlength="20" style="width:100%;padding:0.65rem 0.85rem;border-radius:8px;border:1px solid var(--glass-border);margin-bottom:0.85rem;font-size:0.9rem;font-weight:600;letter-spacing:0.5px;">
 
-        <!-- Payment Screenshot Upload Box -->
-        <div style="background:rgba(255,255,255,0.7);border:1.5px solid var(--glass-border);border-radius:var(--radius-ios-sm);padding:1rem;margin-bottom:1.25rem;text-align:left;">
-          <label style="font-size:0.85rem;font-weight:700;display:block;margin-bottom:0.35rem;color:var(--text-main);">
-            📸 Attach Payment Screenshot / Receipt (Optional)
+          <label style="font-weight:700;font-size:0.85rem;display:block;margin-bottom:0.35rem;color:var(--text-main);">
+            Attach Payment Screenshot / Receipt (Optional)
           </label>
-          <input type="file" id="paymentScreenshotInput" accept="image/*" style="width:100%;padding:0.5rem;background:white;border-radius:8px;border:1px dashed var(--glass-border);cursor:pointer;font-size:0.82rem;">
-          <small style="color:var(--text-secondary);font-size:0.75rem;margin-top:4px;display:block;">
-            Upload GPay / PhonePe / Paytm payment confirmation screenshot for fast verification.
-          </small>
-        </div>
+          <input type="file" id="paymentScreenshotInput" accept="image/*" style="width:100%;font-size:0.82rem;color:var(--text-secondary);margin-bottom:0.85rem;">
 
-        <button class="btn btn-primary" id="confirmPaymentBtn" style="width:100%;padding:0.85rem;" onclick="finalizeBatchSubmission()">
-          ✅ Submit 5th Application & Settle All 5
-        </button>
+          <button class="btn btn-primary" id="confirmPaymentBtn" onclick="finalizeBatchSubmission()" style="width:100%;justify-content:center;padding:0.8rem;background:linear-gradient(135deg,#34c759 0%,#248a3d 100%);border:none;color:white;font-weight:700;">
+            ✅ Submit 5th Application & Settle All 5
+          </button>
+        </div>
       </div>
     </div>
   </div>
 
   <script>
-    let pendingFormData = null;
-    let singleFee = 50.00;
-    let batchTotal = 250.00;
-    let unpaidCount = 0;
     let is5thApplication = false;
+    let batchTotal = 250.00;
+    let singleFee = 50.00;
+    let pendingFormData = null;
+    let allUserApplications = [];
+    let currentAppFilter = 'all';
+    let currentUserProfile = null;
 
     const MERCHANT_VPA = 'pratikkarthiya6@oksbi';
     const MERCHANT_NAME = 'Pratik Karthiya';
 
+    function switchSection(sectionId) {
+      document.querySelectorAll('.dashboard-section').forEach(el => el.classList.remove('active'));
+      const target = document.getElementById('section-' + sectionId);
+      if (target) target.classList.add('active');
+
+      const tabs = document.querySelectorAll('#userTabs .ios-tab-btn');
+      tabs.forEach(btn => btn.classList.remove('active'));
+
+      const map = { 'batch': 0, 'submit': 1, 'apps': 2, 'profile': 3, 'payments': 4 };
+      if (tabs[map[sectionId]]) tabs[map[sectionId]].classList.add('active');
+    }
+
     fetch('/api/auth/me').then(r => r.json()).then(data => {
       if (!data.loggedIn || data.userType !== 'user') {
-        window.location.href = '/login';
+        window.location.href = '/';
         return;
       }
-      document.getElementById('userName').textContent = `${data.user.name}`;
+      currentUserProfile = data.user;
+      document.getElementById('userName').textContent = '👤 ' + data.user.name;
+      
+      // Populate Profile Section
+      document.getElementById('profName').textContent = data.user.name;
+      document.getElementById('profEmail').textContent = data.user.email;
+      document.getElementById('profId').textContent = '#' + data.user.id;
+      if (data.user.created_at) {
+        document.getElementById('profRegistered').textContent = new Date(data.user.created_at).toLocaleDateString();
+      }
+
       loadBatchStatus();
       loadApplications();
     });
+
+    function previewPhoto(input) {
+      const box = document.getElementById('photoPreviewBox');
+      const img = document.getElementById('photoPreviewImg');
+      const name = document.getElementById('photoPreviewName');
+      if (input.files && input.files[0]) {
+        const file = input.files[0];
+        name.textContent = `${file.name} (${(file.size / 1024).toFixed(0)} KB)`;
+        const reader = new FileReader();
+        reader.onload = e => {
+          img.src = e.target.result;
+          box.style.display = 'flex';
+        };
+        reader.readAsDataURL(file);
+      } else {
+        box.style.display = 'none';
+      }
+    }
 
     async function loadBatchStatus() {
       try {
         const res = await fetch('/api/user/batch-status');
         if (res.ok) {
-          const s = await res.json();
-          unpaidCount = s.unpaidCount || 0;
-          singleFee = s.feePerApp || 50.00;
-          batchTotal = singleFee * 5;
+          const b = await res.json();
+          singleFee = b.feePerApp || 50.00;
+          batchTotal = b.batchTotal || (singleFee * 5);
+          const unpaidCount = b.unpaidCount || 0;
 
           const currentSlot = (unpaidCount % 5) + 1;
           is5thApplication = (unpaidCount % 5) === 4;
 
           document.getElementById('batchTotalDisplay').textContent = `₹${batchTotal.toFixed(2)}`;
           document.getElementById('singleFeeNote').textContent = `(₹${singleFee.toFixed(2)} / application)`;
+
+          // Profile view fees
+          document.getElementById('profSingleFee').textContent = `₹${singleFee.toFixed(2)}`;
+          document.getElementById('profBatchFee').textContent = `₹${batchTotal.toFixed(2)}`;
+          document.getElementById('profBatchDue').textContent = is5thApplication ? 'Slot 5/5: Payment Due' : `Slot ${currentSlot}/5: Apps 1-4 Free`;
 
           const segments = document.querySelectorAll('#progressSegments .segment');
           segments.forEach((seg, idx) => {
@@ -254,6 +483,7 @@
           document.getElementById('submitSuccess').classList.add('show');
           document.getElementById('submitError').classList.remove('show');
           document.getElementById('submitForm').reset();
+          document.getElementById('photoPreviewBox').style.display = 'none';
           loadBatchStatus();
           loadApplications();
           setTimeout(() => document.getElementById('submitSuccess').classList.remove('show'), 5000);
@@ -334,6 +564,7 @@
           document.getElementById('submitSuccess').classList.add('show');
           document.getElementById('submitError').classList.remove('show');
           document.getElementById('submitForm').reset();
+          document.getElementById('photoPreviewBox').style.display = 'none';
           loadBatchStatus();
           loadApplications();
           setTimeout(() => document.getElementById('submitSuccess').classList.remove('show'), 6000);
@@ -351,14 +582,58 @@
     async function loadApplications() {
       const res = await fetch('/api/user/applications');
       const data = await res.json();
-      const list = document.getElementById('appList');
+      allUserApplications = data.applications || [];
 
-      if (!data.applications || data.applications.length === 0) {
-        list.innerHTML = `<div class="empty-state"><div class="icon">📭</div><p>No applications submitted yet. Use the card above to make your first submission.</p></div>`;
+      // Update counters
+      const total = allUserApplications.length;
+      const approved = allUserApplications.filter(a => a.status === 'approved').length;
+      const pending = allUserApplications.filter(a => a.status === 'pending').length;
+      const paid = allUserApplications.filter(a => a.payment_status === 'paid');
+      const totalPaidAmount = paid.reduce((sum, a) => sum + (a.payment_amount || 0), 0);
+
+      document.getElementById('quickAppCount').textContent = total;
+      document.getElementById('profTotalApps').textContent = total;
+      document.getElementById('profApproved').textContent = approved;
+      document.getElementById('profPending').textContent = pending;
+      document.getElementById('profTotalPaid').textContent = `₹${totalPaidAmount.toFixed(2)}`;
+
+      renderApplicationsList();
+      renderPaymentLedger();
+    }
+
+    function setAppFilter(filter) {
+      currentAppFilter = filter;
+      document.querySelectorAll('#appFilterPills .filter-pill').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+      renderApplicationsList();
+    }
+
+    function filterUserApplications() {
+      renderApplicationsList();
+    }
+
+    function renderApplicationsList() {
+      const list = document.getElementById('appList');
+      const query = (document.getElementById('appSearchInput') ? document.getElementById('appSearchInput').value : '').toLowerCase().trim();
+
+      let filtered = allUserApplications;
+
+      if (currentAppFilter === 'pending') filtered = filtered.filter(a => a.status === 'pending');
+      else if (currentAppFilter === 'approved') filtered = filtered.filter(a => a.status === 'approved');
+      else if (currentAppFilter === 'rejected') filtered = filtered.filter(a => a.status === 'rejected');
+      else if (currentAppFilter === 'paid') filtered = filtered.filter(a => a.payment_status === 'paid');
+      else if (currentAppFilter === 'unpaid') filtered = filtered.filter(a => a.payment_status === 'unpaid');
+
+      if (query) {
+        filtered = filtered.filter(a => (a.application_number || '').toLowerCase().includes(query));
+      }
+
+      if (filtered.length === 0) {
+        list.innerHTML = `<div class="empty-state"><div class="icon">📭</div><p>No matching applications found.</p></div>`;
         return;
       }
 
-      list.innerHTML = data.applications.map(app => `
+      list.innerHTML = filtered.map(app => `
         <div class="app-card">
           ${app.photo_url ? `<a href="${app.photo_url}" target="_blank" title="View Full Photo"><img src="${app.photo_url}" alt="App Photo" class="app-thumb"></a>` : ''}
           <div class="app-info">
@@ -376,6 +651,54 @@
           </div>
           <span class="badge badge-${app.status}">${app.status}</span>
         </div>
+      `).join('');
+    }
+
+    function renderPaymentLedger() {
+      const tbody = document.getElementById('paymentLedgerBody');
+      const paidApps = allUserApplications.filter(a => a.payment_status === 'paid');
+
+      if (paidApps.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2.5rem;color:var(--text-secondary)">No batch payments settled yet. Payments are recorded when you complete 5 applications.</td></tr>';
+        return;
+      }
+
+      // Group by payment_id (UTR)
+      const batches = {};
+      paidApps.forEach(a => {
+        const utr = a.payment_id || 'Unknown-Ref';
+        if (!batches[utr]) {
+          batches[utr] = {
+            utr,
+            apps: [],
+            totalAmount: 0,
+            date: a.paid_at || a.submitted_at,
+            receiptUrl: a.payment_screenshot_url
+          };
+        }
+        batches[utr].apps.push(a.application_number);
+        batches[utr].totalAmount += (a.payment_amount || 0);
+        if (!batches[utr].receiptUrl && a.payment_screenshot_url) {
+          batches[utr].receiptUrl = a.payment_screenshot_url;
+        }
+      });
+
+      const rows = Object.values(batches);
+      tbody.innerHTML = rows.map((b, idx) => `
+        <tr>
+          <td>${idx + 1}</td>
+          <td>
+            <div style="font-weight:600;font-size:0.85rem;">${b.apps.join(', ')}</div>
+            <small style="color:var(--text-secondary);">${b.apps.length} applications batch</small>
+          </td>
+          <td><strong style="color:var(--accent-blue);">₹${b.totalAmount.toFixed(2)}</strong></td>
+          <td><code style="font-weight:700;background:rgba(255,255,255,0.6);padding:2px 8px;border-radius:4px;">${b.utr}</code></td>
+          <td>${new Date(b.date).toLocaleDateString()}</td>
+          <td>
+            ${b.receiptUrl ? `<a href="${b.receiptUrl}" target="_blank" class="view-btn" style="padding:0.25rem 0.6rem;font-size:0.75rem;text-decoration:none;">🧾 Receipt</a>` : '<span style="color:var(--text-tertiary);font-size:0.8rem;">No file</span>'}
+          </td>
+          <td><span class="badge badge-approved">Settled</span></td>
+        </tr>
       `).join('');
     }
 
