@@ -20,3 +20,16 @@ export function jsonResponse(data, status = 200, headers = {}) {
     }
   });
 }
+
+// Safely convert ArrayBuffer to Base64 in chunks without call-stack overflow
+export function arrayBufferToBase64(buffer) {
+  let binary = '';
+  const bytes = new Uint8Array(buffer);
+  const len = bytes.byteLength;
+  const chunkSize = 8192;
+  for (let i = 0; i < len; i += chunkSize) {
+    const chunk = bytes.subarray(i, Math.min(i + chunkSize, len));
+    binary += String.fromCharCode.apply(null, chunk);
+  }
+  return btoa(binary);
+}

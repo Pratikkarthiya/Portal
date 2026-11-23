@@ -412,9 +412,9 @@
     }
 
     // Auto-compress large photos up to 10MB down to optimal portal size
-    function compressImage(file, maxDimension = 1200, quality = 0.85) {
+    function compressImage(file, maxDimension = 900, quality = 0.75) {
       return new Promise((resolve) => {
-        if (!file || !file.type.startsWith('image/') || file.size < 150 * 1024) {
+        if (!file || !file.type.startsWith('image/')) {
           return resolve(file);
         }
         const reader = new FileReader();
@@ -443,7 +443,7 @@
             ctx.drawImage(img, 0, 0, width, height);
 
             canvas.toBlob((blob) => {
-              if (blob && blob.size < file.size) {
+              if (blob) {
                 const compressed = new File([blob], file.name.replace(/\.[^/.]+$/, ".jpg"), {
                   type: 'image/jpeg',
                   lastModified: Date.now()
@@ -637,8 +637,8 @@
           method: 'POST',
           body: pendingFormData
         });
-        const data = await res.json();
-        if (data.success) {
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.success) {
           closeYoupiModal();
           document.getElementById('submitSuccess').textContent = `✅ ${data.message}`;
           document.getElementById('submitSuccess').classList.add('show');
@@ -649,10 +649,10 @@
           loadApplications();
           setTimeout(() => document.getElementById('submitSuccess').classList.remove('show'), 6000);
         } else {
-          alert(data.error || 'Submission failed');
+          alert(data.error || `Payment submission failed (HTTP ${res.status}). Please verify your UTR and retry.`);
         }
       } catch (err) {
-        alert('An error occurred during submission.');
+        alert('Submission failed: ' + (err.message || 'Please check your connection and retry.'));
       } finally {
         confirmBtn.disabled = false;
         confirmBtn.textContent = '✅ Submit 5th Application & Settle All 5';
