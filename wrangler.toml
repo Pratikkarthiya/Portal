@@ -9,7 +9,7 @@ directory = "./public"
 [[d1_databases]]
 binding = "DB"
 database_name = "portal-db"
-database_id = "YOUR_CLOUDFLARE_D1_DATABASE_ID"
+database_id = "3af83a12-cd82-40e2-9036-7e8057152407"
 
 # Cloudflare R2 Storage (Optional for photos & receipts)
 [[r2_buckets]]
