@@ -11,8 +11,8 @@ const app = express();
 const PORT = 3000;
 
 // Body Parsers (placed before routes so req.body is parsed)
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '25mb' }));
+app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Session Middleware (placed before all API routes so req.session is populated)

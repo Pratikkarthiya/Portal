@@ -36,6 +36,10 @@ export async function onRequestPost({ request, env }) {
     return jsonResponse({ error: 'Photo is required' }, 400);
   }
 
+  if (photo.size > 12 * 1024 * 1024) {
+    return jsonResponse({ error: 'Photo exceeds 10 MB limit. Please select a photo up to 10 MB.' }, 400);
+  }
+
   let photoUrl = '';
   const photoKey = `photo-${Date.now()}-${Math.round(Math.random() * 1e9)}.jpg`;
   if (env.UPLOADS) {
