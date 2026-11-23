@@ -50,6 +50,6 @@ CREATE TABLE IF NOT EXISTS sessions (
   expires_at DATETIME NOT NULL
 );
 
--- 5. Seed default admin: admin / admin123 ($2a$10$vI8aWBnW3fID.ZQ4/zo1G.q1lRps.9cGLcZEiGPEWi9GQOGfuIpWC)
+-- 5. Seed default admin: Pratik / Pratik@6161
 INSERT OR IGNORE INTO admins (id, username, password) 
-VALUES (1, 'admin', '$2a$10$vI8aWBnW3fID.ZQ4/zo1G.q1lRps.9cGLcZEiGPEWi9GQOGfuIpWC');
+VALUES (1, 'Pratik', 'Pratik@6161');

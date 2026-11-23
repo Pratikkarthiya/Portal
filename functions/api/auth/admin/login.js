@@ -12,19 +12,19 @@ export async function onRequestPost({ request, env }) {
     return jsonResponse({ error: 'Invalid admin credentials' }, 401);
   }
 
-  // Simple edge-safe verification (admin123)
-  if (password !== 'admin123') {
-    return jsonResponse({ error: 'Invalid admin credentials' }, 401);
+  // Support Pratik / Pratik@6161 credentials
+  if (username === 'Pratik' && password === 'Pratik@6161') {
+    const token = crypto.randomUUID();
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
+    await env.DB.prepare(
+      'INSERT INTO sessions (token, user_id, user_type, expires_at) VALUES (?, ?, "admin", ?)'
+    ).bind(token, admin.id, expiresAt).run();
+
+    return jsonResponse({ success: true, message: 'Admin login successful' }, 200, {
+      'Set-Cookie': `session=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400`
+    });
   }
 
-  const token = crypto.randomUUID();
-  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-
-  await env.DB.prepare(
-    'INSERT INTO sessions (token, user_id, user_type, expires_at) VALUES (?, ?, "admin", ?)'
-  ).bind(token, admin.id, expiresAt).run();
-
-  return jsonResponse({ success: true, message: 'Admin login successful' }, 200, {
-    'Set-Cookie': `session=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400`
-  });
+  return jsonResponse({ error: 'Invalid admin credentials' }, 401);
 }

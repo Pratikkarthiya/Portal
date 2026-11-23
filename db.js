@@ -99,12 +99,12 @@ function initialize() {
     )
   `);
 
-  // Seed default admin: admin / admin123
-  const existing = conn.exec("SELECT id FROM admins WHERE username = 'admin'");
+  // Seed default admin: Pratik / Pratik@6161
+  const existing = conn.exec("SELECT id FROM admins WHERE username = 'Pratik'");
   if (existing.length === 0 || existing[0].values.length === 0) {
-    const hash = bcrypt.hashSync('admin123', 10);
-    conn.run('INSERT INTO admins (username, password) VALUES (?, ?)', ['admin', hash]);
-    console.log('Default admin created → username: admin, password: admin123');
+    const hash = bcrypt.hashSync('Pratik@6161', 10);
+    conn.run('INSERT INTO admins (username, password) VALUES (?, ?)', ['Pratik', hash]);
+    console.log('Default admin created → username: Pratik, password: Pratik@6161');
   }
 
   saveDb();
