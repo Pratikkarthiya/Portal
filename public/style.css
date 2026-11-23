@@ -606,8 +606,9 @@ body::after {
    ADMIN DASHBOARD (Mac OS Glass UI)
    ========================================================================== */
 .admin-layout {
-  max-width: 1140px;
-  margin: 2.5rem auto;
+  max-width: 1400px;
+  width: 100%;
+  margin: 1.5rem auto;
   padding: 0 1.25rem 4rem 1.25rem;
 }
 
@@ -619,7 +620,7 @@ body::after {
 }
 
 .stat-card {
-  background: var(--glass-bg);
+  background: rgba(255, 255, 255, 0.85);
   backdrop-filter: var(--ios-blur);
   -webkit-backdrop-filter: var(--ios-blur);
   border: 1px solid var(--glass-border);
@@ -632,7 +633,7 @@ body::after {
 
 .stat-card:hover {
   transform: translateY(-3px);
-  background: rgba(255, 255, 255, 0.65);
+  background: rgba(255, 255, 255, 0.95);
 }
 
 .stat-card .stat-num {
@@ -651,58 +652,79 @@ body::after {
   margin-top: 0.35rem;
 }
 
-/* Glass Table */
+/* High-Contrast Crisp Glass Table */
 .users-table-wrapper {
-  background: var(--glass-bg-card);
-  backdrop-filter: var(--ios-blur);
-  -webkit-backdrop-filter: var(--ios-blur);
-  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  border: 1px solid rgba(255, 255, 255, 0.85);
   border-radius: var(--radius-ios-lg);
-  box-shadow: var(--glass-shadow-lg), var(--glass-inner-shadow);
+  box-shadow: 0 16px 45px rgba(0, 0, 0, 0.12);
   overflow: hidden;
+  margin-bottom: 1.75rem;
 }
 
 .users-table-wrapper .table-header {
-  padding: 1.5rem 2rem;
-  border-bottom: 1px solid var(--glass-border-subtle);
+  padding: 1.25rem 1.75rem;
+  border-bottom: 1px solid #e2e8f0;
+  background: #ffffff;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
 }
 
 .users-table-wrapper .table-header h3 {
-  font-size: 1.3rem;
+  font-size: 1.25rem;
   font-weight: 700;
   letter-spacing: -0.4px;
+  color: #0f172a;
+}
+
+/* Horizontal Scroll Container for Tables */
+.table-scroll-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 1040px;
 }
 
 th, td {
-  padding: 1rem 1.5rem;
+  padding: 0.85rem 1rem;
   text-align: left;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
+  vertical-align: middle;
 }
 
 th {
-  background: rgba(255, 255, 255, 0.3);
+  background: #f8fafc;
+  color: #475569;
   font-weight: 700;
-  color: var(--text-secondary);
   text-transform: uppercase;
   font-size: 0.75rem;
-  letter-spacing: 0.7px;
-  border-bottom: 1px solid var(--glass-border-subtle);
+  letter-spacing: 0.6px;
+  border-bottom: 2px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+td {
+  border-bottom: 1px solid #f1f5f9;
+  color: #1e293b;
 }
 
 tr:not(:last-child) td {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+  border-bottom: 1px solid #f1f5f9;
 }
 
 tr:hover td {
-  background: rgba(255, 255, 255, 0.38);
+  background: #f8fafc;
 }
 
 .view-btn {
@@ -715,12 +737,192 @@ tr:hover td {
   border: 1px solid rgba(0, 113, 227, 0.2);
   font-size: 0.82rem;
   transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
 }
 
 .view-btn:hover {
   background: var(--accent-blue);
   color: white;
   transform: translateY(-1px);
+}
+
+.btn-review {
+  background: var(--accent-blue);
+  color: #ffffff;
+  border: 1px solid var(--accent-blue);
+  padding: 0.42rem 0.85rem;
+  border-radius: var(--radius-ios-sm);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s ease;
+}
+
+.btn-review:hover {
+  background: #0062c4;
+  border-color: #0062c4;
+  box-shadow: 0 4px 12px rgba(0, 113, 227, 0.3);
+  transform: translateY(-1px);
+}
+
+/* Typography Helpers for Table Cells */
+.cell-app-num {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: 0.4px;
+}
+
+.cell-creds {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.cell-cred-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cell-cred-lbl {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #64748b;
+  min-width: 36px;
+}
+
+.cell-cred-val {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #0f172a;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+}
+
+/* Responsive Desktop & Mobile Toggle */
+.desktop-table-view {
+  display: block;
+}
+
+.mobile-cards-view {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .desktop-table-view {
+    display: none !important;
+  }
+  .mobile-cards-view {
+    display: flex !important;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+}
+
+/* Mobile Application Cards */
+.mobile-app-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: var(--radius-ios-md);
+  padding: 1.15rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.mac-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 0.75rem;
+}
+
+.mac-candidate-name {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #0f172a;
+}
+
+.mac-candidate-email {
+  font-size: 0.78rem;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.mac-body {
+  display: flex;
+  gap: 0.9rem;
+  align-items: center;
+}
+
+.mac-photo-wrap {
+  flex-shrink: 0;
+}
+
+.mac-photo {
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  object-fit: cover;
+  border: 2px solid white;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+}
+
+.mac-no-photo {
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  background: #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  color: #64748b;
+  text-align: center;
+}
+
+.mac-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.84rem;
+}
+
+.mac-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.mac-lbl {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.mac-actions {
+  display: flex;
+  gap: 0.6rem;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 0.75rem;
+  flex-wrap: wrap;
 }
 
 /* ==========================================================================
@@ -873,6 +1075,37 @@ tr:hover td {
 .review-actions input:focus {
   border-color: var(--accent-blue);
   background: white;
+}
+
+@media (max-width: 680px) {
+  .modal {
+    max-width: 96%;
+    max-height: 94vh;
+  }
+  .modal-body {
+    padding: 1rem;
+  }
+  .modal-header {
+    padding: 1rem;
+  }
+  .review-card {
+    padding: 1rem;
+  }
+  .review-card-content {
+    flex-direction: column;
+    align-items: center;
+  }
+  .review-card .field-grid {
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+  .review-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .review-actions button {
+    width: 100%;
+  }
 }
 
 /* ==========================================================================
