@@ -1,6 +1,5 @@
-import { getSession, jsonResponse } from '../../_middleware.js';
+import { getSession, jsonResponse } from '../../utils.js';
 
-// GET user's applications
 export async function onRequestGet({ request, env }) {
   const session = await getSession(request, env);
   if (!session || session.user_type !== 'user') {
@@ -15,7 +14,6 @@ export async function onRequestGet({ request, env }) {
   return jsonResponse({ applications });
 }
 
-// POST new application with R2 / Base64 photo storage
 export async function onRequestPost({ request, env }) {
   const session = await getSession(request, env);
   if (!session || session.user_type !== 'user') {
@@ -38,7 +36,6 @@ export async function onRequestPost({ request, env }) {
     return jsonResponse({ error: 'Photo is required' }, 400);
   }
 
-  // Handle Photo upload in Cloudflare R2 bucket or base64 storage
   let photoUrl = '';
   const photoKey = `photo-${Date.now()}-${Math.round(Math.random() * 1e9)}.jpg`;
   if (env.UPLOADS) {
@@ -47,13 +44,11 @@ export async function onRequestPost({ request, env }) {
     });
     photoUrl = `/api/files/${photoKey}`;
   } else {
-    // Edge fallback: convert to compact data URI
     const buffer = await photo.arrayBuffer();
     const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
     photoUrl = `data:${photo.type || 'image/jpeg'};base64,${base64}`;
   }
 
-  // Handle Screenshot upload if present
   let screenshotUrl = '';
   if (screenshot && screenshot.size > 0) {
     const receiptKey = `receipt-${Date.now()}-${Math.round(Math.random() * 1e9)}.jpg`;
@@ -78,7 +73,6 @@ export async function onRequestPost({ request, env }) {
 
   const currentUnpaidCount = unpaidApps.length;
 
-  // 5th Application requires batch settlement
   if (currentUnpaidCount === 4) {
     if (!utrNumber || utrNumber.trim().length < 6) {
       return jsonResponse({
@@ -91,14 +85,12 @@ export async function onRequestPost({ request, env }) {
     const cleanUtr = utrNumber.trim();
     const batchAmount = feePerApp * 5;
 
-    // Insert 5th application
     const res5 = await env.DB.prepare(
       `INSERT INTO applications 
        (user_id, application_number, date_of_birth, app_password, photo_url, payment_status, payment_id, payment_screenshot_url, payment_amount, payment_method, paid_at) 
        VALUES (?, ?, ?, ?, ?, 'paid', ?, ?, ?, 'UPI_MANUAL_UTR_BATCH5', datetime("now"))`
     ).bind(session.user_id, applicationNumber, dateOfBirth, appPassword, photoUrl, cleanUtr, screenshotUrl, feePerApp).run();
 
-    // Mark previous 4 as paid
     for (const oldApp of unpaidApps) {
       await env.DB.prepare(
         `UPDATE applications 
@@ -117,7 +109,6 @@ export async function onRequestPost({ request, env }) {
     });
   }
 
-  // Applications 1, 2, 3, 4 submitted without payment
   const res = await env.DB.prepare(
     `INSERT INTO applications 
      (user_id, application_number, date_of_birth, app_password, photo_url, payment_status, payment_id, payment_screenshot_url, payment_amount, payment_method) 

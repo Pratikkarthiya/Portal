@@ -1,4 +1,4 @@
-import { jsonResponse } from '../_middleware.js';
+import { jsonResponse } from '../../../utils.js';
 
 export async function onRequestPost({ request, env }) {
   const { username, password } = await request.json();
@@ -12,7 +12,6 @@ export async function onRequestPost({ request, env }) {
     return jsonResponse({ error: 'Invalid admin credentials' }, 401);
   }
 
-  // Support Pratik / Pratik@6161 credentials
   if (username === 'Pratik' && password === 'Pratik@6161') {
     const token = crypto.randomUUID();
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();

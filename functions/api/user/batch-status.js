@@ -1,4 +1,4 @@
-import { getSession, jsonResponse } from '../../_middleware.js';
+import { getSession, jsonResponse } from '../../utils.js';
 
 export async function onRequestGet({ request, env }) {
   const session = await getSession(request, env);
@@ -14,7 +14,6 @@ export async function onRequestGet({ request, env }) {
   ).bind(session.user_id).all();
 
   const unpaidCount = unpaidApps.length;
-  const isPaymentDue = unpaidCount >= 4;
 
   return jsonResponse({
     feePerApp,

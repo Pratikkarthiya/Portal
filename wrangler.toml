@@ -1,9 +1,6 @@
 name = "portal"
 compatibility_date = "2024-11-01"
-
-# Static assets directory for Cloudflare (HTML, CSS, images)
-[assets]
-directory = "./public"
+pages_build_output_dir = "public"
 
 # Cloudflare D1 Database Binding
 [[d1_databases]]

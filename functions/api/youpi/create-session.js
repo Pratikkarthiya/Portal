@@ -1,4 +1,4 @@
-import { getSession, jsonResponse } from '../../_middleware.js';
+import { getSession, jsonResponse } from '../../utils.js';
 
 export async function onRequestPost({ request, env }) {
   const session = await getSession(request, env);

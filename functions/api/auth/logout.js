@@ -1,4 +1,4 @@
-import { jsonResponse } from '../../_middleware.js';
+import { jsonResponse } from '../../utils.js';
 
 export async function onRequestPost() {
   return jsonResponse({ success: true }, 200, {

@@ -1,6 +1,5 @@
-import { getSession, jsonResponse } from '../_middleware.js';
+import { getSession, jsonResponse } from '../../utils.js';
 
-// GET all users
 export async function onRequestGet({ request, env }) {
   const session = await getSession(request, env);
   if (!session || session.user_type !== 'admin') {
@@ -23,7 +22,6 @@ export async function onRequestGet({ request, env }) {
   return jsonResponse({ users });
 }
 
-// POST create user
 export async function onRequestPost({ request, env }) {
   const session = await getSession(request, env);
   if (!session || session.user_type !== 'admin') {
