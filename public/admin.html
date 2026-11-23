@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Console — Portal Flow</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="mesh-bg-overlay"></div>
+
+  <nav class="navbar">
+    <a class="logo" href="/admin">
+      <div class="logo-icon" style="background: var(--accent-purple-gradient);"></div>
+      <span>Admin Console</span>
+    </a>
+    <div class="nav-links">
+      <button class="btn btn-primary btn-sm" onclick="openCreateUserModal()">➕ Provision User ID</button>
+      <button class="btn-logout" onclick="logout()">Sign Out</button>
+    </div>
+  </nav>
+
+  <div class="admin-layout">
+    <!-- Merchant & Batch Policy Configuration Banner -->
+    <div style="background:rgba(255,255,255,0.45);border:1px solid var(--glass-border);border-radius:var(--radius-ios-sm);padding:0.85rem 1.25rem;margin-bottom:1.5rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem;">
+      <div style="display:flex;align-items:center;gap:0.75rem;">
+        <span style="font-size:1.3rem;">⚡</span>
+        <div>
+          <div style="font-weight:700;font-size:0.92rem;color:var(--text-main);">
+            Payment Gateway: <strong>Pratik Karthiya</strong> (<code>pratikkarthiya6@oksbi</code>)
+          </div>
+          <div style="font-size:0.8rem;color:var(--text-secondary);">
+            Billing Policy: <strong>5-Application Batch Cycle</strong> • Apps 1–4 free, 5th pays full batch with Bank UTR & Screenshot
+          </div>
+        </div>
+      </div>
+      <div>
+        <span class="badge badge-approved">Active 5-App Batch Mode</span>
+      </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card"><div class="stat-num" id="statUsers">-</div><div class="stat-label">Total Users</div></div>
+      <div class="stat-card"><div class="stat-num" id="statApps">-</div><div class="stat-label">Applications</div></div>
+      <div class="stat-card"><div class="stat-num" id="statPending" style="color:var(--accent-orange)">-</div><div class="stat-label">Pending Review</div></div>
+      <div class="stat-card"><div class="stat-num" id="statApproved" style="color:var(--accent-green)">-</div><div class="stat-label">Approved</div></div>
+      <div class="stat-card"><div class="stat-num" id="statRevenue" style="color:var(--accent-blue)">₹0</div><div class="stat-label">Total Fees Collected</div></div>
+    </div>
+
+    <!-- Users Table Glass Card -->
+    <div class="users-table-wrapper">
+      <div class="table-header">
+        <h3>User Directory & Application Fee Controls</h3>
+        <button class="btn btn-primary btn-sm" onclick="openCreateUserModal()">➕ Create User ID</button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Applicant Name</th>
+            <th>Email</th>
+            <th>Single Fee</th>
+            <th>5-Batch Fee</th>
+            <th>Total Apps</th>
+            <th>Fee Collected</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="usersBody">
+          <tr><td colspan="8" style="text-align:center;padding:2.5rem;color:var(--text-secondary)">Loading user records...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Glass Modal: Create User with Customized Fee -->
+  <div class="modal-overlay" id="createUserModalOverlay">
+    <div class="modal" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3>➕ Provision User ID & Set Fee</h3>
+        <button class="modal-close" onclick="closeCreateUserModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-error" id="createUserError"></div>
+        <div class="alert alert-success" id="createUserSuccess"></div>
+        <form id="createUserForm">
+          <div class="form-group">
+            <label>Full Name</label>
+            <input type="text" name="name" required placeholder="e.g. Alex Morgan">
+          </div>
+          <div class="form-group">
+            <label>Email Address (User Login ID)</label>
+            <input type="email" name="email" required placeholder="e.g. alex@example.com">
+          </div>
+          <div class="form-group">
+            <label>Password</label>
+            <input type="password" name="password" required minlength="6" placeholder="Minimum 6 characters">
+          </div>
+          <div class="form-group">
+            <label>Fee Per Application (₹ INR)</label>
+            <input type="number" name="applicationFee" id="createAppFeeInput" required min="1" step="0.5" value="50.00" oninput="updateCreateBatchPreview(this.value)">
+            <small style="color:var(--text-secondary);font-size:0.75rem;margin-top:4px;display:block;">
+              5-Application batch total: <strong id="createBatchPreview" style="color:var(--accent-blue);">₹250.00</strong>
+            </small>
+          </div>
+          <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; margin-top: 0.5rem;">Create User Account</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Glass Modal: Edit User Details & Change Fee -->
+  <div class="modal-overlay" id="editUserModalOverlay">
+    <div class="modal" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3>⚙️ Edit User & Change Application Fee</h3>
+        <button class="modal-close" onclick="closeEditUserModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-error" id="editUserError"></div>
+        <div class="alert alert-success" id="editUserSuccess"></div>
+        <form id="editUserForm">
+          <input type="hidden" name="userId" id="editUserId">
+          <div class="form-group">
+            <label>Full Name</label>
+            <input type="text" name="name" id="editUserName" required>
+          </div>
+          <div class="form-group">
+            <label>Email Address</label>
+            <input type="email" name="email" id="editUserEmail" required>
+          </div>
+          <div class="form-group" style="background:rgba(0,113,227,0.06);padding:0.75rem;border-radius:10px;border:1px solid rgba(0,113,227,0.2);">
+            <label style="color:var(--accent-blue);font-weight:700;">Fee Per Application (₹ INR)</label>
+            <input type="number" name="applicationFee" id="editUserFee" required min="1" step="0.5" style="font-weight:700;font-size:1.1rem;color:var(--accent-blue);" oninput="updateEditBatchPreview(this.value)">
+            <small style="color:var(--text-secondary);font-size:0.75rem;margin-top:4px;display:block;">
+              5-Application batch fee: <strong id="editBatchPreview" style="color:var(--accent-blue);">₹250.00</strong>
+            </small>
+          </div>
+          <div class="form-group">
+            <label>Reset Password (Leave blank to keep current)</label>
+            <input type="password" name="newPassword" id="editUserNewPassword" placeholder="Enter new password (optional)" minlength="6">
+          </div>
+          <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; margin-top: 0.5rem;">Save Changes & Update Fee</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Glass Modal: Review User's Applications, Bank UTR & Payment Screenshot -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modalTitle">Review Applications & Bank UTR</h3>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+
+  <script>
+    let cachedUsers = [];
+
+    fetch('/api/auth/me').then(r => r.json()).then(data => {
+      if (!data.loggedIn || data.userType !== 'admin') {
+        window.location.href = '/admin/login';
+        return;
+      }
+      loadStats();
+      loadUsers();
+    });
+
+    function updateCreateBatchPreview(val) {
+      const f = parseFloat(val) || 0;
+      document.getElementById('createBatchPreview').textContent = `₹${(f * 5).toFixed(2)}`;
+    }
+
+    function updateEditBatchPreview(val) {
+      const f = parseFloat(val) || 0;
+      document.getElementById('editBatchPreview').textContent = `₹${(f * 5).toFixed(2)}`;
+    }
+
+    async function loadStats() {
+      const res = await fetch('/api/admin/stats');
+      const s = await res.json();
+      document.getElementById('statUsers').textContent = s.totalUsers;
+      document.getElementById('statApps').textContent = s.totalApplications;
+      document.getElementById('statPending').textContent = s.pending;
+      document.getElementById('statApproved').textContent = s.approved;
+      document.getElementById('statRevenue').textContent = '₹' + (s.totalRevenue || 0).toFixed(2);
+    }
+
+    async function loadUsers() {
+      const res = await fetch('/api/admin/users');
+      const data = await res.json();
+      cachedUsers = data.users || [];
+      const tbody = document.getElementById('usersBody');
+
+      if (!data.users || data.users.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2.5rem;color:var(--text-secondary)">No users found. Click "Create User ID" above to add one.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = data.users.map((u, i) => `
+        <tr>
+          <td>${i + 1}</td>
+          <td><strong>${u.name}</strong></td>
+          <td>${u.email}</td>
+          <td><span style="font-weight:600;">₹${(u.application_fee || 50).toFixed(2)}</span></td>
+          <td>
+            <span style="font-weight:700;color:var(--accent-blue);">₹${((u.application_fee || 50) * 5).toFixed(2)}</span>
+            <button class="view-btn" style="padding:0.15rem 0.5rem;font-size:0.72rem;margin-left:4px;" onclick="openEditUserModal(${u.id})">✏️ Edit</button>
+          </td>
+          <td><span style="font-weight:700;">${u.total_applications}</span></td>
+          <td><span style="font-weight:700;color:var(--accent-green);">₹${(u.total_paid || 0).toFixed(2)}</span></td>
+          <td>
+            <div style="display:flex;gap:0.4rem;align-items:center;">
+              <button class="view-btn" onclick="openEditUserModal(${u.id})">👤 Profile</button>
+              <button class="view-btn" style="background:rgba(0,113,227,0.15);" onclick="viewUser(${u.id}, '${u.name}', ${u.application_fee || 50})">Review Apps ↗</button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function openCreateUserModal() {
+      document.getElementById('createUserForm').reset();
+      updateCreateBatchPreview(50);
+      document.getElementById('createUserError').classList.remove('show');
+      document.getElementById('createUserSuccess').classList.remove('show');
+      document.getElementById('createUserModalOverlay').classList.add('active');
+    }
+
+    function closeCreateUserModal() {
+      document.getElementById('createUserModalOverlay').classList.remove('active');
+    }
+
+    document.getElementById('createUserForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const form = new FormData(e.target);
+      const res = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: form.get('name'),
+          email: form.get('email'),
+          password: form.get('password'),
+          applicationFee: form.get('applicationFee')
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        document.getElementById('createUserSuccess').textContent = data.message;
+        document.getElementById('createUserSuccess').classList.add('show');
+        document.getElementById('createUserError').classList.remove('show');
+        loadStats();
+        loadUsers();
+        setTimeout(() => closeCreateUserModal(), 1200);
+      } else {
+        document.getElementById('createUserError').textContent = data.error;
+        document.getElementById('createUserError').classList.add('show');
+      }
+    });
+
+    function openEditUserModal(userId) {
+      const user = cachedUsers.find(u => u.id === userId);
+      if (!user) return;
+
+      document.getElementById('editUserId').value = user.id;
+      document.getElementById('editUserName').value = user.name;
+      document.getElementById('editUserEmail').value = user.email;
+      const fee = user.application_fee || 50;
+      document.getElementById('editUserFee').value = fee.toFixed(2);
+      updateEditBatchPreview(fee);
+      document.getElementById('editUserNewPassword').value = '';
+
+      document.getElementById('editUserError').classList.remove('show');
+      document.getElementById('editUserSuccess').classList.remove('show');
+      document.getElementById('editUserModalOverlay').classList.add('active');
+    }
+
+    function closeEditUserModal() {
+      document.getElementById('editUserModalOverlay').classList.remove('active');
+    }
+
+    document.getElementById('editUserForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const form = new FormData(e.target);
+      const userId = document.getElementById('editUserId').value;
+
+      const payload = {
+        name: form.get('name'),
+        email: form.get('email'),
+        applicationFee: form.get('applicationFee')
+      };
+      const newPassword = form.get('newPassword');
+      if (newPassword && newPassword.trim()) {
+        payload.newPassword = newPassword.trim();
+      }
+
+      const res = await fetch(`/api/admin/users/${userId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.success) {
+        document.getElementById('editUserSuccess').textContent = data.message;
+        document.getElementById('editUserSuccess').classList.add('show');
+        document.getElementById('editUserError').classList.remove('show');
+        loadStats();
+        loadUsers();
+        setTimeout(() => closeEditUserModal(), 1200);
+      } else {
+        document.getElementById('editUserError').textContent = data.error || 'Failed to update user';
+        document.getElementById('editUserError').classList.add('show');
+      }
+    });
+
+    async function viewUser(userId, name, singleFee) {
+      document.getElementById('modalTitle').textContent = `${name}'s Applications (₹${singleFee.toFixed(2)}/app • Batch: ₹${(singleFee*5).toFixed(2)})`;
+      document.getElementById('modalOverlay').classList.add('active');
+
+      const res = await fetch(`/api/admin/users/${userId}/applications`);
+      const data = await res.json();
+      const body = document.getElementById('modalBody');
+
+      if (!data.applications || data.applications.length === 0) {
+        body.innerHTML = `
+          <div style="background:rgba(255,255,255,0.6);border-radius:12px;padding:1.25rem;margin-bottom:1.5rem;border:1px solid var(--glass-border);">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <div style="font-weight:700;font-size:1.1rem;color:var(--text-main);">👤 ${data.user.name}</div>
+                <div style="color:var(--text-secondary);font-size:0.85rem;">Email: ${data.user.email} • Registered: ${new Date(data.user.created_at).toLocaleDateString()}</div>
+              </div>
+              <div>
+                <button class="view-btn" onclick="closeModal(); openEditUserModal(${data.user.id});">✏️ Edit Fee</button>
+              </div>
+            </div>
+          </div>
+          <div class="empty-state"><div class="icon">📭</div><p>No applications submitted by this user yet.</p></div>
+        `;
+        return;
+      }
+
+      body.innerHTML = `
+        <div style="background:rgba(255,255,255,0.6);border-radius:12px;padding:1.25rem;margin-bottom:1.5rem;border:1px solid var(--glass-border);">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem;">
+            <div>
+              <div style="font-weight:700;font-size:1.1rem;color:var(--text-main);">👤 ${data.user.name}</div>
+              <div style="color:var(--text-secondary);font-size:0.85rem;">Email: ${data.user.email} • Single Fee: ₹${(data.user.application_fee || singleFee).toFixed(2)} • 5-Batch Fee: <strong>₹${((data.user.application_fee || singleFee)*5).toFixed(2)}</strong></div>
+            </div>
+            <div>
+              <button class="view-btn" onclick="closeModal(); openEditUserModal(${data.user.id});">✏️ Edit Fee</button>
+            </div>
+          </div>
+        </div>
+      ` + data.applications.map(app => `
+        <div class="review-card" id="app-${app.id}">
+          <div class="review-header">
+            <strong>App #: ${app.application_number}</strong>
+            <div style="display:flex;gap:0.5rem;align-items:center;">
+              ${app.payment_status === 'paid' ? 
+                `<span class="badge badge-approved" style="font-size:0.75rem;">⚡ PAID (BATCH)</span>` :
+                `<span class="badge badge-pending" style="font-size:0.75rem;">⏳ UNPAID (Due on 5th App)</span>`
+              }
+              <span class="badge badge-${app.status}">${app.status}</span>
+            </div>
+          </div>
+          <div class="review-card-content">
+            <!-- Left Side: Applicant Photo -->
+            ${app.photo_url ? `
+              <div>
+                <a href="${app.photo_url}" target="_blank" title="Click to enlarge photo">
+                  <img src="${app.photo_url}" alt="Applicant Photo" class="review-card-photo">
+                </a>
+                <div style="font-size:0.72rem;color:var(--text-secondary);text-align:center;margin-top:4px;">Applicant Photo</div>
+              </div>
+            ` : '<div style="font-size:0.85rem;color:var(--text-secondary);">No photo</div>'}
+
+            <!-- Right Side: Details & Payment Info -->
+            <div class="field-grid">
+              <span class="label">Date of Birth:</span><span><strong>${app.date_of_birth}</strong></span>
+              <span class="label">App Password:</span><span><code style="background:rgba(255,255,255,0.7);padding:2px 6px;border-radius:4px;">${app.app_password}</code></span>
+              <span class="label">Bank UTR Number:</span><span><code style="background:rgba(255,255,255,0.8);padding:3px 8px;border-radius:6px;color:#d97706;font-weight:700;font-size:0.92rem;">${app.payment_id || 'PENDING 5TH APP'}</code></span>
+              <span class="label">Payment Mode:</span><span>${app.payment_status === 'paid' ? '5-App Batch UPI to pratikkarthiya6@oksbi' : 'Awaiting 5-app batch settlement'}</span>
+              <span class="label">Submitted:</span><span>${new Date(app.submitted_at).toLocaleString()}</span>
+              <span class="label">Payment Receipt:</span>
+              <span>
+                ${app.payment_screenshot_url ? `
+                  <a href="${app.payment_screenshot_url}" target="_blank" class="view-btn" style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;font-size:0.78rem;">
+                    🧾 View Payment Screenshot ↗
+                  </a>
+                ` : '<span style="color:var(--text-tertiary);font-size:0.8rem;">No screenshot attached</span>'}
+              </span>
+            </div>
+          </div>
+
+          <!-- If Payment Screenshot exists, show miniature inline thumbnail preview -->
+          ${app.payment_screenshot_url ? `
+            <div style="margin-top:0.75rem;padding:0.75rem;background:rgba(255,255,255,0.5);border-radius:10px;border:1px solid var(--glass-border-subtle);display:flex;align-items:center;gap:1rem;">
+              <a href="${app.payment_screenshot_url}" target="_blank" title="Enlarge payment receipt">
+                <img src="${app.payment_screenshot_url}" alt="Payment Receipt" style="width:75px;height:75px;object-fit:cover;border-radius:8px;border:1.5px solid white;box-shadow:0 4px 10px rgba(0,0,0,0.08);">
+              </a>
+              <div>
+                <div style="font-weight:700;font-size:0.85rem;color:var(--text-main);">📸 Payment Receipt Attached</div>
+                <div style="font-size:0.78rem;color:var(--text-secondary);margin-top:2px;">User uploaded screenshot for this transaction. Click thumbnail to view full image.</div>
+              </div>
+            </div>
+          ` : ''}
+
+          ${app.admin_remarks ? `<div style="margin-top:.75rem;font-size:.85rem;color:var(--text-main);background:rgba(255,255,255,0.6);padding:.6rem .8rem;border-radius:8px;border:1px solid var(--glass-border-subtle);">💬 <strong>Current Remarks:</strong> ${app.admin_remarks}</div>` : ''}
+          <div class="review-actions">
+            <input type="text" id="remarks-${app.id}" placeholder="Enter review remarks..." value="${app.admin_remarks || ''}">
+            <button class="btn btn-success btn-sm" onclick="reviewApp(${app.id}, 'approved')">✅ Verify & Approve</button>
+            <button class="btn btn-danger btn-sm" onclick="reviewApp(${app.id}, 'rejected')">❌ Reject</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function reviewApp(appId, status) {
+      const remarks = document.getElementById(`remarks-${appId}`).value;
+      const res = await fetch(`/api/admin/applications/${appId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status, remarks })
+      });
+      const data = await res.json();
+      if (data.success) {
+        const card = document.getElementById(`app-${appId}`);
+        const badge = card.querySelectorAll('.badge')[1];
+        badge.className = `badge badge-${status}`;
+        badge.textContent = status;
+        loadStats();
+        loadUsers();
+      }
+    }
+
+    function closeModal() {
+      document.getElementById('modalOverlay').classList.remove('active');
+    }
+
+    document.getElementById('modalOverlay').addEventListener('click', e => {
+      if (e.target === e.currentTarget) closeModal();
+    });
+    document.getElementById('createUserModalOverlay').addEventListener('click', e => {
+      if (e.target === e.currentTarget) closeCreateUserModal();
+    });
+    document.getElementById('editUserModalOverlay').addEventListener('click', e => {
+      if (e.target === e.currentTarget) closeEditUserModal();
+    });
+
+    async function logout() {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.href = '/admin/login';
+    }
+  </script>
+</body>
+</html>

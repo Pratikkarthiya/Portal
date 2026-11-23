@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Sign In — Portal Flow</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="mesh-bg-overlay"></div>
+
+  <nav class="navbar">
+    <a class="logo" href="/">
+      <div class="logo-icon"></div>
+      <span>Portal Flow</span>
+    </a>
+    <div class="nav-links">
+      <a href="/login">User Login</a>
+    </div>
+  </nav>
+
+  <div class="auth-container">
+    <div class="auth-card">
+      <div class="auth-card-icon" style="background: var(--accent-purple-gradient);">🔐</div>
+      <h2>Admin Console</h2>
+      <p class="subtitle">Secure administrative credentials</p>
+
+      <div class="alert alert-error" id="alertError"></div>
+
+      <form id="adminLoginForm">
+        <div class="form-group">
+          <label>Administrator Username</label>
+          <input type="text" name="username" required placeholder="admin">
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" name="password" required placeholder="••••••••">
+        </div>
+        <button type="submit" class="btn btn-primary" style="background: var(--accent-purple-gradient);">Authenticate</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    fetch('/api/auth/me').then(r => r.json()).then(data => {
+      if (data.loggedIn && data.userType === 'admin') window.location.href = '/admin';
+    });
+
+    document.getElementById('adminLoginForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const form = new FormData(e.target);
+      const res = await fetch('/api/auth/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: form.get('username'), password: form.get('password') })
+      });
+      const data = await res.json();
+      if (data.success) {
+        window.location.href = '/admin';
+      } else {
+        const el = document.getElementById('alertError');
+        el.textContent = data.error;
+        el.classList.add('show');
+      }
+    });
+  </script>
+</body>
+</html>

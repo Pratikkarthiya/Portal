@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Application Review Portal</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="mesh-bg-overlay"></div>
+
+  <nav class="navbar">
+    <a class="logo" href="/">
+      <div class="logo-icon"></div>
+      <span>Portal Flow</span>
+    </a>
+    <div class="nav-links" id="navLinks">
+      <a href="/login" class="btn-primary">User Login</a>
+      <a href="/admin/login">Admin Console</a>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-pill">✨ Next-Gen Application Portal</div>
+    <h1>Effortless Submissions.<br>Crystal Clear Reviews.</h1>
+    <p>Seamlessly submit your verification credentials and photos with an ultra-smooth iOS liquid glass interface.</p>
+    <div class="cta-buttons">
+      <a href="/login" class="btn btn-primary">📱 User Login</a>
+      <a href="/admin/login" class="btn btn-outline">⚙️ Admin Console</a>
+    </div>
+  </section>
+
+  <script>
+    fetch('/api/auth/me').then(r => r.json()).then(data => {
+      if (data.loggedIn && data.userType === 'user') {
+        window.location.href = '/dashboard';
+      } else if (data.loggedIn && data.userType === 'admin') {
+        window.location.href = '/admin';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+node_modules/
+portal.db
+sessions.sqlite
+.env
+youpi-pg/
+test-*.jpg
+dummy.jpg
+public/uploads/
+.DS_Store
+Thumbs.db

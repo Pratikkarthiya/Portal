@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Login — Portal Flow</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="mesh-bg-overlay"></div>
+
+  <nav class="navbar">
+    <a class="logo" href="/">
+      <div class="logo-icon"></div>
+      <span>Portal Flow</span>
+    </a>
+    <div class="nav-links">
+      <a href="/admin/login">Admin Console</a>
+    </div>
+  </nav>
+
+  <div class="auth-container">
+    <div class="auth-card">
+      <div class="auth-card-icon">👤</div>
+      <h2>Welcome Back</h2>
+      <p class="subtitle">Sign in with your admin-assigned ID</p>
+
+      <div class="alert alert-error" id="alertError"></div>
+
+      <form id="loginForm">
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" name="email" required placeholder="name@company.com">
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" name="password" required placeholder="••••••••">
+        </div>
+        <button type="submit" class="btn btn-primary">Sign In</button>
+      </form>
+
+      <p class="auth-footer" style="margin-top: 1.75rem; font-size: 0.82rem; color: var(--text-secondary);">
+        🔒 New account? User accounts are provisioned exclusively by the Administrator.
+      </p>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('loginForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const form = new FormData(e.target);
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: form.get('email'), password: form.get('password') })
+      });
+      const data = await res.json();
+      if (data.success) {
+        window.location.href = '/dashboard';
+      } else {
+        const el = document.getElementById('alertError');
+        el.textContent = data.error;
+        el.classList.add('show');
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — Portal Flow</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+  <div class="mesh-bg-overlay"></div>
+
+  <nav class="navbar">
+    <a class="logo" href="/dashboard">
+      <div class="logo-icon"></div>
+      <span>Portal Flow</span>
+    </a>
+    <div class="nav-links">
+      <span id="userName" style="color:var(--text-main);font-size:.88rem;font-weight:600;padding: 0.4rem 0.8rem; background:rgba(255,255,255,0.4);border-radius:20px;border:1px solid var(--glass-border);"></span>
+      <button class="btn-logout" onclick="logout()">Sign Out</button>
+    </div>
+  </nav>
+
+  <div class="dashboard">
+    <div class="dashboard-header">
+      <h2>Applications Hub</h2>
+    </div>
+
+    <!-- 5-Application Batch Progress Pill -->
+    <div style="background:var(--glass-bg-card);backdrop-filter:var(--ios-blur);border:1px solid var(--glass-border);border-radius:var(--radius-ios-md);padding:1.25rem 1.5rem;margin-bottom:1.75rem;box-shadow:var(--glass-shadow);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;">
+      <div style="flex:1;min-width:260px;">
+        <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.4rem;">
+          <span style="font-size:1.2rem;">📦</span>
+          <span style="font-weight:700;font-size:1rem;color:var(--text-main);">5-Application Batch Cycle</span>
+          <span class="badge" id="batchBadge" style="background:rgba(0,113,227,0.15);color:var(--accent-blue);font-size:0.75rem;">Slot 1 of 5</span>
+        </div>
+        <div style="font-size:0.82rem;color:var(--text-secondary);" id="batchExplainer">
+          Applications 1 to 4 submit without payment. On the 5th application, pay for all 5 applications together.
+        </div>
+
+        <!-- 5-Segment Progress Bar -->
+        <div style="display:flex;gap:6px;margin-top:0.75rem;" id="progressSegments">
+          <div class="segment" style="flex:1;height:8px;border-radius:4px;background:rgba(255,255,255,0.5);border:1px solid var(--glass-border);"></div>
+          <div class="segment" style="flex:1;height:8px;border-radius:4px;background:rgba(255,255,255,0.5);border:1px solid var(--glass-border);"></div>
+          <div class="segment" style="flex:1;height:8px;border-radius:4px;background:rgba(255,255,255,0.5);border:1px solid var(--glass-border);"></div>
+          <div class="segment" style="flex:1;height:8px;border-radius:4px;background:rgba(255,255,255,0.5);border:1px solid var(--glass-border);"></div>
+          <div class="segment" style="flex:1;height:8px;border-radius:4px;background:rgba(255,255,255,0.5);border:1px solid var(--glass-border);"></div>
+        </div>
+      </div>
+
+      <div style="text-align:right;">
+        <div style="font-size:0.75rem;color:var(--text-secondary);text-transform:uppercase;font-weight:600;">5-App Batch Total</div>
+        <div style="font-size:1.6rem;font-weight:800;color:var(--accent-blue);" id="batchTotalDisplay">₹250.00</div>
+        <div style="font-size:0.75rem;color:var(--text-tertiary);" id="singleFeeNote">(₹50.00 / application)</div>
+      </div>
+    </div>
+
+    <!-- Submit New Application Glass Card -->
+    <div class="submit-card">
+      <h3 id="formTitle"><span>📝</span> Submit Application #1</h3>
+      <div class="alert alert-error" id="submitError"></div>
+      <div class="alert alert-success" id="submitSuccess"></div>
+
+      <form id="submitForm" enctype="multipart/form-data">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Application Number</label>
+            <input type="text" name="applicationNumber" id="appNumberInput" required placeholder="e.g. APP-2026-8801">
+          </div>
+          <div class="form-group">
+            <label>Date of Birth</label>
+            <input type="date" name="dateOfBirth" id="dobInput" required>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Application Password</label>
+            <input type="password" name="appPassword" id="appPasswordInput" required placeholder="Enter password for this app">
+          </div>
+          <div class="form-group">
+            <label>Applicant Photo (Required)</label>
+            <input type="file" name="photo" id="photoInput" accept="image/*" required>
+          </div>
+        </div>
+
+        <!-- Dynamic Action Button -->
+        <button type="submit" class="btn btn-primary" id="submitBtn" style="width:100%;padding:0.9rem;font-size:1rem;margin-top:0.5rem;">
+          🚀 Submit Application (Free for Now)
+        </button>
+      </form>
+    </div>
+
+    <!-- Applications List -->
+    <h3 style="margin-bottom:1.25rem;color:white;font-size:1.3rem;text-shadow:0 2px 8px rgba(0,0,0,0.25);">Your Submitted Applications</h3>
+    <div class="app-list" id="appList">
+      <div class="empty-state">
+        <div class="icon">📭</div>
+        <p>Loading applications...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- YouPI-PG Glass Batch Checkout Modal with UTR & Screenshot Upload -->
+  <div class="modal-overlay" id="youpiModalOverlay">
+    <div class="modal" style="max-width: 500px; text-align: center;">
+      <div class="modal-header">
+        <div style="display:flex;align-items:center;gap:0.5rem;">
+          <div class="logo-icon" style="width:30px;height:30px;font-size:0.9rem;">⚡</div>
+          <h3 style="font-size:1.15rem;">Batch Payment (5 Applications)</h3>
+        </div>
+        <button class="modal-close" onclick="closeYoupiModal()">✕</button>
+      </div>
+      <div class="modal-body" style="padding:1.5rem 1.75rem;">
+        <div style="background:rgba(0,113,227,0.08);border:1px solid rgba(0,113,227,0.2);border-radius:10px;padding:0.6rem 0.8rem;margin-bottom:1rem;font-size:0.85rem;color:var(--accent-blue);font-weight:600;">
+          🎉 5th Application Reached! Pay for all 5 applications in one single transaction.
+        </div>
+
+        <div style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:0.2rem;">Paying to: <strong style="color:var(--text-main);">Pratik Karthiya</strong></div>
+        <div style="font-size:0.8rem;color:var(--text-tertiary);margin-bottom:0.4rem;">UPI VPA: <code>pratikkarthiya6@oksbi</code></div>
+        <div style="font-size:2.3rem;font-weight:800;color:var(--accent-blue);margin-bottom:1rem;" id="modalFeeAmount">₹250.00</div>
+
+        <!-- Dynamic QR Container -->
+        <div style="background:white;padding:16px;border-radius:20px;display:inline-block;box-shadow:0 10px 30px rgba(0,0,0,0.12);margin-bottom:1rem;" id="qrCodeContainer">
+          <div id="qrcode"></div>
+        </div>
+
+        <div style="font-size:0.88rem;font-weight:600;color:var(--text-main);margin-bottom:0.25rem;">Scan & Pay Total with any UPI App</div>
+        <div style="font-size:0.78rem;color:var(--text-secondary);margin-bottom:1rem;">GPay • PhonePe • Paytm • CRED • BHIM • SBI Yono</div>
+
+        <div style="margin-bottom:1.25rem;">
+          <a id="upiIntentLink" href="#" class="btn btn-outline" style="width:100%;font-size:0.88rem;padding:0.65rem;">
+            📱 Pay Directly via UPI App
+          </a>
+        </div>
+
+        <!-- Manual UTR Entry Box -->
+        <div style="background:rgba(255,255,255,0.7);border:1.5px solid var(--accent-orange);border-radius:var(--radius-ios-sm);padding:1rem;margin-bottom:1rem;text-align:left;">
+          <label style="font-size:0.85rem;font-weight:700;display:block;margin-bottom:0.35rem;color:#b45309;">
+            📌 12-Digit Bank UTR / Ref Number (Required)
+          </label>
+          <input type="text" id="manualUtrInput" required placeholder="e.g. 423189920192" maxlength="22" style="width:100%;padding:0.65rem 0.85rem;border:1.5px solid var(--glass-border);border-radius:8px;font-size:0.95rem;background:white;font-weight:600;letter-spacing:1px;">
+        </div>
+
+        <!-- Payment Screenshot Upload Box -->
+        <div style="background:rgba(255,255,255,0.7);border:1.5px solid var(--glass-border);border-radius:var(--radius-ios-sm);padding:1rem;margin-bottom:1.25rem;text-align:left;">
+          <label style="font-size:0.85rem;font-weight:700;display:block;margin-bottom:0.35rem;color:var(--text-main);">
+            📸 Attach Payment Screenshot / Receipt (Optional)
+          </label>
+          <input type="file" id="paymentScreenshotInput" accept="image/*" style="width:100%;padding:0.5rem;background:white;border-radius:8px;border:1px dashed var(--glass-border);cursor:pointer;font-size:0.82rem;">
+          <small style="color:var(--text-secondary);font-size:0.75rem;margin-top:4px;display:block;">
+            Upload GPay / PhonePe / Paytm payment confirmation screenshot for fast verification.
+          </small>
+        </div>
+
+        <button class="btn btn-primary" id="confirmPaymentBtn" style="width:100%;padding:0.85rem;" onclick="finalizeBatchSubmission()">
+          ✅ Submit 5th Application & Settle All 5
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let pendingFormData = null;
+    let singleFee = 50.00;
+    let batchTotal = 250.00;
+    let unpaidCount = 0;
+    let is5thApplication = false;
+
+    const MERCHANT_VPA = 'pratikkarthiya6@oksbi';
+    const MERCHANT_NAME = 'Pratik Karthiya';
+
+    fetch('/api/auth/me').then(r => r.json()).then(data => {
+      if (!data.loggedIn || data.userType !== 'user') {
+        window.location.href = '/login';
+        return;
+      }
+      document.getElementById('userName').textContent = `${data.user.name}`;
+      loadBatchStatus();
+      loadApplications();
+    });
+
+    async function loadBatchStatus() {
+      try {
+        const res = await fetch('/api/user/batch-status');
+        if (res.ok) {
+          const s = await res.json();
+          unpaidCount = s.unpaidCount || 0;
+          singleFee = s.feePerApp || 50.00;
+          batchTotal = singleFee * 5;
+
+          const currentSlot = (unpaidCount % 5) + 1;
+          is5thApplication = (unpaidCount % 5) === 4;
+
+          document.getElementById('batchTotalDisplay').textContent = `₹${batchTotal.toFixed(2)}`;
+          document.getElementById('singleFeeNote').textContent = `(₹${singleFee.toFixed(2)} / application)`;
+
+          const segments = document.querySelectorAll('#progressSegments .segment');
+          segments.forEach((seg, idx) => {
+            if (idx < (unpaidCount % 5)) {
+              seg.style.background = 'var(--accent-orange)';
+              seg.style.borderColor = 'rgba(255,149,0,0.5)';
+            } else if (idx === (unpaidCount % 5)) {
+              seg.style.background = is5thApplication ? 'var(--accent-blue)' : 'rgba(255,255,255,0.85)';
+              seg.style.borderColor = 'var(--glass-border)';
+            } else {
+              seg.style.background = 'rgba(255,255,255,0.3)';
+              seg.style.borderColor = 'var(--glass-border)';
+            }
+          });
+
+          if (is5thApplication) {
+            document.getElementById('batchBadge').className = 'badge badge-approved';
+            document.getElementById('batchBadge').textContent = '⚠️ Slot 5 of 5 — Payment Due!';
+            document.getElementById('batchExplainer').innerHTML = `<strong style="color:var(--text-main);">This is your 5th application.</strong> Submitting this will prompt payment of ₹${batchTotal.toFixed(2)} covering all 5 applications.`;
+            document.getElementById('formTitle').innerHTML = `<span>⚡</span> Submit 5th Application & Pay Batch (₹${batchTotal.toFixed(2)})`;
+            document.getElementById('submitBtn').textContent = `💳 Proceed to Pay ₹${batchTotal.toFixed(2)} for all 5 Applications`;
+          } else {
+            document.getElementById('batchBadge').className = 'badge';
+            document.getElementById('batchBadge').style.background = 'rgba(0,113,227,0.15)';
+            document.getElementById('batchBadge').style.color = 'var(--accent-blue)';
+            document.getElementById('batchBadge').textContent = `Slot ${currentSlot} of 5`;
+            document.getElementById('batchExplainer').textContent = `Applications 1 to 4 submit without payment. (${5 - currentSlot} more before batch payment).`;
+            document.getElementById('formTitle').innerHTML = `<span>📝</span> Submit Application #${currentSlot}`;
+            document.getElementById('submitBtn').textContent = `🚀 Submit Application #${currentSlot} (No Payment Required)`;
+          }
+        }
+      } catch (e) {
+        console.warn('Using default batch status');
+      }
+    }
+
+    document.getElementById('submitForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const appNumber = document.getElementById('appNumberInput').value;
+      pendingFormData = new FormData(e.target);
+
+      if (is5thApplication) {
+        openBatchPaymentModal(appNumber, batchTotal);
+        return;
+      }
+
+      const submitBtn = document.getElementById('submitBtn');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Submitting Application...';
+
+      try {
+        const res = await fetch('/api/user/applications', {
+          method: 'POST',
+          body: pendingFormData
+        });
+        const data = await res.json();
+        if (data.success) {
+          document.getElementById('submitSuccess').textContent = `✅ ${data.message}`;
+          document.getElementById('submitSuccess').classList.add('show');
+          document.getElementById('submitError').classList.remove('show');
+          document.getElementById('submitForm').reset();
+          loadBatchStatus();
+          loadApplications();
+          setTimeout(() => document.getElementById('submitSuccess').classList.remove('show'), 5000);
+        } else {
+          document.getElementById('submitError').textContent = data.error || 'Submission failed';
+          document.getElementById('submitError').classList.add('show');
+        }
+      } catch (err) {
+        document.getElementById('submitError').textContent = 'An error occurred during submission.';
+        document.getElementById('submitError').classList.add('show');
+      } finally {
+        submitBtn.disabled = false;
+        loadBatchStatus();
+      }
+    });
+
+    function openBatchPaymentModal(appNumber, total) {
+      document.getElementById('modalFeeAmount').textContent = `₹${total.toFixed(2)}`;
+      document.getElementById('manualUtrInput').value = '';
+      document.getElementById('paymentScreenshotInput').value = '';
+      document.getElementById('youpiModalOverlay').classList.add('active');
+
+      const upiUri = `upi://pay?pa=${encodeURIComponent(MERCHANT_VPA)}&pn=${encodeURIComponent(MERCHANT_NAME)}&am=${total.toFixed(2)}&cu=INR&tn=Batch5-Apps`;
+
+      const qrContainer = document.getElementById('qrcode');
+      qrContainer.innerHTML = '';
+
+      if (typeof QRCode !== 'undefined') {
+        new QRCode(qrContainer, {
+          text: upiUri,
+          width: 180,
+          height: 180,
+          colorDark: "#000000",
+          colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.M
+        });
+      } else {
+        qrContainer.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(upiUri)}" alt="UPI QR" style="width:180px;height:180px;border-radius:10px;">`;
+      }
+
+      document.getElementById('upiIntentLink').href = upiUri;
+    }
+
+    function closeYoupiModal() {
+      document.getElementById('youpiModalOverlay').classList.remove('active');
+    }
+
+    async function finalizeBatchSubmission() {
+      if (!pendingFormData) return;
+
+      const utr = document.getElementById('manualUtrInput').value.trim();
+      if (!utr || utr.length < 6) {
+        alert('Please enter your 12-digit Bank UTR / Transaction Reference number from your payment receipt.');
+        document.getElementById('manualUtrInput').focus();
+        return;
+      }
+
+      const confirmBtn = document.getElementById('confirmPaymentBtn');
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = 'Submitting with Screenshot...';
+
+      pendingFormData.set('utrNumber', utr);
+
+      const screenshotFile = document.getElementById('paymentScreenshotInput').files[0];
+      if (screenshotFile) {
+        pendingFormData.set('paymentScreenshot', screenshotFile);
+      }
+
+      try {
+        const res = await fetch('/api/user/applications', {
+          method: 'POST',
+          body: pendingFormData
+        });
+        const data = await res.json();
+        if (data.success) {
+          closeYoupiModal();
+          document.getElementById('submitSuccess').textContent = `✅ ${data.message}`;
+          document.getElementById('submitSuccess').classList.add('show');
+          document.getElementById('submitError').classList.remove('show');
+          document.getElementById('submitForm').reset();
+          loadBatchStatus();
+          loadApplications();
+          setTimeout(() => document.getElementById('submitSuccess').classList.remove('show'), 6000);
+        } else {
+          alert(data.error || 'Submission failed');
+        }
+      } catch (err) {
+        alert('An error occurred during submission.');
+      } finally {
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = '✅ Submit 5th Application & Settle All 5';
+      }
+    }
+
+    async function loadApplications() {
+      const res = await fetch('/api/user/applications');
+      const data = await res.json();
+      const list = document.getElementById('appList');
+
+      if (!data.applications || data.applications.length === 0) {
+        list.innerHTML = `<div class="empty-state"><div class="icon">📭</div><p>No applications submitted yet. Use the card above to make your first submission.</p></div>`;
+        return;
+      }
+
+      list.innerHTML = data.applications.map(app => `
+        <div class="app-card">
+          ${app.photo_url ? `<a href="${app.photo_url}" target="_blank" title="View Full Photo"><img src="${app.photo_url}" alt="App Photo" class="app-thumb"></a>` : ''}
+          <div class="app-info">
+            <div class="app-num">${app.application_number}</div>
+            <div class="app-meta">DOB: <strong>${app.date_of_birth}</strong> &nbsp;•&nbsp; Submitted: ${new Date(app.submitted_at).toLocaleDateString()}</div>
+            <div class="app-meta" style="margin-top:0.35rem;display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
+              ${app.payment_status === 'paid' ? 
+                `<span class="badge badge-approved" style="font-size:0.75rem;">⚡ Paid (Batch)</span>
+                 <span style="font-size:0.8rem;color:var(--text-secondary);">UTR: <code style="background:rgba(255,255,255,0.7);padding:2px 6px;border-radius:4px;font-weight:700;color:var(--accent-blue);">${app.payment_id || 'N/A'}</code></span>
+                 ${app.payment_screenshot_url ? `<a href="${app.payment_screenshot_url}" target="_blank" style="font-size:0.8rem;color:var(--accent-blue);font-weight:600;text-decoration:none;">🧾 View Receipt</a>` : ''}` :
+                `<span class="badge badge-pending" style="font-size:0.75rem;">⏳ Unpaid (Due on 5th Application)</span>`
+              }
+            </div>
+            ${app.admin_remarks ? `<div class="app-meta" style="margin-top:.4rem;padding:.4rem .8rem;background:rgba(255,255,255,0.45);border-radius:8px;border:1px solid var(--glass-border-subtle);display:inline-block;">💬 <strong>Admin Feedback:</strong> ${app.admin_remarks}</div>` : ''}
+          </div>
+          <span class="badge badge-${app.status}">${app.status}</span>
+        </div>
+      `).join('');
+    }
+
+    async function logout() {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.href = '/';
+    }
+  </script>
+</body>
+</html>
