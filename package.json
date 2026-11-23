@@ -1,11 +1,12 @@
 {
-  "name": "application-review-portal",
+  "name": "portal",
   "version": "1.0.0",
-  "description": "User application submission and admin review portal",
+  "description": "Application Review Portal with iOS Glassmorphism and YouPI-PG Gateway",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "deploy": "wrangler pages deploy public"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
