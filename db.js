@@ -78,7 +78,8 @@ function initialize() {
     `ALTER TABLE applications ADD COLUMN payment_screenshot_url TEXT DEFAULT ''`,
     `ALTER TABLE applications ADD COLUMN payment_amount REAL DEFAULT 50.00`,
     `ALTER TABLE applications ADD COLUMN payment_method TEXT DEFAULT 'UPI_MANUAL_UTR'`,
-    `ALTER TABLE applications ADD COLUMN paid_at DATETIME`
+    `ALTER TABLE applications ADD COLUMN paid_at DATETIME`,
+    `ALTER TABLE applications ADD COLUMN result_photo_url TEXT DEFAULT ''`
   ];
 
   for (const query of migrationCols) {

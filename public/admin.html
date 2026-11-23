@@ -509,6 +509,13 @@
           </td>
           <td>
             <span class="badge badge-${app.status}">${app.status}</span>
+            ${app.result_photo_url ? `
+              <div style="margin-top:3px;">
+                <a href="${app.result_photo_url}" target="_blank" style="font-size:0.72rem;color:#15803d;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:2px;">
+                  📄 Result Attached ↗
+                </a>
+              </div>
+            ` : ''}
             ${app.admin_remarks ? `<div style="font-size:0.72rem;color:var(--text-secondary);margin-top:2px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${app.admin_remarks}">💬 ${app.admin_remarks}</div>` : ''}
           </td>
           <td>
@@ -667,6 +674,35 @@
               </div>
             </div>
           ` : ''}
+
+          <!-- Current Result Photo (if already uploaded) -->
+          ${app.result_photo_url ? `
+            <div style="margin-top:0.75rem;padding:0.75rem;background:rgba(52,199,89,0.12);border-radius:10px;border:1px solid rgba(52,199,89,0.3);display:flex;align-items:center;gap:1rem;">
+              <a href="${app.result_photo_url}" target="_blank" title="Enlarge result photo">
+                <img src="${app.result_photo_url}" alt="Result Photo" style="width:75px;height:75px;object-fit:cover;border-radius:8px;border:1.5px solid white;box-shadow:0 4px 10px rgba(0,0,0,0.08);">
+              </a>
+              <div>
+                <div style="font-weight:700;font-size:0.85rem;color:#15803d;">📄 Current Result Photo Attached</div>
+                <div style="font-size:0.78rem;color:var(--text-secondary);margin-top:2px;">Applicant can view and download this result photo from their dashboard.</div>
+                <a href="${app.result_photo_url}" target="_blank" class="copy-badge" style="margin-top:4px;display:inline-block;text-decoration:none;">🔍 Enlarge Result Photo ↗</a>
+              </div>
+            </div>
+          ` : ''}
+
+          <!-- Attach / Update Result Photo -->
+          <div style="margin-top:0.85rem;padding:0.85rem;background:rgba(255,255,255,0.65);border-radius:10px;border:1px dashed var(--glass-border);">
+            <label style="font-size:0.85rem;font-weight:700;color:var(--text-main);display:flex;align-items:center;gap:0.4rem;margin-bottom:0.35rem;">
+              <span>📤</span> Send Result Photo / Admit Card Slip to Candidate
+            </label>
+            <div style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:0.45rem;">
+              Attach scorecard, admit card, or exam result screenshot (Candidate will see this in their portal).
+            </div>
+            <input type="file" id="resultPhotoInput-${app.id}" accept="image/*" onchange="previewResultPhoto(this, ${app.id})" style="font-size:0.82rem;width:100%;">
+            <div id="resultPreviewBox-${app.id}" style="display:none;align-items:center;gap:0.75rem;margin-top:0.5rem;padding:0.4rem;background:rgba(255,255,255,0.8);border-radius:8px;">
+              <img id="resultPreviewImg-${app.id}" src="" style="width:48px;height:48px;object-fit:cover;border-radius:6px;border:1px solid var(--glass-border);">
+              <span id="resultPreviewName-${app.id}" style="font-size:0.78rem;color:var(--text-main);font-weight:600;"></span>
+            </div>
+          </div>
 
           <div class="review-actions">
             <input type="text" id="remarks-${app.id}" placeholder="Enter review remarks..." value="${app.admin_remarks || ''}">
@@ -894,6 +930,35 @@
             </div>
           ` : ''}
 
+          <!-- Current Result Photo (if already uploaded) -->
+          ${app.result_photo_url ? `
+            <div style="margin-top:0.75rem;padding:0.75rem;background:rgba(52,199,89,0.12);border-radius:10px;border:1px solid rgba(52,199,89,0.3);display:flex;align-items:center;gap:1rem;">
+              <a href="${app.result_photo_url}" target="_blank" title="Enlarge result photo">
+                <img src="${app.result_photo_url}" alt="Result Photo" style="width:75px;height:75px;object-fit:cover;border-radius:8px;border:1.5px solid white;box-shadow:0 4px 10px rgba(0,0,0,0.08);">
+              </a>
+              <div>
+                <div style="font-weight:700;font-size:0.85rem;color:#15803d;">📄 Current Result Photo Attached</div>
+                <div style="font-size:0.78rem;color:var(--text-secondary);margin-top:2px;">Applicant can view and download this result photo from their dashboard.</div>
+                <a href="${app.result_photo_url}" target="_blank" class="copy-badge" style="margin-top:4px;display:inline-block;text-decoration:none;">🔍 Enlarge Result Photo ↗</a>
+              </div>
+            </div>
+          ` : ''}
+
+          <!-- Attach / Update Result Photo -->
+          <div style="margin-top:0.85rem;padding:0.85rem;background:rgba(255,255,255,0.65);border-radius:10px;border:1px dashed var(--glass-border);">
+            <label style="font-size:0.85rem;font-weight:700;color:var(--text-main);display:flex;align-items:center;gap:0.4rem;margin-bottom:0.35rem;">
+              <span>📤</span> Send Result Photo / Admit Card Slip to Candidate
+            </label>
+            <div style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:0.45rem;">
+              Attach scorecard, admit card, or exam result screenshot (Candidate will see this in their portal).
+            </div>
+            <input type="file" id="resultPhotoInput-${app.id}" accept="image/*" onchange="previewResultPhoto(this, ${app.id})" style="font-size:0.82rem;width:100%;">
+            <div id="resultPreviewBox-${app.id}" style="display:none;align-items:center;gap:0.75rem;margin-top:0.5rem;padding:0.4rem;background:rgba(255,255,255,0.8);border-radius:8px;">
+              <img id="resultPreviewImg-${app.id}" src="" style="width:48px;height:48px;object-fit:cover;border-radius:6px;border:1px solid var(--glass-border);">
+              <span id="resultPreviewName-${app.id}" style="font-size:0.78rem;color:var(--text-main);font-weight:600;"></span>
+            </div>
+          </div>
+
           ${app.admin_remarks ? `<div style="margin-top:.75rem;font-size:.85rem;color:var(--text-main);background:rgba(255,255,255,0.6);padding:.6rem .8rem;border-radius:8px;border:1px solid var(--glass-border-subtle);">💬 <strong>Current Remarks:</strong> ${app.admin_remarks}</div>` : ''}
           <div class="review-actions">
             <input type="text" id="remarks-${app.id}" placeholder="Enter review remarks..." value="${app.admin_remarks || ''}">
@@ -904,26 +969,129 @@
       `).join('');
     }
 
-    async function reviewApp(appId, status) {
-      const remarks = document.getElementById(`remarks-${appId}`).value;
-      const res = await fetch(`/api/admin/applications/${appId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status, remarks })
+    function previewResultPhoto(input, appId) {
+      const box = document.getElementById(`resultPreviewBox-${appId}`);
+      const img = document.getElementById(`resultPreviewImg-${appId}`);
+      const name = document.getElementById(`resultPreviewName-${appId}`);
+      if (input.files && input.files[0]) {
+        const file = input.files[0];
+        const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+        if (name) name.textContent = `${file.name} (${sizeMb >= 1 ? sizeMb + ' MB' : (file.size / 1024).toFixed(0) + ' KB'})`;
+        const reader = new FileReader();
+        reader.onload = e => {
+          if (img) img.src = e.target.result;
+          if (box) box.style.display = 'flex';
+        };
+        reader.readAsDataURL(file);
+      } else {
+        if (box) box.style.display = 'none';
+      }
+    }
+
+    function fileToDataUrl(file) {
+      return new Promise((resolve, reject) => {
+        if (!file) return resolve(null);
+        const reader = new FileReader();
+        reader.onload = e => resolve(e.target.result);
+        reader.onerror = err => reject(err);
+        reader.readAsDataURL(file);
       });
-      const data = await res.json();
-      if (data.success) {
-        const card = document.getElementById(`app-${appId}`);
-        if (card) {
-          const badge = card.querySelectorAll('.badge')[1];
-          if (badge) {
-            badge.className = `badge badge-${status}`;
-            badge.textContent = status;
-          }
+    }
+
+    function compressImageToDataUrl(file, maxDimension = 1200, quality = 0.8) {
+      return new Promise((resolve) => {
+        if (!file || !file.type || !file.type.startsWith('image/')) {
+          return fileToDataUrl(file).then(resolve);
         }
-        loadStats();
-        loadUsers();
-        loadAllApplications();
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+          const img = new Image();
+          img.src = event.target.result;
+          img.onload = () => {
+            let width = img.width;
+            let height = img.height;
+            if (width > maxDimension || height > maxDimension) {
+              if (width > height) {
+                height = Math.round((height * maxDimension) / width);
+                width = maxDimension;
+              } else {
+                width = Math.round((width * maxDimension) / height);
+                height = maxDimension;
+              }
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/jpeg', quality));
+          };
+          img.onerror = () => {
+            fileToDataUrl(file).then(resolve);
+          };
+        };
+        reader.onerror = () => {
+          fileToDataUrl(file).then(resolve);
+        };
+      });
+    }
+
+    async function reviewApp(appId, status) {
+      const remarksInput = document.getElementById(`remarks-${appId}`);
+      const remarks = remarksInput ? remarksInput.value : '';
+      const photoInput = document.getElementById(`resultPhotoInput-${appId}`);
+      let resultPhotoUrl = undefined;
+
+      const card = document.getElementById(`app-${appId}`);
+      const buttons = card ? card.querySelectorAll('.review-actions button') : [];
+      buttons.forEach(b => { b.disabled = true; });
+
+      try {
+        if (photoInput && photoInput.files && photoInput.files[0]) {
+          const file = photoInput.files[0];
+          resultPhotoUrl = await compressImageToDataUrl(file, 1200, 0.8);
+        }
+
+        const payload = { status, remarks };
+        if (resultPhotoUrl !== undefined) {
+          payload.resultPhotoUrl = resultPhotoUrl;
+        }
+
+        const res = await fetch(`/api/admin/applications/${appId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.success) {
+          if (card) {
+            const badge = card.querySelectorAll('.badge')[1];
+            if (badge) {
+              badge.className = `badge badge-${status}`;
+              badge.textContent = status;
+            }
+          }
+          alert(`Application #${appId} successfully marked as "${status}"${resultPhotoUrl ? ' with Result Photo attached' : ''}!`);
+          loadStats();
+          loadUsers();
+          loadAllApplications();
+          if (cachedAllApplications) {
+            const appIdx = cachedAllApplications.findIndex(a => a.id === appId);
+            if (appIdx !== -1) {
+              cachedAllApplications[appIdx].status = status;
+              cachedAllApplications[appIdx].admin_remarks = remarks;
+              if (resultPhotoUrl) cachedAllApplications[appIdx].result_photo_url = resultPhotoUrl;
+            }
+          }
+        } else {
+          alert('Failed to update application: ' + (data.error || 'Server error'));
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Error updating application: ' + err.message);
+      } finally {
+        buttons.forEach(b => { b.disabled = false; });
       }
     }
 

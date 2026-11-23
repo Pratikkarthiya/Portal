@@ -124,9 +124,9 @@ router.get('/users/:userId/applications', requireAdmin, (req, res) => {
   res.json({ user, applications });
 });
 
-// Review application (approve / reject)
+// Review application (approve / reject, attach result photo)
 router.put('/applications/:appId', requireAdmin, (req, res) => {
-  const { status, remarks } = req.body;
+  const { status, remarks, resultPhotoUrl } = req.body;
   if (!['approved', 'rejected'].includes(status)) {
     return res.status(400).json({ error: 'Status must be approved or rejected' });
   }
@@ -136,10 +136,17 @@ router.put('/applications/:appId', requireAdmin, (req, res) => {
     return res.status(404).json({ error: 'Application not found' });
   }
 
-  runSql(
-    'UPDATE applications SET status = ?, admin_remarks = ?, reviewed_at = CURRENT_TIMESTAMP WHERE id = ?',
-    [status, remarks || '', Number(req.params.appId)]
-  );
+  if (resultPhotoUrl !== undefined) {
+    runSql(
+      'UPDATE applications SET status = ?, admin_remarks = ?, result_photo_url = ?, reviewed_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [status, remarks || '', resultPhotoUrl || '', Number(req.params.appId)]
+    );
+  } else {
+    runSql(
+      'UPDATE applications SET status = ?, admin_remarks = ?, reviewed_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [status, remarks || '', Number(req.params.appId)]
+    );
+  }
 
   res.json({ success: true, message: `Application ${status}` });
 });

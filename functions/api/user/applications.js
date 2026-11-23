@@ -7,7 +7,7 @@ export async function onRequestGet({ request, env }) {
   }
 
   const { results: applications } = await env.DB.prepare(
-    `SELECT id, application_number, date_of_birth, photo_url, payment_status, payment_id, payment_screenshot_url, payment_amount, payment_method, paid_at, status, admin_remarks, submitted_at, reviewed_at 
+    `SELECT id, application_number, date_of_birth, photo_url, payment_status, payment_id, payment_screenshot_url, payment_amount, payment_method, paid_at, status, admin_remarks, result_photo_url, submitted_at, reviewed_at 
      FROM applications WHERE user_id = ? ORDER BY submitted_at DESC`
   ).bind(session.user_id).all();
 

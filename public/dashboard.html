@@ -728,6 +728,26 @@
               }
             </div>
             ${app.admin_remarks ? `<div class="app-meta" style="margin-top:.4rem;padding:.4rem .8rem;background:rgba(255,255,255,0.45);border-radius:8px;border:1px solid var(--glass-border-subtle);display:inline-block;">💬 <strong>Admin Feedback:</strong> ${app.admin_remarks}</div>` : ''}
+            ${app.result_photo_url ? `
+              <div style="margin-top:0.65rem;padding:0.65rem 0.85rem;background:rgba(52,199,89,0.12);border:1px solid rgba(52,199,89,0.35);border-radius:10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.6rem;">
+                <div style="display:flex;align-items:center;gap:0.75rem;">
+                  <a href="${app.result_photo_url}" target="_blank" title="Enlarge Result Photo">
+                    <img src="${app.result_photo_url}" alt="Result Slip" style="width:48px;height:48px;object-fit:cover;border-radius:8px;border:1.5px solid white;box-shadow:0 3px 8px rgba(0,0,0,0.12);">
+                  </a>
+                  <div>
+                    <div style="font-weight:700;font-size:0.88rem;color:#15803d;display:flex;align-items:center;gap:4px;">
+                      <span>📄</span> Result / Admit Card Available!
+                    </div>
+                    <div style="font-size:0.75rem;color:var(--text-secondary);">Your application result photo has been issued by the admin.</div>
+                  </div>
+                </div>
+                <div style="display:flex;gap:0.4rem;">
+                  <a href="${app.result_photo_url}" target="_blank" class="view-btn" style="background:#15803d;color:white;border:none;font-weight:700;font-size:0.78rem;padding:0.4rem 0.8rem;text-decoration:none;">
+                    🔍 View Result Photo ↗
+                  </a>
+                </div>
+              </div>
+            ` : ''}
           </div>
           <span class="badge badge-${app.status}">${app.status}</span>
         </div>

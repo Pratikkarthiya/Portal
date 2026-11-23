@@ -7,11 +7,17 @@ export async function onRequestPut({ request, params, env }) {
   }
 
   const appId = params.appId;
-  const { status, remarks } = await request.json();
+  const { status, remarks, resultPhotoUrl } = await request.json();
 
-  await env.DB.prepare(
-    'UPDATE applications SET status = ?, admin_remarks = ?, reviewed_at = datetime("now") WHERE id = ?'
-  ).bind(status, remarks || '', appId).run();
+  if (resultPhotoUrl !== undefined) {
+    await env.DB.prepare(
+      'UPDATE applications SET status = ?, admin_remarks = ?, result_photo_url = ?, reviewed_at = datetime("now") WHERE id = ?'
+    ).bind(status, remarks || '', resultPhotoUrl || '', appId).run();
+  } else {
+    await env.DB.prepare(
+      'UPDATE applications SET status = ?, admin_remarks = ?, reviewed_at = datetime("now") WHERE id = ?'
+    ).bind(status, remarks || '', appId).run();
+  }
 
   return jsonResponse({ success: true, message: `Application ${status}` });
 }
