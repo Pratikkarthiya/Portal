@@ -68,4 +68,47 @@ router.post('/create-session', requireUser, (req, res) => {
   });
 });
 
+/**
+ * 3. Android Observer Gateway Endpoints (Pair, Heartbeat, Events, SMS)
+ */
+router.post('/v1/pollers/android/pair', (req, res) => {
+  const { deviceName } = req.body || {};
+  const cleanName = deviceName ? String(deviceName).replace(/[^a-zA-Z0-9_-]/g, '-') : 'ANDROID-PHONE';
+  res.json({
+    paired: true,
+    deviceId: 'OBSERVER-' + cleanName.toUpperCase(),
+    signingKey: 'youpi-secret-key-2024',
+    merchantId: '00000000-0000-0000-0000-000000000001'
+  });
+});
+
+router.post('/v1/pollers/android/heartbeat', (req, res) => {
+  res.json({ status: 'ok', timestamp: Date.now() });
+});
+
+router.post('/v1/pollers/android/events', (req, res) => {
+  const { bankReferenceNumber, amount, rawNotification } = req.body || {};
+  let finalUtr = bankReferenceNumber ? String(bankReferenceNumber).trim() : null;
+  if (!finalUtr && rawNotification && rawNotification.text) {
+    const match = rawNotification.text.match(/\b\d{12}\b/);
+    if (match) finalUtr = match[0];
+  }
+
+  let finalAmount = Number(amount) || 250.00;
+  let updatedCount = 0;
+
+  if (finalUtr) {
+    const apps = queryAll('SELECT id FROM applications WHERE payment_id = ? AND payment_status != "paid"', [finalUtr]);
+    for (const app of apps) {
+      runSql(
+        'UPDATE applications SET payment_status = "paid", payment_amount = ?, paid_at = CURRENT_TIMESTAMP WHERE id = ?',
+        [finalAmount, app.id]
+      );
+      updatedCount++;
+    }
+  }
+
+  res.json({ success: true, matched: updatedCount > 0, updatedCount, utr: finalUtr, amount: finalAmount });
+});
+
 module.exports = router;

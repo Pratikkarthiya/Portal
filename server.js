@@ -28,6 +28,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/youpi', youpiRoutes);
+app.use('/api', youpiRoutes);
 
 // High-performance media serving endpoint (serves binary image with HTTP cache headers)
 const { queryOne } = require('./db');
