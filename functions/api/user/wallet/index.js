@@ -1,4 +1,4 @@
-import { getSession, jsonResponse, arrayBufferToBase64 } from '../../utils.js';
+import { getSession, jsonResponse, arrayBufferToBase64 } from '../../../utils.js';
 
 export async function onRequestGet({ request, env }) {
   const session = await getSession(request, env);
@@ -79,7 +79,7 @@ export async function onRequestPost({ request, env }) {
       return jsonResponse({ error: `UTR / Transaction Ref "${utrNumber}" has already been submitted.` }, 400);
     }
 
-    // Auto-approve topup: In small portal workflow, auto-crediting or marking approved on UTR submission gives instant gratification
+    // Auto-approve topup: In small portal workflow, auto-crediting on UTR submission gives instant gratification
     const newBalance = currentBalance + amount;
     await env.DB.prepare('UPDATE users SET wallet_balance = ? WHERE id = ?').bind(newBalance, session.user_id).run();
 
