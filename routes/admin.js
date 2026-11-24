@@ -238,6 +238,21 @@ router.put('/applications/:appId', requireAdmin, (req, res) => {
   res.json({ success: true, message });
 });
 
+// Admin deletes an application
+router.delete('/applications/:appId', requireAdmin, (req, res) => {
+  const appId = Number(req.params.appId);
+  const existing = queryOne('SELECT id, application_number FROM applications WHERE id = ?', [appId]);
+  if (!existing) {
+    return res.status(404).json({ error: 'Application not found' });
+  }
+
+  runSql('DELETE FROM applications WHERE id = ?', [appId]);
+  res.json({
+    success: true,
+    message: `Application #${existing.application_number || appId} deleted successfully.`
+  });
+});
+
 // Dashboard stats including revenue
 router.get('/stats', requireAdmin, (req, res) => {
   const totalUsers = queryOne('SELECT COUNT(*) as c FROM users');

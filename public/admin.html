@@ -1079,6 +1079,7 @@
             <button class="btn btn-success btn-sm" onclick="reviewApp(${app.id}, 'approved')">✅ Verify & Approve</button>
             <button class="btn btn-warning btn-sm" onclick="reviewApp(${app.id}, 'correction')">⚠️ Request Correction</button>
             <button class="btn btn-danger btn-sm" onclick="reviewApp(${app.id}, 'rejected')">❌ Reject</button>
+            <button class="btn btn-sm" onclick="deleteApp(${app.id}, '${escapeQuotes(app.application_number || app.id)}')" style="background:rgba(255,59,48,0.12);color:#dc2626;border:1px solid rgba(255,59,48,0.25);font-weight:700;">🗑️ Delete</button>
           </div>
         </div>
       `;
@@ -1370,6 +1371,7 @@
             <button class="btn btn-success btn-sm" onclick="reviewApp(${app.id}, 'approved')">✅ Verify & Approve</button>
             <button class="btn btn-warning btn-sm" onclick="reviewApp(${app.id}, 'correction')">⚠️ Request Correction</button>
             <button class="btn btn-danger btn-sm" onclick="reviewApp(${app.id}, 'rejected')">❌ Reject</button>
+            <button class="btn btn-sm" onclick="deleteApp(${app.id}, '${escapeQuotes(app.application_number || app.id)}')" style="background:rgba(255,59,48,0.12);color:#dc2626;border:1px solid rgba(255,59,48,0.25);font-weight:700;">🗑️ Delete</button>
           </div>
         </div>
       `).join('');
@@ -1563,6 +1565,33 @@
         alert('Error updating application: ' + err.message);
       } finally {
         buttons.forEach(b => { b.disabled = false; });
+      }
+    }
+
+    async function deleteApp(appId, appNumber) {
+      if (!confirm(`Are you sure you want to permanently delete Application #${appNumber}?\n\nThis will remove the application and all attached documents permanently.`)) {
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/admin/applications/${appId}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          alert(`🗑️ Application #${appNumber} has been deleted.`);
+          const card = document.getElementById(`app-${appId}`);
+          if (card) card.remove();
+          loadStats();
+          loadUsers();
+          loadAllApplications();
+          if (cachedAllApplications) {
+            cachedAllApplications = cachedAllApplications.filter(a => a.id !== appId);
+          }
+        } else {
+          alert('Failed to delete application: ' + (data.error || 'Server error'));
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Error deleting application: ' + err.message);
       }
     }
 

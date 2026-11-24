@@ -49,3 +49,40 @@ export async function onRequestPut({ request, params, env }) {
 
   return jsonResponse({ success: true, message });
 }
+
+export async function onRequestDelete({ request, params, env }) {
+  const session = await getSession(request, env);
+  if (!session || session.user_type !== 'admin') {
+    return jsonResponse({ error: 'Admin access required' }, 401);
+  }
+
+  const appId = params.appId;
+  const existing = await env.DB.prepare(
+    'SELECT id, application_number, photo_url, payment_screenshot_url, result_photo_url FROM applications WHERE id = ?'
+  ).bind(appId).first();
+
+  if (!existing) {
+    return jsonResponse({ error: 'Application not found' }, 404);
+  }
+
+  if (env.UPLOADS) {
+    try {
+      if (existing.photo_url && existing.photo_url.startsWith('/api/files/')) {
+        await env.UPLOADS.delete(existing.photo_url.replace('/api/files/', ''));
+      }
+      if (existing.payment_screenshot_url && existing.payment_screenshot_url.startsWith('/api/files/')) {
+        await env.UPLOADS.delete(existing.payment_screenshot_url.replace('/api/files/', ''));
+      }
+      if (existing.result_photo_url && existing.result_photo_url.startsWith('/api/files/')) {
+        await env.UPLOADS.delete(existing.result_photo_url.replace('/api/files/', ''));
+      }
+    } catch (e) {}
+  }
+
+  await env.DB.prepare('DELETE FROM applications WHERE id = ?').bind(appId).run();
+
+  return jsonResponse({
+    success: true,
+    message: `Application #${existing.application_number || appId} deleted successfully.`
+  });
+}
