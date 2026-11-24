@@ -150,31 +150,44 @@ router.get('/users/:userId/applications', requireAdmin, (req, res) => {
   res.json({ user, applications });
 });
 
-// Review application (approve / reject, attach result photo)
+// Review or edit application (approve, reject, request correction, direct edit details)
 router.put('/applications/:appId', requireAdmin, (req, res) => {
-  const { status, remarks, resultPhotoUrl } = req.body;
-  if (!['approved', 'rejected'].includes(status)) {
-    return res.status(400).json({ error: 'Status must be approved or rejected' });
-  }
-
-  const app = queryOne('SELECT id FROM applications WHERE id = ?', [Number(req.params.appId)]);
-  if (!app) {
+  const appId = Number(req.params.appId);
+  const existing = queryOne('SELECT * FROM applications WHERE id = ?', [appId]);
+  if (!existing) {
     return res.status(404).json({ error: 'Application not found' });
   }
 
-  if (resultPhotoUrl !== undefined) {
-    runSql(
-      'UPDATE applications SET status = ?, admin_remarks = ?, result_photo_url = ?, reviewed_at = CURRENT_TIMESTAMP WHERE id = ?',
-      [status, remarks || '', resultPhotoUrl || '', Number(req.params.appId)]
-    );
-  } else {
-    runSql(
-      'UPDATE applications SET status = ?, admin_remarks = ?, reviewed_at = CURRENT_TIMESTAMP WHERE id = ?',
-      [status, remarks || '', Number(req.params.appId)]
-    );
-  }
+  const { status, remarks, resultPhotoUrl, applicationNumber, dateOfBirth, appPassword, paymentId } = req.body;
 
-  res.json({ success: true, message: `Application ${status}` });
+  const newStatus = status !== undefined ? status : existing.status;
+  const newRemarks = remarks !== undefined ? remarks : (existing.admin_remarks || '');
+  const newAppNum = applicationNumber !== undefined ? String(applicationNumber).trim() : existing.application_number;
+  const newDob = dateOfBirth !== undefined ? String(dateOfBirth).trim() : existing.date_of_birth;
+  const newPass = appPassword !== undefined ? String(appPassword).trim() : existing.app_password;
+  const newPaymentId = paymentId !== undefined ? String(paymentId).trim() : existing.payment_id;
+  const newResultPhotoUrl = resultPhotoUrl !== undefined ? resultPhotoUrl : (existing.result_photo_url || '');
+
+  runSql(
+    `UPDATE applications 
+     SET status = ?, 
+         admin_remarks = ?, 
+         application_number = ?, 
+         date_of_birth = ?, 
+         app_password = ?, 
+         payment_id = ?, 
+         result_photo_url = ?, 
+         reviewed_at = CURRENT_TIMESTAMP 
+     WHERE id = ?`,
+    [newStatus, newRemarks, newAppNum, newDob, newPass, newPaymentId, newResultPhotoUrl, appId]
+  );
+
+  let message = `Application #${newAppNum} updated successfully`;
+  if (status === 'correction') message = `Application #${newAppNum} sent for Candidate Correction`;
+  else if (status === 'approved') message = `Application #${newAppNum} approved successfully`;
+  else if (status === 'rejected') message = `Application #${newAppNum} rejected`;
+
+  res.json({ success: true, message });
 });
 
 // Dashboard stats including revenue

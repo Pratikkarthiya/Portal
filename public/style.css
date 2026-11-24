@@ -567,6 +567,28 @@ body::before, body::after {
   border: 1px solid rgba(255, 59, 48, 0.35);
 }
 
+.badge-correction {
+  background: rgba(245, 158, 11, 0.18);
+  color: #b45309;
+  border: 1px solid rgba(245, 158, 11, 0.45);
+}
+
+.btn-warning {
+  background: #f59e0b;
+  color: #ffffff;
+  border: 1px solid #d97706;
+  font-weight: 700;
+  cursor: pointer;
+  border-radius: var(--radius-ios-sm);
+  transition: all 0.2s ease;
+}
+
+.btn-warning:hover {
+  background: #d97706;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+  transform: translateY(-1px);
+}
+
 /* ==========================================================================
    ADMIN DASHBOARD (Mac OS Glass UI)
    ========================================================================== */

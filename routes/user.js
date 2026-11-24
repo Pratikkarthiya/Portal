@@ -199,4 +199,43 @@ router.get('/applications', requireUser, (req, res) => {
   res.json({ applications: apps });
 });
 
+// Candidate corrects and resubmits application
+router.put('/applications/:appId', requireUser, (req, res) => {
+  const appId = Number(req.params.appId);
+  const app = queryOne('SELECT id, user_id, status FROM applications WHERE id = ? AND user_id = ?', [appId, req.session.userId]);
+  if (!app) {
+    return res.status(404).json({ error: 'Application not found or unauthorized' });
+  }
+
+  const { applicationNumber, dateOfBirth, appPassword, photoUrl } = req.body;
+  if (!applicationNumber || !dateOfBirth || !appPassword) {
+    return res.status(400).json({ error: 'Application number, date of birth, and password are required' });
+  }
+
+  const cleanAppNum = String(applicationNumber).trim();
+  const cleanDob = String(dateOfBirth).trim();
+  const cleanPass = String(appPassword).trim();
+
+  if (photoUrl && photoUrl.trim()) {
+    runSql(
+      `UPDATE applications 
+       SET application_number = ?, date_of_birth = ?, app_password = ?, photo_url = ?, status = 'pending', admin_remarks = 'Resubmitted with corrections by candidate.', submitted_at = CURRENT_TIMESTAMP
+       WHERE id = ? AND user_id = ?`,
+      [cleanAppNum, cleanDob, cleanPass, photoUrl.trim(), appId, req.session.userId]
+    );
+  } else {
+    runSql(
+      `UPDATE applications 
+       SET application_number = ?, date_of_birth = ?, app_password = ?, status = 'pending', admin_remarks = 'Resubmitted with corrections by candidate.', submitted_at = CURRENT_TIMESTAMP
+       WHERE id = ? AND user_id = ?`,
+      [cleanAppNum, cleanDob, cleanPass, appId, req.session.userId]
+    );
+  }
+
+  res.json({
+    success: true,
+    message: `Application #${cleanAppNum} corrected and resubmitted successfully! It is now pending admin review.`
+  });
+});
+
 module.exports = router;

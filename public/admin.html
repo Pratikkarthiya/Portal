@@ -160,6 +160,7 @@
         <div class="filter-pills" id="adminAppFilterPills">
           <button class="filter-pill active" onclick="setAdminAppFilter('all')">All</button>
           <button class="filter-pill" onclick="setAdminAppFilter('pending')">Pending Review</button>
+          <button class="filter-pill" onclick="setAdminAppFilter('correction')">⚠️ Correction</button>
           <button class="filter-pill" onclick="setAdminAppFilter('approved')">Approved</button>
           <button class="filter-pill" onclick="setAdminAppFilter('rejected')">Rejected</button>
           <button class="filter-pill" onclick="setAdminAppFilter('paid')">Batch Paid</button>
@@ -459,6 +460,7 @@
       let filtered = cachedAllApplications;
 
       if (currentAdminAppFilter === 'pending') filtered = filtered.filter(a => a.status === 'pending');
+      else if (currentAdminAppFilter === 'correction') filtered = filtered.filter(a => a.status === 'correction');
       else if (currentAdminAppFilter === 'approved') filtered = filtered.filter(a => a.status === 'approved');
       else if (currentAdminAppFilter === 'rejected') filtered = filtered.filter(a => a.status === 'rejected');
       else if (currentAdminAppFilter === 'paid') filtered = filtered.filter(a => a.payment_status === 'paid');
@@ -812,9 +814,40 @@
             </div>
           </div>
 
-          <div class="review-actions">
-            <input type="text" id="remarks-${app.id}" placeholder="Enter review remarks..." value="${app.admin_remarks || ''}">
+          <!-- Admin Direct Data Correction Box -->
+          <div style="margin-top:0.85rem;padding:0.85rem;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.6rem;flex-wrap:wrap;gap:0.4rem;">
+              <span style="font-size:0.85rem;font-weight:700;color:#0f172a;display:flex;align-items:center;gap:4px;">
+                <span>✏️</span> Admin Direct Edit & Data Correction
+              </span>
+              <button type="button" class="btn btn-primary btn-sm" style="padding:0.3rem 0.75rem;font-size:0.75rem;" onclick="saveAdminAppEdits(${app.id}, this)">
+                💾 Save Edits
+              </button>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));gap:0.6rem;">
+              <div>
+                <label style="font-size:0.72rem;font-weight:700;color:#64748b;display:block;margin-bottom:2px;">App Number</label>
+                <input type="text" id="adminEditAppNum-${app.id}" value="${app.application_number}" style="width:100%;padding:5px 8px;font-size:0.82rem;font-family:monospace;border-radius:6px;border:1px solid #cbd5e1;background:#fff;">
+              </div>
+              <div>
+                <label style="font-size:0.72rem;font-weight:700;color:#64748b;display:block;margin-bottom:2px;">DOB (YYYY-MM-DD)</label>
+                <input type="text" id="adminEditDob-${app.id}" value="${app.date_of_birth}" placeholder="YYYY-MM-DD" style="width:100%;padding:5px 8px;font-size:0.82rem;font-family:monospace;border-radius:6px;border:1px solid #cbd5e1;background:#fff;">
+              </div>
+              <div>
+                <label style="font-size:0.72rem;font-weight:700;color:#64748b;display:block;margin-bottom:2px;">App Password</label>
+                <input type="text" id="adminEditPass-${app.id}" value="${app.app_password}" style="width:100%;padding:5px 8px;font-size:0.82rem;border-radius:6px;border:1px solid #cbd5e1;background:#fff;">
+              </div>
+              <div>
+                <label style="font-size:0.72rem;font-weight:700;color:#64748b;display:block;margin-bottom:2px;">Bank UTR</label>
+                <input type="text" id="adminEditUtr-${app.id}" value="${app.payment_id || ''}" placeholder="Bank UTR #" style="width:100%;padding:5px 8px;font-size:0.82rem;border-radius:6px;border:1px solid #cbd5e1;background:#fff;">
+              </div>
+            </div>
+          </div>
+
+          <div class="review-actions" style="flex-wrap:wrap;gap:0.5rem;">
+            <input type="text" id="remarks-${app.id}" placeholder="Enter review remarks or reason for correction..." value="${app.admin_remarks || ''}" style="min-width:220px;flex:2;">
             <button class="btn btn-success btn-sm" onclick="reviewApp(${app.id}, 'approved')">✅ Verify & Approve</button>
+            <button class="btn btn-warning btn-sm" onclick="reviewApp(${app.id}, 'correction')">⚠️ Request Correction</button>
             <button class="btn btn-danger btn-sm" onclick="reviewApp(${app.id}, 'rejected')">❌ Reject</button>
           </div>
         </div>
@@ -1068,9 +1101,40 @@
           </div>
 
           ${app.admin_remarks ? `<div style="margin-top:.75rem;font-size:.85rem;color:var(--text-main);background:rgba(255,255,255,0.6);padding:.6rem .8rem;border-radius:8px;border:1px solid var(--glass-border-subtle);">💬 <strong>Current Remarks:</strong> ${app.admin_remarks}</div>` : ''}
-          <div class="review-actions">
-            <input type="text" id="remarks-${app.id}" placeholder="Enter review remarks..." value="${app.admin_remarks || ''}">
+          <!-- Admin Direct Data Correction Box -->
+          <div style="margin-top:0.85rem;padding:0.85rem;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.6rem;flex-wrap:wrap;gap:0.4rem;">
+              <span style="font-size:0.85rem;font-weight:700;color:#0f172a;display:flex;align-items:center;gap:4px;">
+                <span>✏️</span> Admin Direct Edit & Data Correction
+              </span>
+              <button type="button" class="btn btn-primary btn-sm" style="padding:0.3rem 0.75rem;font-size:0.75rem;" onclick="saveAdminAppEdits(${app.id}, this)">
+                💾 Save Edits
+              </button>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));gap:0.6rem;">
+              <div>
+                <label style="font-size:0.72rem;font-weight:700;color:#64748b;display:block;margin-bottom:2px;">App Number</label>
+                <input type="text" id="adminEditAppNum-${app.id}" value="${app.application_number}" style="width:100%;padding:5px 8px;font-size:0.82rem;font-family:monospace;border-radius:6px;border:1px solid #cbd5e1;background:#fff;">
+              </div>
+              <div>
+                <label style="font-size:0.72rem;font-weight:700;color:#64748b;display:block;margin-bottom:2px;">DOB (YYYY-MM-DD)</label>
+                <input type="text" id="adminEditDob-${app.id}" value="${app.date_of_birth}" placeholder="YYYY-MM-DD" style="width:100%;padding:5px 8px;font-size:0.82rem;font-family:monospace;border-radius:6px;border:1px solid #cbd5e1;background:#fff;">
+              </div>
+              <div>
+                <label style="font-size:0.72rem;font-weight:700;color:#64748b;display:block;margin-bottom:2px;">App Password</label>
+                <input type="text" id="adminEditPass-${app.id}" value="${app.app_password}" style="width:100%;padding:5px 8px;font-size:0.82rem;border-radius:6px;border:1px solid #cbd5e1;background:#fff;">
+              </div>
+              <div>
+                <label style="font-size:0.72rem;font-weight:700;color:#64748b;display:block;margin-bottom:2px;">Bank UTR</label>
+                <input type="text" id="adminEditUtr-${app.id}" value="${app.payment_id || ''}" placeholder="Bank UTR #" style="width:100%;padding:5px 8px;font-size:0.82rem;border-radius:6px;border:1px solid #cbd5e1;background:#fff;">
+              </div>
+            </div>
+          </div>
+
+          <div class="review-actions" style="flex-wrap:wrap;gap:0.5rem;">
+            <input type="text" id="remarks-${app.id}" placeholder="Enter review remarks or reason for correction..." value="${app.admin_remarks || ''}" style="min-width:220px;flex:2;">
             <button class="btn btn-success btn-sm" onclick="reviewApp(${app.id}, 'approved')">✅ Verify & Approve</button>
+            <button class="btn btn-warning btn-sm" onclick="reviewApp(${app.id}, 'correction')">⚠️ Request Correction</button>
             <button class="btn btn-danger btn-sm" onclick="reviewApp(${app.id}, 'rejected')">❌ Reject</button>
           </div>
         </div>
@@ -1145,9 +1209,64 @@
       });
     }
 
+    async function saveAdminAppEdits(appId, btnElement) {
+      const appNumInput = document.getElementById(`adminEditAppNum-${appId}`);
+      const dobInput = document.getElementById(`adminEditDob-${appId}`);
+      const passInput = document.getElementById(`adminEditPass-${appId}`);
+      const utrInput = document.getElementById(`adminEditUtr-${appId}`);
+
+      if (!appNumInput || !dobInput || !passInput) return;
+
+      const applicationNumber = appNumInput.value.trim();
+      const dateOfBirth = dobInput.value.trim();
+      const appPassword = passInput.value.trim();
+      const paymentId = utrInput ? utrInput.value.trim() : '';
+
+      if (!applicationNumber || !dateOfBirth || !appPassword) {
+        alert('Application number, date of birth, and password cannot be empty.');
+        return;
+      }
+
+      if (btnElement) {
+        btnElement.disabled = true;
+        btnElement.textContent = '💾 Saving...';
+      }
+
+      try {
+        const res = await fetch(`/api/admin/applications/${appId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ applicationNumber, dateOfBirth, appPassword, paymentId })
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert(`Application #${applicationNumber} details saved successfully!`);
+          loadAllApplications();
+          if (cachedAllApplications) {
+            const app = cachedAllApplications.find(a => a.id === appId);
+            if (app) {
+              app.application_number = applicationNumber;
+              app.date_of_birth = dateOfBirth;
+              app.app_password = appPassword;
+              app.payment_id = paymentId;
+            }
+          }
+        } else {
+          alert('Failed to save edits: ' + (data.error || 'Server error'));
+        }
+      } catch (err) {
+        alert('Error saving edits: ' + err.message);
+      } finally {
+        if (btnElement) {
+          btnElement.disabled = false;
+          btnElement.textContent = '💾 Save Edits';
+        }
+      }
+    }
+
     async function reviewApp(appId, status) {
       const remarksInput = document.getElementById(`remarks-${appId}`);
-      const remarks = remarksInput ? remarksInput.value : '';
+      let remarks = remarksInput ? remarksInput.value : '';
       const photoInput = document.getElementById(`resultPhotoInput-${appId}`);
       let resultPhotoUrl = undefined;
 
@@ -1156,9 +1275,19 @@
       buttons.forEach(b => { b.disabled = true; });
 
       try {
+        if (status === 'correction' && !remarks.trim()) {
+          const reason = prompt('Please enter the reason for correction needed (e.g., "DOB incorrect", "Upload clearer photo"):');
+          if (reason === null) {
+            buttons.forEach(b => { b.disabled = false; });
+            return;
+          }
+          remarks = reason.trim();
+          if (remarksInput) remarksInput.value = remarks;
+        }
+
         if (photoInput && photoInput.files && photoInput.files[0]) {
           const file = photoInput.files[0];
-          resultPhotoUrl = await compressImageToDataUrl(file, 1200, 0.8);
+          resultPhotoUrl = await compressImageToDataUrl(file, 900, 0.68);
         }
 
         const payload = { status, remarks };
@@ -1177,10 +1306,10 @@
             const badge = card.querySelectorAll('.badge')[1];
             if (badge) {
               badge.className = `badge badge-${status}`;
-              badge.textContent = status;
+              badge.textContent = status === 'correction' ? '⚠️ CORRECTION' : status;
             }
           }
-          alert(`Application #${appId} successfully marked as "${status}"${resultPhotoUrl ? ' with Result Photo attached' : ''}!`);
+          alert(data.message || `Application #${appId} marked as "${status}"!`);
           loadStats();
           loadUsers();
           loadAllApplications();

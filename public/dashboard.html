@@ -168,6 +168,7 @@
         <div class="filter-pills" id="appFilterPills">
           <button class="filter-pill active" onclick="setAppFilter('all')">All</button>
           <button class="filter-pill" onclick="setAppFilter('pending')">Pending</button>
+          <button class="filter-pill" onclick="setAppFilter('correction')">⚠️ Needs Correction</button>
           <button class="filter-pill" onclick="setAppFilter('approved')">Approved</button>
           <button class="filter-pill" onclick="setAppFilter('rejected')">Rejected</button>
           <button class="filter-pill" onclick="setAppFilter('paid')">Batch Paid</button>
@@ -340,6 +341,61 @@
             ✅ Submit 5th Application & Settle All 5
           </button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Candidate Correction & Resubmit Modal -->
+  <div class="modal-overlay" id="correctionModalOverlay">
+    <div class="modal" style="max-width: 520px; text-align: left;">
+      <div class="modal-header">
+        <div style="display:flex;align-items:center;gap:0.5rem;">
+          <div class="logo-icon" style="width:30px;height:30px;font-size:0.9rem;background:rgba(245,158,11,0.2);color:#b45309;">⚠️</div>
+          <h3 style="font-size:1.15rem;">Edit & Resubmit Application</h3>
+        </div>
+        <button class="modal-close" onclick="closeCorrectionModal()">✕</button>
+      </div>
+      <div class="modal-body" style="padding:1.5rem 1.75rem;">
+        <div style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:10px;padding:0.75rem 0.9rem;margin-bottom:1.25rem;">
+          <div style="font-size:0.85rem;color:#b45309;font-weight:700;margin-bottom:0.25rem;">Admin's Correction Remarks:</div>
+          <div id="correctAdminRemarksText" style="font-size:0.88rem;color:var(--text-main);font-weight:600;">-</div>
+        </div>
+
+        <form id="correctionForm" onsubmit="submitCandidateCorrection(event)">
+          <input type="hidden" id="correctAppId">
+
+          <div class="form-group" style="margin-bottom:1rem;">
+            <label style="font-size:0.85rem;font-weight:700;">Application Number *</label>
+            <input type="text" id="correctAppNumber" required style="width:100%;padding:0.65rem 0.85rem;border-radius:8px;border:1px solid var(--glass-border);font-size:0.9rem;font-weight:600;">
+          </div>
+
+          <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+            <div class="form-group">
+              <label style="font-size:0.85rem;font-weight:700;">Date of Birth (YYYY-MM-DD) *</label>
+              <input type="text" id="correctDob" placeholder="YYYY-MM-DD" required style="width:100%;padding:0.65rem 0.85rem;border-radius:8px;border:1px solid var(--glass-border);font-size:0.9rem;">
+            </div>
+            <div class="form-group">
+              <label style="font-size:0.85rem;font-weight:700;">Application Password *</label>
+              <input type="text" id="correctPassword" required style="width:100%;padding:0.65rem 0.85rem;border-radius:8px;border:1px solid var(--glass-border);font-size:0.9rem;">
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom:1.25rem;">
+            <label style="font-size:0.85rem;font-weight:700;">Replace Photo (Optional)</label>
+            <input type="file" id="correctPhotoInput" accept="image/*" onchange="previewCorrectPhoto(this)" style="width:100%;font-size:0.85rem;color:var(--text-secondary);margin-top:0.25rem;">
+            <div id="correctPhotoPreviewBox" style="display:none;align-items:center;gap:0.75rem;margin-top:0.6rem;padding:0.5rem;background:rgba(255,255,255,0.6);border-radius:8px;border:1px solid var(--glass-border);">
+              <img id="correctPhotoPreviewImg" src="" alt="Preview" style="width:44px;height:44px;object-fit:cover;border-radius:6px;">
+              <span id="correctPhotoPreviewName" style="font-size:0.8rem;color:var(--text-secondary);"></span>
+            </div>
+            <small style="color:var(--text-tertiary);font-size:0.75rem;display:block;margin-top:0.25rem;">Leave empty to keep your existing photo. Up to 10 MB accepted.</small>
+          </div>
+
+          <div id="correctError" style="display:none;padding:0.6rem;border-radius:8px;background:rgba(255,59,48,0.12);color:var(--accent-red);font-size:0.85rem;margin-bottom:1rem;font-weight:600;"></div>
+
+          <button type="submit" id="correctSubmitBtn" class="btn btn-primary" style="width:100%;justify-content:center;padding:0.8rem;background:linear-gradient(135deg,#0071e3 0%,#005bb5 100%);font-weight:700;">
+            🚀 Resubmit Corrected Application
+          </button>
+        </form>
       </div>
     </div>
   </div>
@@ -701,6 +757,7 @@
       let filtered = allUserApplications;
 
       if (currentAppFilter === 'pending') filtered = filtered.filter(a => a.status === 'pending');
+      else if (currentAppFilter === 'correction') filtered = filtered.filter(a => a.status === 'correction');
       else if (currentAppFilter === 'approved') filtered = filtered.filter(a => a.status === 'approved');
       else if (currentAppFilter === 'rejected') filtered = filtered.filter(a => a.status === 'rejected');
       else if (currentAppFilter === 'paid') filtered = filtered.filter(a => a.payment_status === 'paid');
@@ -716,7 +773,7 @@
       }
 
       list.innerHTML = filtered.map(app => `
-        <div class="app-card">
+        <div class="app-card" style="${app.status === 'correction' ? 'border-color: rgba(245, 158, 11, 0.4); box-shadow: 0 4px 18px rgba(245, 158, 11, 0.12);' : ''}">
           ${app.photo_url ? `<a href="${app.photo_url}" target="_blank" title="View Full Photo"><img src="${app.photo_url}" alt="App Photo" class="app-thumb"></a>` : ''}
           <div class="app-info">
             <div class="app-num">${app.application_number}</div>
@@ -729,7 +786,23 @@
                 `<span class="badge badge-pending" style="font-size:0.75rem;">⏳ Unpaid (Due on 5th Application)</span>`
               }
             </div>
-            ${app.admin_remarks ? `<div class="app-meta" style="margin-top:.4rem;padding:.4rem .8rem;background:rgba(255,255,255,0.45);border-radius:8px;border:1px solid var(--glass-border-subtle);display:inline-block;">💬 <strong>Admin Feedback:</strong> ${app.admin_remarks}</div>` : ''}
+
+            ${app.status === 'correction' ? `
+              <div style="margin-top:0.65rem;padding:0.75rem 0.95rem;background:rgba(245, 158, 11, 0.12);border:1.5px solid rgba(245, 158, 11, 0.4);border-radius:10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem;">
+                <div>
+                  <div style="font-weight:700;font-size:0.88rem;color:#b45309;display:flex;align-items:center;gap:6px;">
+                    <span>⚠️</span> Action Required: Admin Requested Correction
+                  </div>
+                  <div style="font-size:0.82rem;color:var(--text-main);margin-top:2px;">
+                    <strong>Remarks:</strong> ${app.admin_remarks || 'Please verify and correct application details.'}
+                  </div>
+                </div>
+                <button class="btn btn-primary btn-sm" onclick="openCandidateCorrectionModal(${app.id})" style="background:linear-gradient(135deg,#f59e0b 0%,#d97706 100%);border:none;color:white;font-weight:700;padding:0.45rem 0.9rem;box-shadow:0 3px 10px rgba(245, 158, 11, 0.3);">
+                  ✏️ Edit & Resubmit Application
+                </button>
+              </div>
+            ` : (app.admin_remarks ? `<div class="app-meta" style="margin-top:.4rem;padding:.4rem .8rem;background:rgba(255,255,255,0.45);border-radius:8px;border:1px solid var(--glass-border-subtle);display:inline-block;">💬 <strong>Admin Feedback:</strong> ${app.admin_remarks}</div>` : '')}
+
             ${app.result_photo_url ? `
               <div style="margin-top:0.65rem;padding:0.65rem 0.85rem;background:rgba(52,199,89,0.12);border:1px solid rgba(52,199,89,0.35);border-radius:10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.6rem;">
                 <div style="display:flex;align-items:center;gap:0.75rem;">
@@ -751,7 +824,7 @@
               </div>
             ` : ''}
           </div>
-          <span class="badge badge-${app.status}">${app.status}</span>
+          <span class="badge badge-${app.status}">${app.status === 'correction' ? '⚠️ CORRECTION' : app.status}</span>
         </div>
       `).join('');
     }
@@ -802,6 +875,127 @@
           <td><span class="badge badge-approved">Settled</span></td>
         </tr>
       `).join('');
+    }
+
+    function openCandidateCorrectionModal(appId) {
+      const app = allUserApplications.find(a => a.id === appId);
+      if (!app) {
+        alert('Application record not found.');
+        return;
+      }
+      document.getElementById('correctAppId').value = app.id;
+      document.getElementById('correctAppNumber').value = app.application_number || '';
+      document.getElementById('correctDob').value = app.date_of_birth || '';
+      document.getElementById('correctPassword').value = app.app_password || '';
+      document.getElementById('correctAdminRemarksText').textContent = app.admin_remarks || 'Please verify and correct application details.';
+      document.getElementById('correctPhotoInput').value = '';
+      document.getElementById('correctPhotoPreviewBox').style.display = 'none';
+      document.getElementById('correctError').style.display = 'none';
+      document.getElementById('correctSubmitBtn').disabled = false;
+      document.getElementById('correctSubmitBtn').textContent = '🚀 Resubmit Corrected Application';
+      document.getElementById('correctionModalOverlay').classList.add('active');
+    }
+
+    function closeCorrectionModal() {
+      document.getElementById('correctionModalOverlay').classList.remove('active');
+    }
+
+    function previewCorrectPhoto(input) {
+      const box = document.getElementById('correctPhotoPreviewBox');
+      const img = document.getElementById('correctPhotoPreviewImg');
+      const name = document.getElementById('correctPhotoPreviewName');
+      if (input.files && input.files[0]) {
+        const file = input.files[0];
+        if (file.size > 12 * 1024 * 1024) {
+          alert('Photo exceeds 10 MB limit. Please choose a photo under 10 MB.');
+          input.value = '';
+          box.style.display = 'none';
+          return;
+        }
+        const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+        name.textContent = `${file.name} (${sizeMb >= 1 ? sizeMb + ' MB' : (file.size / 1024).toFixed(0) + ' KB'})`;
+        const reader = new FileReader();
+        reader.onload = e => {
+          img.src = e.target.result;
+          box.style.display = 'flex';
+        };
+        reader.readAsDataURL(file);
+      } else {
+        box.style.display = 'none';
+      }
+    }
+
+    async function submitCandidateCorrection(e) {
+      e.preventDefault();
+      const appId = document.getElementById('correctAppId').value;
+      const appNumber = document.getElementById('correctAppNumber').value.trim();
+      const dateOfBirth = document.getElementById('correctDob').value.trim();
+      const appPassword = document.getElementById('correctPassword').value.trim();
+      const errBox = document.getElementById('correctError');
+      const submitBtn = document.getElementById('correctSubmitBtn');
+
+      errBox.style.display = 'none';
+
+      if (!appNumber || !dateOfBirth || !appPassword) {
+        errBox.textContent = 'Please fill out all required fields.';
+        errBox.style.display = 'block';
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Processing & Compressing...';
+
+      let photoUrl = undefined;
+      const photoInput = document.getElementById('correctPhotoInput');
+      if (photoInput && photoInput.files && photoInput.files[0]) {
+        try {
+          const compressed = await compressImage(photoInput.files[0], 650, 0.75);
+          photoUrl = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(compressed);
+          });
+        } catch (err) {
+          console.warn('Photo processing failed, proceeding without photo update:', err);
+        }
+      }
+
+      submitBtn.textContent = 'Submitting Corrections...';
+
+      try {
+        const payload = {
+          applicationNumber: appNumber,
+          dateOfBirth: dateOfBirth,
+          appPassword: appPassword
+        };
+        if (photoUrl) {
+          payload.photoUrl = photoUrl;
+        }
+
+        const res = await fetch(`/api/user/applications/${appId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.success) {
+          closeCorrectionModal();
+          alert(data.message || 'Application corrected and resubmitted successfully!');
+          loadBatchStatus();
+          loadApplications();
+        } else {
+          errBox.textContent = data.error || `Update failed (HTTP ${res.status}).`;
+          errBox.style.display = 'block';
+        }
+      } catch (err) {
+        errBox.textContent = 'Network or submission error: ' + (err.message || 'Please retry.');
+        errBox.style.display = 'block';
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = '🚀 Resubmit Corrected Application';
+      }
     }
 
     async function logout() {
