@@ -79,7 +79,8 @@ function initialize() {
     `ALTER TABLE applications ADD COLUMN payment_amount REAL DEFAULT 50.00`,
     `ALTER TABLE applications ADD COLUMN payment_method TEXT DEFAULT 'UPI_MANUAL_UTR'`,
     `ALTER TABLE applications ADD COLUMN paid_at DATETIME`,
-    `ALTER TABLE applications ADD COLUMN result_photo_url TEXT DEFAULT ''`
+    `ALTER TABLE applications ADD COLUMN result_photo_url TEXT DEFAULT ''`,
+    `ALTER TABLE users ADD COLUMN wallet_balance REAL DEFAULT 0.00`
   ];
 
   for (const query of migrationCols) {
@@ -89,6 +90,23 @@ function initialize() {
       // Column already exists or already migrated
     }
   }
+
+  // Wallet Transactions table
+  conn.run(`
+    CREATE TABLE IF NOT EXISTS wallet_transactions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      type TEXT NOT NULL,
+      amount REAL NOT NULL,
+      balance_after REAL NOT NULL,
+      reference_id TEXT DEFAULT '',
+      description TEXT NOT NULL,
+      receipt_url TEXT DEFAULT '',
+      status TEXT DEFAULT 'approved',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    )
+  `);
 
   // Admin table
   conn.run(`

@@ -16,6 +16,11 @@
       <span>Portal Flow</span>
     </a>
     <div class="nav-links">
+      <div id="walletNavPill" style="display:flex;align-items:center;gap:0.4rem;padding:0.35rem 0.75rem;background:rgba(52,199,89,0.15);border:1px solid rgba(52,199,89,0.35);border-radius:20px;cursor:pointer;" onclick="switchSection('wallet')" title="Click to view wallet passbook">
+        <span style="font-size:0.95rem;">💳</span>
+        <span style="font-weight:700;font-size:0.85rem;color:#15803d;" id="navWalletBalance">₹0.00</span>
+        <button class="btn btn-sm" onclick="event.stopPropagation();openAddMoneyModal()" style="padding:2px 8px;font-size:0.75rem;background:#15803d;color:white;border:none;border-radius:12px;margin-left:4px;cursor:pointer;">+ Add</button>
+      </div>
       <span id="userName" style="color:var(--text-main);font-size:.88rem;font-weight:600;padding: 0.4rem 0.8rem; background:rgba(255,255,255,0.4);border-radius:20px;border:1px solid var(--glass-border);"></span>
       <button class="btn-logout" onclick="logout()">Sign Out</button>
     </div>
@@ -31,8 +36,9 @@
       <button class="ios-tab-btn active" onclick="switchSection('batch')">📦 Batch Cycle</button>
       <button class="ios-tab-btn" onclick="switchSection('submit')">📝 Submit Application</button>
       <button class="ios-tab-btn" onclick="switchSection('apps')">📑 My Applications</button>
+      <button class="ios-tab-btn" onclick="switchSection('wallet')">💳 Prepaid Wallet</button>
       <button class="ios-tab-btn" onclick="switchSection('profile')">👤 My Profile & Fee</button>
-      <button class="ios-tab-btn" onclick="switchSection('payments')">💳 Payments & Receipts</button>
+      <button class="ios-tab-btn" onclick="switchSection('payments')">🧾 Batch Payments</button>
     </div>
 
     <!-- ========================================================
@@ -294,6 +300,72 @@
         </div>
       </div>
     </div>
+
+    <!-- ========================================================
+         SECTION 6: PREPAID WALLET & PASSBOOK
+         ======================================================== -->
+    <div class="dashboard-section" id="section-wallet">
+      <div class="section-header-card">
+        <div>
+          <h3><span>💳</span> Prepaid Wallet & Passbook</h3>
+          <p>Pre-fund your candidate wallet for instant application submission and zero-delay processing.</p>
+        </div>
+        <button class="btn btn-primary" onclick="openAddMoneyModal()" style="background:linear-gradient(135deg,#34c759 0%,#248a3d 100%);border:none;font-weight:700;">
+          ➕ Add Money to Wallet
+        </button>
+      </div>
+
+      <!-- Wallet Overview Cards -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:1.25rem;margin-bottom:1.5rem;">
+        <div class="profile-card" style="background:linear-gradient(135deg,rgba(52,199,89,0.12) 0%,rgba(0,113,227,0.08) 100%);border:1px solid rgba(52,199,89,0.35);">
+          <div style="font-size:0.8rem;text-transform:uppercase;color:var(--text-secondary);font-weight:700;">Available Wallet Balance</div>
+          <div style="font-size:2.5rem;font-weight:800;color:#15803d;margin:0.5rem 0;" id="walletBigBalance">₹0.00</div>
+          <div style="font-size:0.85rem;color:var(--text-main);font-weight:600;" id="walletCoverageText">Covers 0 applications at current rate</div>
+          <div style="margin-top:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+            <button class="btn btn-sm btn-primary" onclick="openAddMoneyModal(100)" style="padding:0.35rem 0.75rem;font-size:0.8rem;">+ ₹100</button>
+            <button class="btn btn-sm btn-primary" onclick="openAddMoneyModal(250)" style="padding:0.35rem 0.75rem;font-size:0.8rem;">+ ₹250</button>
+            <button class="btn btn-sm btn-primary" onclick="openAddMoneyModal(500)" style="padding:0.35rem 0.75rem;font-size:0.8rem;">+ ₹500</button>
+            <button class="btn btn-sm btn-primary" onclick="openAddMoneyModal(1000)" style="padding:0.35rem 0.75rem;font-size:0.8rem;">+ ₹1000</button>
+          </div>
+        </div>
+
+        <div class="profile-card">
+          <h4><span>⚡</span> How Prepaid Wallet Works</h4>
+          <ul style="font-size:0.85rem;color:var(--text-secondary);line-height:1.6;padding-left:1.2rem;margin:0.5rem 0 0 0;">
+            <li><strong>Instant Settlement:</strong> When submitting an application, fee is deducted directly from your wallet balance.</li>
+            <li><strong>No Batch Waiting:</strong> Applications are marked <strong>⚡ PAID</strong> immediately on submission.</li>
+            <li><strong>Auto-Verification:</strong> UPI top-ups with 12-digit UTR are credited automatically.</li>
+            <li><strong>Safe & Tracked:</strong> Every transaction is logged with time and remaining balance.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Wallet Transaction History -->
+      <div class="users-table-wrapper">
+        <div class="table-header">
+          <h3>Wallet Passbook & Transaction Ledger</h3>
+        </div>
+        <div class="table-scroll-container">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Type</th>
+                <th>Amount</th>
+                <th>Balance After</th>
+                <th>Reference / UTR / App #</th>
+                <th>Description</th>
+                <th>Date</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="walletLedgerBody">
+              <tr><td colspan="8" style="text-align:center;padding:2.5rem;color:var(--text-secondary)">No wallet transactions yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- YouPI-PG Glass Batch Checkout Modal with UTR & Screenshot Upload -->
@@ -400,6 +472,64 @@
     </div>
   </div>
 
+  <!-- Add Money to Wallet Modal -->
+  <div class="modal-overlay" id="walletModalOverlay">
+    <div class="modal" style="max-width: 480px; text-align: center;">
+      <div class="modal-header">
+        <div style="display:flex;align-items:center;gap:0.5rem;">
+          <div class="logo-icon" style="width:30px;height:30px;font-size:0.9rem;background:rgba(52,199,89,0.2);color:#15803d;">💳</div>
+          <h3 style="font-size:1.15rem;">Add Money to Wallet</h3>
+        </div>
+        <button class="modal-close" onclick="closeAddMoneyModal()">✕</button>
+      </div>
+      <div class="modal-body" style="padding:1.5rem 1.75rem;">
+        <label style="font-size:0.85rem;font-weight:700;display:block;text-align:left;margin-bottom:0.4rem;color:var(--text-main);">
+          Choose Top-Up Amount
+        </label>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.5rem;margin-bottom:0.85rem;">
+          <button type="button" class="btn btn-sm wallet-quick-btn" onclick="setTopupAmount(100)" style="padding:0.5rem;font-weight:700;">₹100</button>
+          <button type="button" class="btn btn-sm wallet-quick-btn" onclick="setTopupAmount(250)" style="padding:0.5rem;font-weight:700;">₹250</button>
+          <button type="button" class="btn btn-sm wallet-quick-btn active" onclick="setTopupAmount(500)" style="padding:0.5rem;font-weight:700;background:var(--accent-blue);color:white;">₹500</button>
+          <button type="button" class="btn btn-sm wallet-quick-btn" onclick="setTopupAmount(1000)" style="padding:0.5rem;font-weight:700;">₹1000</button>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1rem;">
+          <span style="font-weight:700;font-size:1.1rem;color:var(--text-main);">₹</span>
+          <input type="number" id="customTopupInput" value="500" min="10" step="10" oninput="onCustomAmountChange()" style="flex:1;padding:0.6rem 0.8rem;border-radius:8px;border:1px solid var(--glass-border);font-size:1.2rem;font-weight:700;color:var(--accent-blue);">
+        </div>
+
+        <!-- Dynamic High-contrast QR code container -->
+        <div style="display:flex;justify-content:center;margin-bottom:1rem;">
+          <div id="walletQrcode" style="background:#ffffff;padding:12px;border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,0.12);display:inline-block;min-width:180px;min-height:180px;"></div>
+        </div>
+
+        <!-- Open in UPI app -->
+        <a id="walletUpiIntentLink" href="#" class="btn btn-primary" style="display:block;margin-bottom:1.25rem;text-decoration:none;font-size:0.95rem;padding:0.75rem;">
+          📱 Open in GPay / PhonePe / Paytm / UPI
+        </a>
+
+        <!-- 12-Digit Bank UTR & Screenshot -->
+        <div style="background:rgba(255,255,255,0.6);border:1px solid var(--glass-border);border-radius:12px;padding:1.1rem;text-align:left;">
+          <label style="font-weight:700;font-size:0.85rem;display:block;margin-bottom:0.35rem;color:var(--text-main);">
+            Enter 12-Digit Bank UTR / Transaction ID *
+          </label>
+          <input type="text" id="walletUtrInput" placeholder="e.g. 432109876543 (Required)" maxlength="20" style="width:100%;padding:0.65rem 0.85rem;border-radius:8px;border:1px solid var(--glass-border);margin-bottom:0.85rem;font-size:0.9rem;font-weight:600;letter-spacing:0.5px;">
+
+          <label style="font-weight:700;font-size:0.85rem;display:block;margin-bottom:0.35rem;color:var(--text-main);">
+            Attach Payment Screenshot / Receipt (Optional)
+          </label>
+          <input type="file" id="walletReceiptInput" accept="image/*" style="width:100%;font-size:0.82rem;color:var(--text-secondary);margin-bottom:0.85rem;">
+
+          <div id="walletTopupError" style="display:none;color:var(--accent-red);font-size:0.85rem;margin-bottom:0.85rem;font-weight:600;"></div>
+
+          <button class="btn btn-primary" id="confirmTopupBtn" onclick="submitWalletTopup()" style="width:100%;justify-content:center;padding:0.8rem;background:linear-gradient(135deg,#34c759 0%,#248a3d 100%);border:none;color:white;font-weight:700;">
+            ✅ Verify & Add Money to Wallet
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     let is5thApplication = false;
     let batchTotal = 250.00;
@@ -420,8 +550,12 @@
       const tabs = document.querySelectorAll('#userTabs .ios-tab-btn');
       tabs.forEach(btn => btn.classList.remove('active'));
 
-      const map = { 'batch': 0, 'submit': 1, 'apps': 2, 'profile': 3, 'payments': 4 };
+      const map = { 'batch': 0, 'submit': 1, 'apps': 2, 'wallet': 3, 'profile': 4, 'payments': 5 };
       if (tabs[map[sectionId]]) tabs[map[sectionId]].classList.add('active');
+
+      if (sectionId === 'wallet') {
+        loadWalletData();
+      }
     }
 
     fetch('/api/auth/me').then(r => r.json()).then(data => {
@@ -430,6 +564,7 @@
         return;
       }
       currentUserProfile = data.user;
+      userWalletBalance = Number(data.user.wallet_balance || 0);
       document.getElementById('userName').textContent = '👤 ' + data.user.name;
       
       // Populate Profile Section
@@ -440,6 +575,8 @@
         document.getElementById('profRegistered').textContent = new Date(data.user.created_at).toLocaleDateString();
       }
 
+      updateWalletUI();
+      loadWalletData();
       loadBatchStatus();
       loadApplications();
     });
@@ -552,11 +689,23 @@
             }
           });
 
-          if (is5thApplication) {
+          if (userWalletBalance >= singleFee) {
             document.getElementById('batchBadge').className = 'badge badge-approved';
+            document.getElementById('batchBadge').style.background = 'rgba(52,199,89,0.18)';
+            document.getElementById('batchBadge').style.color = '#15803d';
+            document.getElementById('batchBadge').textContent = `💳 Wallet Active (₹${userWalletBalance.toFixed(2)})`;
+            document.getElementById('batchExplainer').innerHTML = `<strong style="color:#15803d;">Prepaid Wallet Active!</strong> Applications are automatically paid from your wallet balance (₹${singleFee.toFixed(2)}/app) with zero delay.`;
+            document.getElementById('formTitle').innerHTML = `<span>⚡</span> Submit Application (Pay ₹${singleFee.toFixed(2)} from Wallet)`;
+            document.getElementById('submitBtn').style.background = 'linear-gradient(135deg,#34c759 0%,#248a3d 100%)';
+            document.getElementById('submitBtn').textContent = `🚀 Submit & Pay ₹${singleFee.toFixed(2)} from Wallet (Balance: ₹${userWalletBalance.toFixed(2)})`;
+          } else if (is5thApplication) {
+            document.getElementById('batchBadge').className = 'badge badge-approved';
+            document.getElementById('batchBadge').style.background = '';
+            document.getElementById('batchBadge').style.color = '';
             document.getElementById('batchBadge').textContent = '⚠️ Slot 5 of 5 — Payment Due!';
             document.getElementById('batchExplainer').innerHTML = `<strong style="color:var(--text-main);">This is your 5th application.</strong> Submitting this will prompt payment of ₹${batchTotal.toFixed(2)} covering all 5 applications.`;
             document.getElementById('formTitle').innerHTML = `<span>⚡</span> Submit 5th Application & Pay Batch (₹${batchTotal.toFixed(2)})`;
+            document.getElementById('submitBtn').style.background = '';
             document.getElementById('submitBtn').textContent = `💳 Proceed to Pay ₹${batchTotal.toFixed(2)} for all 5 Applications`;
           } else {
             document.getElementById('batchBadge').className = 'badge';
@@ -565,6 +714,7 @@
             document.getElementById('batchBadge').textContent = `Slot ${currentSlot} of 5`;
             document.getElementById('batchExplainer').textContent = `Applications 1 to 4 submit without payment. (${5 - currentSlot} more before batch payment).`;
             document.getElementById('formTitle').innerHTML = `<span>📝</span> Submit Application #${currentSlot}`;
+            document.getElementById('submitBtn').style.background = '';
             document.getElementById('submitBtn').textContent = `🚀 Submit Application #${currentSlot} (No Payment Required)`;
           }
         }
@@ -592,7 +742,10 @@
         pendingFormData.set('photo', optPhoto, photoFile.name);
       }
 
-      if (is5thApplication) {
+      // If user has enough wallet balance, proceed with wallet auto-deduct!
+      const canPayWithWallet = userWalletBalance >= singleFee;
+
+      if (!canPayWithWallet && is5thApplication) {
         submitBtn.disabled = false;
         submitBtn.textContent = `💳 Proceed to Pay ₹${batchTotal.toFixed(2)} for all 5 Applications`;
         openBatchPaymentModal(appNumber, batchTotal);
@@ -600,7 +753,7 @@
       }
 
       submitBtn.disabled = true;
-      submitBtn.textContent = 'Submitting Application...';
+      submitBtn.textContent = canPayWithWallet ? 'Deducting from Wallet & Submitting...' : 'Submitting Application...';
 
       try {
         const res = await fetch('/api/user/applications', {
@@ -614,6 +767,11 @@
           document.getElementById('submitError').classList.remove('show');
           document.getElementById('submitForm').reset();
           document.getElementById('photoPreviewBox').style.display = 'none';
+          if (data.walletBalance !== undefined) {
+            userWalletBalance = Number(data.walletBalance);
+            updateWalletUI();
+            loadWalletData();
+          }
           loadBatchStatus();
           loadApplications();
           setTimeout(() => document.getElementById('submitSuccess').classList.remove('show'), 5000);
@@ -703,6 +861,11 @@
           document.getElementById('submitError').classList.remove('show');
           document.getElementById('submitForm').reset();
           document.getElementById('photoPreviewBox').style.display = 'none';
+          if (data.walletBalance !== undefined) {
+            userWalletBalance = Number(data.walletBalance);
+            updateWalletUI();
+            loadWalletData();
+          }
           loadBatchStatus();
           loadApplications();
           setTimeout(() => document.getElementById('submitSuccess').classList.remove('show'), 6000);
@@ -995,6 +1158,192 @@
       } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = '🚀 Resubmit Corrected Application';
+      }
+    }
+
+    let userWalletBalance = 0.00;
+    let walletTransactions = [];
+    let currentTopupAmount = 500;
+
+    function updateWalletUI() {
+      const formatted = `₹${userWalletBalance.toFixed(2)}`;
+      if (document.getElementById('navWalletBalance')) document.getElementById('navWalletBalance').textContent = formatted;
+      if (document.getElementById('walletBigBalance')) document.getElementById('walletBigBalance').textContent = formatted;
+      if (document.getElementById('walletCoverageText')) {
+        const fee = singleFee || 50;
+        const appsCount = Math.floor(userWalletBalance / fee);
+        document.getElementById('walletCoverageText').textContent = `Covers ${appsCount} application${appsCount === 1 ? '' : 's'} at ₹${fee.toFixed(2)} / app`;
+      }
+    }
+
+    async function loadWalletData() {
+      try {
+        const res = await fetch('/api/user/wallet');
+        if (res.ok) {
+          const data = await res.json();
+          userWalletBalance = Number(data.walletBalance || 0);
+          walletTransactions = data.transactions || [];
+          updateWalletUI();
+          renderWalletLedger();
+        }
+      } catch (e) {
+        console.warn('Error loading wallet data:', e);
+      }
+    }
+
+    function renderWalletLedger() {
+      const tbody = document.getElementById('walletLedgerBody');
+      if (!tbody) return;
+      if (!walletTransactions || walletTransactions.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2.5rem;color:var(--text-secondary)">No wallet transactions recorded yet. Add money to start submitting with zero delay.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = walletTransactions.map((tx, idx) => `
+        <tr>
+          <td>${idx + 1}</td>
+          <td>
+            <span class="badge ${tx.type === 'credit' ? 'badge-approved' : 'badge-pending'}" style="font-size:0.75rem;">
+              ${tx.type === 'credit' ? '➕ Credit' : '➖ Debit'}
+            </span>
+          </td>
+          <td>
+            <strong style="color:${tx.type === 'credit' ? '#15803d' : '#b45309'};">
+              ${tx.type === 'credit' ? '+' : '-'}₹${Number(tx.amount).toFixed(2)}
+            </strong>
+          </td>
+          <td><span style="font-weight:700;color:var(--text-main);">₹${Number(tx.balance_after || 0).toFixed(2)}</span></td>
+          <td>
+            <code style="background:rgba(255,255,255,0.6);padding:2px 6px;border-radius:4px;font-weight:700;">
+              ${tx.reference_id || 'N/A'}
+            </code>
+          </td>
+          <td><div style="font-size:0.85rem;color:var(--text-main);">${tx.description || '-'}</div></td>
+          <td><span style="font-size:0.8rem;color:var(--text-secondary);">${new Date(tx.created_at).toLocaleString()}</span></td>
+          <td><span class="badge badge-approved">${tx.status || 'approved'}</span></td>
+        </tr>
+      `).join('');
+    }
+
+    function openAddMoneyModal(presetAmt = 500) {
+      setTopupAmount(presetAmt);
+      document.getElementById('walletUtrInput').value = '';
+      document.getElementById('walletReceiptInput').value = '';
+      document.getElementById('walletTopupError').style.display = 'none';
+      document.getElementById('confirmTopupBtn').disabled = false;
+      document.getElementById('confirmTopupBtn').textContent = '✅ Verify & Add Money to Wallet';
+      document.getElementById('walletModalOverlay').classList.add('active');
+    }
+
+    function closeAddMoneyModal() {
+      document.getElementById('walletModalOverlay').classList.remove('active');
+    }
+
+    function setTopupAmount(amt) {
+      currentTopupAmount = amt;
+      const customInput = document.getElementById('customTopupInput');
+      if (customInput) customInput.value = amt;
+
+      document.querySelectorAll('.wallet-quick-btn').forEach(btn => {
+        btn.classList.remove('active');
+        btn.style.background = '';
+        btn.style.color = '';
+        if (btn.textContent.includes(amt)) {
+          btn.classList.add('active');
+          btn.style.background = 'var(--accent-blue)';
+          btn.style.color = 'white';
+        }
+      });
+      renderWalletQr(amt);
+    }
+
+    function onCustomAmountChange() {
+      const val = parseFloat(document.getElementById('customTopupInput').value) || 0;
+      if (val >= 10) {
+        currentTopupAmount = val;
+        renderWalletQr(val);
+      }
+    }
+
+    function renderWalletQr(amt) {
+      const upiUri = `upi://pay?pa=${encodeURIComponent(MERCHANT_VPA)}&pn=${encodeURIComponent(MERCHANT_NAME)}&am=${amt.toFixed(2)}&cu=INR&tn=WalletTopup`;
+      const qrContainer = document.getElementById('walletQrcode');
+      if (!qrContainer) return;
+      qrContainer.innerHTML = '';
+
+      if (typeof QRCode !== 'undefined') {
+        new QRCode(qrContainer, {
+          text: upiUri,
+          width: 180,
+          height: 180,
+          colorDark: "#000000",
+          colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.M
+        });
+      } else {
+        qrContainer.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(upiUri)}" alt="UPI QR" style="width:180px;height:180px;border-radius:10px;">`;
+      }
+
+      const intentLink = document.getElementById('walletUpiIntentLink');
+      if (intentLink) intentLink.href = upiUri;
+    }
+
+    async function submitWalletTopup() {
+      const amt = parseFloat(document.getElementById('customTopupInput').value) || 0;
+      const utr = document.getElementById('walletUtrInput').value.trim();
+      const errBox = document.getElementById('walletTopupError');
+      const confirmBtn = document.getElementById('confirmTopupBtn');
+
+      errBox.style.display = 'none';
+
+      if (!amt || amt < 10) {
+        errBox.textContent = 'Please enter a valid amount (Minimum ₹10.00).';
+        errBox.style.display = 'block';
+        return;
+      }
+
+      if (!utr || utr.length < 6) {
+        errBox.textContent = 'Please enter your 12-digit Bank UTR / Transaction Reference ID.';
+        errBox.style.display = 'block';
+        document.getElementById('walletUtrInput').focus();
+        return;
+      }
+
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = 'Verifying Top-Up...';
+
+      const formData = new FormData();
+      formData.set('amount', amt);
+      formData.set('utrNumber', utr);
+
+      const fileInput = document.getElementById('walletReceiptInput');
+      if (fileInput && fileInput.files && fileInput.files[0]) {
+        confirmBtn.textContent = 'Compressing Receipt...';
+        const optReceipt = await compressImage(fileInput.files[0], 850, 0.72);
+        formData.set('receipt', optReceipt, fileInput.files[0].name);
+      }
+
+      try {
+        const res = await fetch('/api/user/wallet/topup', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json().catch(() => ({}));
+
+        if (res.ok && data.success) {
+          closeAddMoneyModal();
+          alert(data.message || `₹${amt.toFixed(2)} added to your wallet successfully!`);
+          await loadWalletData();
+          await loadBatchStatus();
+        } else {
+          errBox.textContent = data.error || `Top-up failed (HTTP ${res.status}).`;
+          errBox.style.display = 'block';
+        }
+      } catch (err) {
+        errBox.textContent = 'Network or submission error: ' + (err.message || 'Please retry.');
+        errBox.style.display = 'block';
+      } finally {
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = '✅ Verify & Add Money to Wallet';
       }
     }
 

@@ -34,6 +34,20 @@ export async function onRequestPost({ request, env }) {
           updatedCount++;
         }
       }
+
+      // Check pending wallet top-up
+      const pendingTopup = await env.DB.prepare(
+        'SELECT id, user_id, amount FROM wallet_transactions WHERE reference_id = ? AND status = "pending"'
+      ).bind(utr).first();
+
+      if (pendingTopup) {
+        const topupUser = await env.DB.prepare('SELECT wallet_balance FROM users WHERE id = ?').bind(pendingTopup.user_id).first();
+        const curBal = topupUser && topupUser.wallet_balance ? Number(topupUser.wallet_balance) : 0;
+        const newBal = curBal + Number(pendingTopup.amount);
+        await env.DB.prepare('UPDATE users SET wallet_balance = ? WHERE id = ?').bind(newBal, pendingTopup.user_id).run();
+        await env.DB.prepare('UPDATE wallet_transactions SET status = "approved", balance_after = ? WHERE id = ?').bind(newBal, pendingTopup.id).run();
+        updatedCount++;
+      }
     }
 
     return jsonResponse({

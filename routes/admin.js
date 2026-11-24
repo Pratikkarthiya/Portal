@@ -83,7 +83,7 @@ router.put('/users/:userId', requireAdmin, (req, res) => {
 // Get all users with application counts & payment stats
 router.get('/users', requireAdmin, (req, res) => {
   const users = queryAll(`
-    SELECT u.id, u.name, u.email, u.application_fee, u.created_at,
+    SELECT u.id, u.name, u.email, u.application_fee, u.wallet_balance, u.created_at,
            COUNT(a.id) as total_applications,
            SUM(CASE WHEN a.status = 'pending' THEN 1 ELSE 0 END) as pending,
            SUM(CASE WHEN a.status = 'approved' THEN 1 ELSE 0 END) as approved,
@@ -96,6 +96,51 @@ router.get('/users', requireAdmin, (req, res) => {
   `);
 
   res.json({ users });
+});
+
+// Admin tops up or adjusts candidate wallet balance
+router.post('/users/:userId/wallet', requireAdmin, (req, res) => {
+  const userId = Number(req.params.userId);
+  const user = queryOne('SELECT id, name, wallet_balance FROM users WHERE id = ?', [userId]);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+
+  const { amount, type, note } = req.body;
+  const numAmount = parseFloat(amount);
+  if (!numAmount || isNaN(numAmount) || numAmount <= 0) {
+    return res.status(400).json({ error: 'Valid amount is required' });
+  }
+
+  const currentBalance = Number(user.wallet_balance) || 0.00;
+  const isCredit = type !== 'debit';
+  const newBalance = isCredit ? currentBalance + numAmount : Math.max(0, currentBalance - numAmount);
+  const actualDiff = isCredit ? numAmount : (currentBalance - newBalance);
+
+  runSql('UPDATE users SET wallet_balance = ? WHERE id = ?', [newBalance, userId]);
+
+  runSql(
+    `INSERT INTO wallet_transactions (user_id, type, amount, balance_after, reference_id, description, status)
+     VALUES (?, ?, ?, ?, 'ADMIN-ADJUST', ?, 'approved')`,
+    [userId, isCredit ? 'credit' : 'debit', actualDiff, newBalance, note || (isCredit ? 'Admin Wallet Credit' : 'Admin Wallet Debit')]
+  );
+
+  res.json({
+    success: true,
+    message: `Wallet updated for ${user.name}: ${isCredit ? '+' : '-'}₹${numAmount.toFixed(2)}. New balance: ₹${newBalance.toFixed(2)}`,
+    newBalance
+  });
+});
+
+// Admin gets all wallet transactions
+router.get('/wallet-transactions', requireAdmin, (req, res) => {
+  const transactions = queryAll(`
+    SELECT wt.id, wt.user_id, wt.type, wt.amount, wt.balance_after, wt.reference_id, wt.description, wt.receipt_url, wt.status, wt.created_at,
+           u.name as user_name, u.email as user_email
+    FROM wallet_transactions wt
+    JOIN users u ON wt.user_id = u.id
+    ORDER BY wt.id DESC
+  `);
+
+  res.json({ success: true, transactions });
 });
 
 // Get all applications across all users with user name and email (lightweight URLs)

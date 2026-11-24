@@ -10,6 +10,6 @@ export async function onRequestGet({ request, env }) {
     return jsonResponse({ loggedIn: true, userType: 'admin' });
   }
 
-  const user = await env.DB.prepare('SELECT id, name, email, application_fee, created_at FROM users WHERE id = ?').bind(session.user_id).first();
+  const user = await env.DB.prepare('SELECT id, name, email, application_fee, wallet_balance, created_at FROM users WHERE id = ?').bind(session.user_id).first();
   return jsonResponse({ loggedIn: true, userType: 'user', user });
 }

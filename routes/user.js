@@ -97,13 +97,41 @@ router.post('/applications', requireUser, (req, res) => {
       return res.status(400).json({ error: 'An applicant photo upload is required' });
     }
 
-    const user = queryOne('SELECT application_fee FROM users WHERE id = ?', [req.session.userId]);
+    const user = queryOne('SELECT application_fee, wallet_balance FROM users WHERE id = ?', [req.session.userId]);
     const feePerApp = user && user.application_fee ? user.application_fee : 50.00;
+    const walletBalance = user && user.wallet_balance ? Number(user.wallet_balance) : 0.00;
     const photoUrl = '/uploads/' + req.files['photo'][0].filename;
 
     let screenshotUrl = '';
     if (req.files['paymentScreenshot'] && req.files['paymentScreenshot'].length > 0) {
       screenshotUrl = '/uploads/' + req.files['paymentScreenshot'][0].filename;
+    }
+
+    // PREPAID WALLET CHECK: If user has enough balance, auto-pay instantly from wallet
+    if (walletBalance >= feePerApp) {
+      const newBalance = walletBalance - feePerApp;
+      runSql('UPDATE users SET wallet_balance = ? WHERE id = ?', [newBalance, req.session.userId]);
+
+      runSql(
+        `INSERT INTO wallet_transactions (user_id, type, amount, balance_after, reference_id, description, status) 
+         VALUES (?, 'debit', ?, ?, ?, ?, 'approved')`,
+        [req.session.userId, feePerApp, newBalance, applicationNumber, `Application #${applicationNumber} Fee Auto-Deduct`]
+      );
+
+      const appId = runSql(
+        `INSERT INTO applications 
+         (user_id, application_number, date_of_birth, app_password, photo_url, payment_status, payment_id, payment_screenshot_url, payment_amount, payment_method, paid_at) 
+         VALUES (?, ?, ?, ?, ?, 'paid', 'WALLET-PAID', '', ?, 'WALLET_BALANCE', CURRENT_TIMESTAMP)`,
+        [req.session.userId, applicationNumber, dateOfBirth, appPassword, photoUrl, feePerApp]
+      );
+
+      return res.json({
+        success: true,
+        message: `🎉 Application submitted & paid from Wallet! ₹${feePerApp.toFixed(2)} deducted. Wallet balance: ₹${newBalance.toFixed(2)}.`,
+        paidFromWallet: true,
+        walletBalance: newBalance,
+        applicationId: appId
+      });
     }
 
     const unpaidApps = queryAll(
@@ -235,6 +263,65 @@ router.put('/applications/:appId', requireUser, (req, res) => {
   res.json({
     success: true,
     message: `Application #${cleanAppNum} corrected and resubmitted successfully! It is now pending admin review.`
+  });
+});
+
+/**
+ * 4. Candidate Wallet: Get Balance & Transactions
+ */
+router.get('/wallet', requireUser, (req, res) => {
+  const user = queryOne('SELECT id, name, email, application_fee, wallet_balance FROM users WHERE id = ?', [req.session.userId]);
+  const transactions = queryAll(
+    'SELECT id, type, amount, balance_after, reference_id, description, receipt_url, status, created_at FROM wallet_transactions WHERE user_id = ? ORDER BY id DESC',
+    [req.session.userId]
+  );
+
+  res.json({
+    success: true,
+    walletBalance: user && user.wallet_balance ? user.wallet_balance : 0.00,
+    applicationFee: user && user.application_fee ? user.application_fee : 50.00,
+    transactions: transactions || []
+  });
+});
+
+/**
+ * 5. Candidate Wallet: Top-up Balance via UPI
+ */
+router.post('/wallet/topup', requireUser, upload.single('receipt'), (req, res) => {
+  const amount = parseFloat(req.body.amount || '0');
+  const utrNumber = (req.body.utrNumber || '').trim();
+  const receiptUrl = req.file ? '/uploads/' + req.file.filename : (req.body.receiptUrl || '');
+
+  if (!amount || amount < 10) {
+    return res.status(400).json({ error: 'Minimum wallet top-up amount is ₹10.00' });
+  }
+
+  if (!utrNumber || utrNumber.length < 6) {
+    return res.status(400).json({ error: 'Please enter your 12-digit Bank UTR / Transaction Reference ID' });
+  }
+
+  const user = queryOne('SELECT wallet_balance FROM users WHERE id = ?', [req.session.userId]);
+  const currentBalance = user && user.wallet_balance ? Number(user.wallet_balance) : 0.00;
+
+  const duplicate = queryOne('SELECT id FROM wallet_transactions WHERE reference_id = ? AND status != "rejected"', [utrNumber]);
+  if (duplicate) {
+    return res.status(400).json({ error: `UTR / Transaction Ref "${utrNumber}" has already been submitted.` });
+  }
+
+  const newBalance = currentBalance + amount;
+  runSql('UPDATE users SET wallet_balance = ? WHERE id = ?', [newBalance, req.session.userId]);
+
+  const trxId = runSql(
+    `INSERT INTO wallet_transactions (user_id, type, amount, balance_after, reference_id, description, receipt_url, status)
+     VALUES (?, 'credit', ?, ?, ?, 'Prepaid Wallet Top-up (UPI)', ?, 'approved')`,
+    [req.session.userId, amount, newBalance, utrNumber, receiptUrl]
+  );
+
+  res.json({
+    success: true,
+    message: `🎉 ₹${amount.toFixed(2)} added to your wallet successfully! New Balance: ₹${newBalance.toFixed(2)}.`,
+    newBalance,
+    transactionId: trxId
   });
 });
 

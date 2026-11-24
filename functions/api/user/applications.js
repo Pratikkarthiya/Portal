@@ -82,8 +82,40 @@ export async function onRequestPost({ request, env }) {
       }
     }
 
-    const user = await env.DB.prepare('SELECT application_fee FROM users WHERE id = ?').bind(session.user_id).first();
+    const user = await env.DB.prepare('SELECT application_fee, wallet_balance FROM users WHERE id = ?').bind(session.user_id).first();
     const feePerApp = user && user.application_fee ? user.application_fee : 50.00;
+    const walletBalance = user && user.wallet_balance ? Number(user.wallet_balance) : 0.00;
+
+    // PREPAID WALLET CHECK: If user has enough balance, auto-pay instantly from wallet
+    if (walletBalance >= feePerApp) {
+      const newBalance = walletBalance - feePerApp;
+      await env.DB.prepare('UPDATE users SET wallet_balance = ? WHERE id = ?').bind(newBalance, session.user_id).run();
+
+      await env.DB.prepare(`
+        INSERT INTO wallet_transactions (user_id, type, amount, balance_after, reference_id, description, status) 
+        VALUES (?, 'debit', ?, ?, ?, ?, 'approved')
+      `).bind(
+        session.user_id, 
+        feePerApp, 
+        newBalance, 
+        applicationNumber, 
+        `Application #${applicationNumber} Fee Auto-Deduct`
+      ).run();
+
+      const resW = await env.DB.prepare(
+        `INSERT INTO applications 
+         (user_id, application_number, date_of_birth, app_password, photo_url, payment_status, payment_id, payment_screenshot_url, payment_amount, payment_method, paid_at) 
+         VALUES (?, ?, ?, ?, ?, 'paid', 'WALLET-PAID', '', ?, 'WALLET_BALANCE', datetime("now"))`
+      ).bind(session.user_id, applicationNumber, dateOfBirth, appPassword, photoUrl, feePerApp).run();
+
+      return jsonResponse({
+        success: true,
+        message: `🎉 Application submitted & paid from Wallet! ₹${feePerApp.toFixed(2)} deducted. Wallet balance: ₹${newBalance.toFixed(2)}.`,
+        paidFromWallet: true,
+        walletBalance: newBalance,
+        applicationId: resW.meta.last_row_id
+      });
+    }
 
     const { results: unpaidApps } = await env.DB.prepare(
       'SELECT id FROM applications WHERE user_id = ? AND payment_status = "unpaid" ORDER BY id ASC'

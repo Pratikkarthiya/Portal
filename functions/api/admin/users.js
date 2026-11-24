@@ -7,7 +7,7 @@ export async function onRequestGet({ request, env }) {
   }
 
   const { results: users } = await env.DB.prepare(`
-    SELECT u.id, u.name, u.email, u.application_fee, u.created_at,
+    SELECT u.id, u.name, u.email, u.application_fee, u.wallet_balance, u.created_at,
            COUNT(a.id) as total_applications,
            SUM(CASE WHEN a.status = 'pending' THEN 1 ELSE 0 END) as pending,
            SUM(CASE WHEN a.status = 'approved' THEN 1 ELSE 0 END) as approved,
