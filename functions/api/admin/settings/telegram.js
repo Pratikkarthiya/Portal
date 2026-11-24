@@ -79,8 +79,12 @@ export async function onRequestPost({ request, env }) {
 
     const tgData = await tgRes.json().catch(() => ({}));
     if (!tgRes.ok || !tgData.ok) {
+      let errDesc = tgData.description || 'Invalid Bot Token or Chat ID';
+      if (errDesc.includes('chat not found')) {
+        errDesc = '⚠️ Chat not found: Please open your bot in Telegram and tap the "START" button (or send /start) first, then click "Send Test Alert" again!';
+      }
       return jsonResponse({
-        error: 'Telegram error: ' + (tgData.description || 'Invalid Bot Token or Chat ID')
+        error: errDesc
       }, 400);
     }
 

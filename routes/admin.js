@@ -300,7 +300,11 @@ router.post('/settings/telegram', requireAdmin, async (req, res) => {
       });
       const data = await response.json();
       if (!response.ok || !data.ok) {
-        return res.status(400).json({ error: 'Telegram error: ' + (data.description || 'Invalid Bot Token or Chat ID') });
+        let errDesc = data.description || 'Invalid Bot Token or Chat ID';
+        if (errDesc.includes('chat not found')) {
+          errDesc = '⚠️ Chat not found: Please open your bot in Telegram and tap the "START" button (or send /start) first, then click "Send Test Alert" again!';
+        }
+        return res.status(400).json({ error: errDesc });
       }
       return res.json({ success: true, message: '🎉 Test message sent to your Telegram successfully! Check your phone.' });
     } catch (e) {
