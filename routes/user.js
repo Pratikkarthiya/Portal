@@ -325,4 +325,55 @@ router.post('/wallet/topup', requireUser, upload.single('receipt'), (req, res) =
   });
 });
 
+/**
+ * 6. Real-time Payment Verification Checker (for automatic popup)
+ */
+router.get('/check-payment', requireUser, (req, res) => {
+  const sinceMs = parseInt(req.query.since || '0', 10);
+  const lookbackSeconds = sinceMs > 0 ? Math.max(1, Math.floor((Date.now() - sinceMs) / 1000)) : 120;
+
+  // Check recent application payments
+  const recentApp = queryOne(`
+    SELECT id, application_number, payment_id, payment_amount, paid_at 
+    FROM applications 
+    WHERE user_id = ? AND payment_status = 'paid' AND paid_at >= datetime('now', '-' || ? || ' seconds')
+    ORDER BY paid_at DESC LIMIT 1
+  `, [req.session.userId, lookbackSeconds]);
+
+  if (recentApp) {
+    return res.json({
+      success: true,
+      verified: true,
+      type: 'application',
+      amount: recentApp.payment_amount || 250.00,
+      utr: recentApp.payment_id || 'N/A',
+      title: 'Batch Payment Verified!',
+      message: `Your payment of ₹${Number(recentApp.payment_amount || 250).toFixed(2)} has been verified and settled successfully!`
+    });
+  }
+
+  // Check recent wallet credits
+  const recentWallet = queryOne(`
+    SELECT id, amount, balance_after, reference_id, created_at 
+    FROM wallet_transactions 
+    WHERE user_id = ? AND type = 'credit' AND status = 'approved' AND created_at >= datetime('now', '-' || ? || ' seconds')
+    ORDER BY id DESC LIMIT 1
+  `, [req.session.userId, lookbackSeconds]);
+
+  if (recentWallet) {
+    return res.json({
+      success: true,
+      verified: true,
+      type: 'wallet',
+      amount: recentWallet.amount,
+      utr: recentWallet.reference_id || 'N/A',
+      newBalance: recentWallet.balance_after,
+      title: 'Wallet Top-Up Confirmed!',
+      message: `₹${Number(recentWallet.amount).toFixed(2)} has been credited to your prepaid wallet! New balance: ₹${Number(recentWallet.balance_after).toFixed(2)}.`
+    });
+  }
+
+  res.json({ success: true, verified: false });
+});
+
 module.exports = router;

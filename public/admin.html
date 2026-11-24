@@ -106,6 +106,16 @@
             🧾 Open Payment Ledger
           </button>
         </div>
+
+        <div class="profile-card">
+          <h4><span>📱</span> Android UPI Daemon</h4>
+          <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:1rem;">
+            Auto-verifies SMS & bank notifications on your phone with zero human intervention.
+          </p>
+          <button class="btn btn-primary" onclick="openAndroidPairModal()" style="width:100%;background:linear-gradient(135deg,#0071e3 0%,#005bb5 100%);color:white;box-shadow:none;">
+            🔗 Pair Phone / View QR
+          </button>
+        </div>
       </div>
     </div>
 
@@ -376,6 +386,49 @@
     </div>
   </div>
 
+  <!-- Android Observer Pairing Modal -->
+  <div class="modal-overlay" id="androidPairModalOverlay">
+    <div class="modal" style="max-width: 480px; text-align: center;">
+      <div class="modal-header" style="text-align: left;">
+        <div style="display:flex;align-items:center;gap:0.5rem;">
+          <div class="logo-icon" style="width:30px;height:30px;font-size:0.9rem;background:rgba(0,113,227,0.15);color:var(--accent-blue);">📱</div>
+          <h3 style="font-size:1.15rem;">Pair Android YOUPI Gateway</h3>
+        </div>
+        <button class="modal-close" onclick="closeAndroidPairModal()">✕</button>
+      </div>
+      <div class="modal-body" style="padding: 1.5rem 1.75rem;">
+        <p style="font-size:0.88rem;color:var(--text-secondary);margin-bottom:1.25rem;line-height:1.45;">
+          Open <strong>YOUPI SMS Gateway</strong> on your phone and tap <strong>[SCAN PAIRING QR]</strong>, or enter the manual credentials below.
+        </p>
+
+        <!-- Dynamic Pairing QR Code -->
+        <div id="pairQrContainer" style="display:flex;justify-content:center;margin-bottom:1.25rem;">
+          <div id="pairQrCode" style="padding:12px;background:white;border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,0.08);display:inline-block;"></div>
+        </div>
+
+        <!-- Manual Credentials Box -->
+        <div style="background:rgba(255,255,255,0.7);border:1px solid var(--glass-border);border-radius:14px;padding:1rem;text-align:left;font-size:0.85rem;margin-bottom:1.25rem;">
+          <div style="margin-bottom:0.75rem;">
+            <div style="color:var(--text-secondary);font-size:0.75rem;text-transform:uppercase;font-weight:700;margin-bottom:3px;">1. Gateway Base URL:</div>
+            <code style="display:block;background:white;padding:7px 10px;border-radius:8px;border:1px solid rgba(0,0,0,0.1);font-weight:700;color:var(--accent-blue);word-break:break-all;" id="pairBaseUrlText">https://portal-2a3.pages.dev</code>
+          </div>
+          <div style="margin-bottom:0.75rem;">
+            <div style="color:var(--text-secondary);font-size:0.75rem;text-transform:uppercase;font-weight:700;margin-bottom:3px;">2. Enrollment Secret Token:</div>
+            <code style="display:block;background:white;padding:7px 10px;border-radius:8px;border:1px solid rgba(0,0,0,0.1);font-weight:700;color:#15803d;">youpi-secret-key-2024</code>
+          </div>
+          <div style="padding-top:0.4rem;border-top:1px dashed var(--glass-border);display:flex;justify-content:space-between;align-items:center;">
+            <span style="color:var(--text-secondary);font-size:0.8rem;">Need the APK?</span>
+            <a href="/youpi-sms-gateway.apk" target="_blank" download style="color:var(--accent-blue);font-weight:700;text-decoration:none;font-size:0.85rem;">⬇️ Download APK</a>
+          </div>
+        </div>
+
+        <button class="btn btn-secondary" onclick="closeAndroidPairModal()" style="width:100%;justify-content:center;padding:0.75rem;font-weight:600;">
+          Done / Close
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script>
     let cachedUsers = [];
     let cachedAllApplications = [];
@@ -397,6 +450,45 @@
 
     function closeAdminWalletModal() {
       document.getElementById('adminWalletModalOverlay').classList.remove('active');
+    }
+
+    function openAndroidPairModal() {
+      const modal = document.getElementById('androidPairModalOverlay');
+      if (modal) modal.classList.add('active');
+      const baseUrl = window.location.origin;
+      const baseUrlEl = document.getElementById('pairBaseUrlText');
+      if (baseUrlEl) baseUrlEl.textContent = baseUrl;
+
+      const pairPayload = JSON.stringify({
+        type: "YOUPI_SMS_GATEWAY_PAIR",
+        version: "v1",
+        expiresAt: Date.now() + 86400000 * 365,
+        serverUrl: baseUrl,
+        enrollmentToken: "youpi-secret-key-2024",
+        merchantId: "00000000-0000-0000-0000-000000000001"
+      });
+
+      const qrContainer = document.getElementById('pairQrCode');
+      if (qrContainer) {
+        qrContainer.innerHTML = '';
+        if (typeof QRCode !== 'undefined') {
+          new QRCode(qrContainer, {
+            text: pairPayload,
+            width: 180,
+            height: 180,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.M
+          });
+        } else {
+          qrContainer.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(pairPayload)}" style="width:180px;height:180px;border-radius:10px;">`;
+        }
+      }
+    }
+
+    function closeAndroidPairModal() {
+      const modal = document.getElementById('androidPairModalOverlay');
+      if (modal) modal.classList.remove('active');
     }
 
     async function submitAdminWalletAdjust(e) {

@@ -530,6 +530,50 @@
     </div>
   </div>
 
+  <!-- Automatic Payment Done Celebration Popup Modal -->
+  <div class="modal-overlay" id="paymentSuccessModalOverlay" style="z-index: 10000;">
+    <div class="modal" style="max-width: 440px; text-align: center; padding: 2rem 1.75rem; border-radius: 24px; box-shadow: 0 20px 60px rgba(0,0,0,0.25);">
+      <!-- Animated Green Success Checkmark -->
+      <div style="margin: 0 auto 1.25rem; width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg, #34c759 0%, #248a3d 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 25px rgba(52, 199, 89, 0.4); animation: popSuccess 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+        <span style="font-size: 2.2rem; color: white;">✓</span>
+      </div>
+
+      <div style="font-size: 0.82rem; text-transform: uppercase; letter-spacing: 1px; color: #15803d; font-weight: 800; margin-bottom: 0.3rem;" id="successPopupTag">
+        ⚡ PAYMENT VERIFIED
+      </div>
+      <h3 style="font-size: 1.4rem; font-weight: 800; color: var(--text-main); margin-bottom: 0.5rem;" id="successPopupTitle">
+        Payment Successful!
+      </h3>
+      <div style="font-size: 2.3rem; font-weight: 900; color: var(--accent-blue); margin-bottom: 1rem;" id="successPopupAmount">
+        ₹250.00
+      </div>
+
+      <!-- Receipt / Details card -->
+      <div style="background: rgba(255, 255, 255, 0.65); border: 1px solid var(--glass-border); border-radius: 14px; padding: 1rem; text-align: left; margin-bottom: 1.25rem;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 0.4rem; font-size: 0.85rem;">
+          <span style="color: var(--text-secondary);">Bank UTR / Ref #:</span>
+          <code style="font-weight: 700; color: var(--accent-blue);" id="successPopupUtr">432109876543</code>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 0.4rem; font-size: 0.85rem;">
+          <span style="color: var(--text-secondary);">Beneficiary:</span>
+          <strong style="color: var(--text-main);">Pratik Karthiya</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
+          <span style="color: var(--text-secondary);">Settlement Mode:</span>
+          <span style="color: #15803d; font-weight: 700;">Instant Auto-Reconciled</span>
+        </div>
+      </div>
+
+      <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.25rem; line-height: 1.45;" id="successPopupMessage">
+        Your payment has been automatically verified and settled.
+      </p>
+
+      <button class="btn btn-primary" onclick="closePaymentSuccessModal()" style="width: 100%; justify-content: center; padding: 0.85rem; background: linear-gradient(135deg, #34c759 0%, #248a3d 100%); border: none; font-size: 1rem; font-weight: 800; box-shadow: 0 4px 16px rgba(52, 199, 89, 0.35);">
+        🎉 Done / Continue
+      </button>
+    </div>
+  </div>
+
   <script>
     let is5thApplication = false;
     let batchTotal = 250.00;
@@ -538,6 +582,114 @@
     let allUserApplications = [];
     let currentAppFilter = 'all';
     let currentUserProfile = null;
+    let paymentCheckTimer = null;
+    let paymentCheckStartTime = 0;
+
+    // Soft celebration audio chime using native Web Audio API (zero external assets)
+    function playSuccessChime() {
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        const ctx = new AudioContext();
+        const now = ctx.currentTime;
+        const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6 chord
+        notes.forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+          gain.gain.setValueAtTime(0, now + idx * 0.08);
+          gain.gain.linearRampToValueAtTime(0.18, now + idx * 0.08 + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.55);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now + idx * 0.08);
+          osc.stop(now + idx * 0.08 + 0.6);
+        });
+      } catch (e) {
+        // AudioContext may be restricted by autoplay policy
+      }
+    }
+
+    // Show celebratory payment verified popup modal
+    function showPaymentSuccessCelebration(opts = {}) {
+      const {
+        amount = 250,
+        utr = 'Auto-Reconciled',
+        title = 'Payment Successful!',
+        tag = '⚡ PAYMENT VERIFIED',
+        message = 'Your payment has been automatically verified and recorded.'
+      } = opts;
+
+      const tagEl = document.getElementById('successPopupTag');
+      const titleEl = document.getElementById('successPopupTitle');
+      const amtEl = document.getElementById('successPopupAmount');
+      const utrEl = document.getElementById('successPopupUtr');
+      const msgEl = document.getElementById('successPopupMessage');
+      const modal = document.getElementById('paymentSuccessModalOverlay');
+
+      if (tagEl) tagEl.textContent = tag;
+      if (titleEl) titleEl.textContent = title;
+      if (amtEl) amtEl.textContent = typeof amount === 'number' ? `₹${amount.toFixed(2)}` : amount;
+      if (utrEl) utrEl.textContent = utr;
+      if (msgEl) msgEl.textContent = message;
+
+      if (modal) modal.classList.add('active');
+      playSuccessChime();
+    }
+
+    function closePaymentSuccessModal() {
+      const modal = document.getElementById('paymentSuccessModalOverlay');
+      if (modal) modal.classList.remove('active');
+    }
+
+    // Start polling /api/user/check-payment while payment modal is open
+    function startAutoPaymentDetection() {
+      stopAutoPaymentDetection();
+      paymentCheckStartTime = Date.now() - 3000; // Look back 3 seconds
+      paymentCheckTimer = setInterval(async () => {
+        try {
+          const res = await fetch(`/api/user/check-payment?since=${paymentCheckStartTime}`);
+          if (!res.ok) return;
+          const data = await res.json().catch(() => ({}));
+          if (data && data.verified) {
+            stopAutoPaymentDetection();
+            // Close whatever checkout or top-up modal was active
+            closeYoupiModal();
+            closeAddMoneyModal();
+
+            // Refresh UI data
+            if (data.walletBalance !== undefined) {
+              userWalletBalance = Number(data.walletBalance);
+              updateWalletUI();
+              loadWalletData();
+            }
+            loadBatchStatus();
+            loadApplications();
+
+            // Pop up celebratory success modal
+            showPaymentSuccessCelebration({
+              amount: data.amount || 250.00,
+              utr: data.utr || data.referenceId || 'BANK-RECONCILED',
+              title: data.type === 'wallet' ? 'Money Added to Wallet!' : 'Batch Payment Verified!',
+              tag: '⚡ AUTO-VERIFIED VIA OBSERVER',
+              message: data.type === 'wallet' 
+                ? `₹${Number(data.amount).toFixed(2)} has been credited to your prepaid wallet via live UPI reconciliation.`
+                : 'Your batch applications have been marked as PAID immediately. Zero manual review needed!'
+            });
+          }
+        } catch (e) {
+          // Silent polling retry
+        }
+      }, 2500);
+    }
+
+    function stopAutoPaymentDetection() {
+      if (paymentCheckTimer) {
+        clearInterval(paymentCheckTimer);
+        paymentCheckTimer = null;
+      }
+    }
 
     const MERCHANT_VPA = 'pratikkarthiya6@oksbi';
     const MERCHANT_NAME = 'Pratik Karthiya';
@@ -813,9 +965,11 @@
       }
 
       document.getElementById('upiIntentLink').href = upiUri;
+      startAutoPaymentDetection();
     }
 
     function closeYoupiModal() {
+      stopAutoPaymentDetection();
       document.getElementById('youpiModalOverlay').classList.remove('active');
     }
 
@@ -869,6 +1023,14 @@
           loadBatchStatus();
           loadApplications();
           setTimeout(() => document.getElementById('submitSuccess').classList.remove('show'), 6000);
+
+          showPaymentSuccessCelebration({
+            amount: batchTotal,
+            utr: utr,
+            title: '5-Application Batch Submitted!',
+            tag: '⚡ PAYMENT SETTLED',
+            message: 'All 5 applications have been submitted and their payments verified.'
+          });
         } else {
           alert(data.error || `Payment submission failed (HTTP ${res.status}). Please verify your UTR and retry.`);
         }
@@ -1232,9 +1394,11 @@
       document.getElementById('confirmTopupBtn').disabled = false;
       document.getElementById('confirmTopupBtn').textContent = '✅ Verify & Add Money to Wallet';
       document.getElementById('walletModalOverlay').classList.add('active');
+      startAutoPaymentDetection();
     }
 
     function closeAddMoneyModal() {
+      stopAutoPaymentDetection();
       document.getElementById('walletModalOverlay').classList.remove('active');
     }
 
@@ -1331,9 +1495,15 @@
 
         if (res.ok && data.success) {
           closeAddMoneyModal();
-          alert(data.message || `₹${amt.toFixed(2)} added to your wallet successfully!`);
           await loadWalletData();
           await loadBatchStatus();
+          showPaymentSuccessCelebration({
+            amount: amt,
+            utr: utr,
+            title: 'Money Added to Wallet!',
+            tag: '⚡ TOP-UP SUCCESSFUL',
+            message: data.message || `₹${amt.toFixed(2)} has been credited to your prepaid wallet balance.`
+          });
         } else {
           errBox.textContent = data.error || `Top-up failed (HTTP ${res.status}).`;
           errBox.style.display = 'block';
