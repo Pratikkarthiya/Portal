@@ -1,4 +1,4 @@
-import { getSession, jsonResponse, sendTelegramAlert } from '../../../../utils.js';
+import { getSession, jsonResponse, sendTelegramAlert } from '../../../utils.js';
 
 export async function onRequestGet({ request, env }) {
   const session = await getSession(request, env);
