@@ -1540,10 +1540,16 @@
       }
 
       try {
-        const res = await fetch('/api/user/wallet/topup', {
+        let res = await fetch('/api/user/wallet/topup', {
           method: 'POST',
           body: formData
         });
+        if (res.status === 404 || res.status === 405) {
+          res = await fetch('/api/user/wallet', {
+            method: 'POST',
+            body: formData
+          });
+        }
         const data = await res.json().catch(() => ({}));
 
         if (res.ok && data.success) {

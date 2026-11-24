@@ -253,6 +253,63 @@ router.delete('/applications/:appId', requireAdmin, (req, res) => {
   });
 });
 
+// Telegram Bot push alert settings
+router.get('/settings/telegram', requireAdmin, (req, res) => {
+  const rows = queryAll("SELECT key, value FROM system_settings WHERE key IN ('telegram_bot_token', 'telegram_chat_id', 'telegram_alerts_enabled')");
+  const settings = {
+    botToken: '',
+    chatId: '',
+    enabled: true
+  };
+  (rows || []).forEach(r => {
+    if (r.key === 'telegram_bot_token') settings.botToken = r.value || '';
+    if (r.key === 'telegram_chat_id') settings.chatId = r.value || '';
+    if (r.key === 'telegram_alerts_enabled') settings.enabled = r.value !== '0';
+  });
+  res.json({ success: true, settings });
+});
+
+router.post('/settings/telegram', requireAdmin, async (req, res) => {
+  const { botToken, chatId, enabled, isTest } = req.body;
+  if (botToken !== undefined) {
+    runSql('INSERT INTO system_settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at', ['telegram_bot_token', String(botToken).trim()]);
+  }
+  if (chatId !== undefined) {
+    runSql('INSERT INTO system_settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at', ['telegram_chat_id', String(chatId).trim()]);
+  }
+  if (enabled !== undefined) {
+    runSql('INSERT INTO system_settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at', ['telegram_alerts_enabled', enabled ? '1' : '0']);
+  }
+  if (isTest) {
+    const activeToken = String(botToken || '').trim();
+    const activeChatId = String(chatId || '').trim();
+    if (!activeToken || !activeChatId) {
+      return res.status(400).json({ error: 'Please enter both Bot Token and Chat ID to send test alert.' });
+    }
+    const testMsg = `🔔 <b>KP CYBER — TEST NOTIFICATION</b>\n━━━━━━━━━━━━━━━━━━\n✅ <b>Telegram Bot connection successful!</b>\n⏰ <b>Time:</b> ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}\n⚡ You will now receive instant push alerts whenever candidates submit applications or add money to their wallet!`;
+    try {
+      const response = await fetch(`https://api.telegram.org/bot${activeToken}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: activeChatId,
+          text: testMsg,
+          parse_mode: 'HTML',
+          disable_web_page_preview: true
+        })
+      });
+      const data = await response.json();
+      if (!response.ok || !data.ok) {
+        return res.status(400).json({ error: 'Telegram error: ' + (data.description || 'Invalid Bot Token or Chat ID') });
+      }
+      return res.json({ success: true, message: '🎉 Test message sent to your Telegram successfully! Check your phone.' });
+    } catch (e) {
+      return res.status(500).json({ error: 'Failed to contact Telegram API: ' + e.message });
+    }
+  }
+  res.json({ success: true, message: 'Telegram alert settings saved successfully.' });
+});
+
 // Dashboard stats including revenue
 router.get('/stats', requireAdmin, (req, res) => {
   const totalUsers = queryOne('SELECT COUNT(*) as c FROM users');

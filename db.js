@@ -126,6 +126,15 @@ function initialize() {
     conn.run(`CREATE INDEX IF NOT EXISTS idx_bank_events_utr ON bank_events(utr)`);
   } catch (e) {}
 
+  // System Settings table (e.g. Telegram Bot notifications, alert preferences)
+  conn.run(`
+    CREATE TABLE IF NOT EXISTS system_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   // Admin table
   conn.run(`
     CREATE TABLE IF NOT EXISTS admins (

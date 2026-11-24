@@ -116,6 +116,16 @@
             🔗 Pair Phone / View QR
           </button>
         </div>
+
+        <div class="profile-card">
+          <h4><span>🔔</span> Telegram Push Alerts</h4>
+          <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:1rem;">
+            Get instant free push alerts on Telegram when applications are submitted or wallet is topped up.
+          </p>
+          <button class="btn btn-primary" onclick="openTelegramSettingsModal()" style="width:100%;background:linear-gradient(135deg,#229ED9 0%,#0088cc 100%);color:white;box-shadow:none;">
+            ⚙️ Configure Telegram Bot
+          </button>
+        </div>
       </div>
     </div>
 
@@ -446,6 +456,55 @@
     </div>
   </div>
 
+  <!-- Telegram Bot Settings Modal -->
+  <div class="modal-overlay" id="telegramSettingsModalOverlay">
+    <div class="modal" style="max-width: 500px;">
+      <div class="modal-header">
+        <div style="display:flex;align-items:center;gap:0.5rem;">
+          <div class="logo-icon" style="width:30px;height:30px;font-size:0.9rem;background:rgba(34,158,217,0.15);color:#0088cc;">🔔</div>
+          <h3 style="font-size:1.15rem;">Telegram Push Alert Settings</h3>
+        </div>
+        <button class="modal-close" onclick="closeTelegramSettingsModal()">✕</button>
+      </div>
+      <div class="modal-body" style="padding: 1.5rem 1.75rem;">
+        <div style="background:rgba(34,158,217,0.08);border:1px solid rgba(34,158,217,0.25);border-radius:12px;padding:0.85rem;font-size:0.82rem;color:var(--text-main);margin-bottom:1.25rem;line-height:1.45;">
+          <strong>💡 100% Free Setup (Takes 1 Minute):</strong><br>
+          1. Open Telegram & search for <b>@BotFather</b> → Send <code>/newbot</code> → Copy your <b>Bot Token</b>.<br>
+          2. Search for <b>@userinfobot</b> on Telegram → Click Start → Copy your <b>Id</b> (Chat ID).<br>
+          3. Paste both below and click <b>🔔 Send Test Alert</b>!
+        </div>
+
+        <div id="telegramSettingsAlert" style="display:none;padding:0.75rem;border-radius:10px;margin-bottom:1rem;font-size:0.85rem;font-weight:600;"></div>
+
+        <form id="telegramSettingsForm" onsubmit="event.preventDefault();saveTelegramSettings(false);">
+          <div class="form-group" style="margin-bottom:1rem;">
+            <label style="font-size:0.82rem;font-weight:700;display:block;margin-bottom:4px;">Telegram Bot Token *</label>
+            <input type="text" id="tgBotTokenInput" placeholder="e.g. 7123456789:AAHk...xyz" class="form-control" style="font-family:monospace;font-size:0.85rem;width:100%;padding:0.6rem;border-radius:8px;border:1px solid var(--glass-border);" required>
+          </div>
+
+          <div class="form-group" style="margin-bottom:1rem;">
+            <label style="font-size:0.82rem;font-weight:700;display:block;margin-bottom:4px;">Admin Chat ID (Your Telegram ID) *</label>
+            <input type="text" id="tgChatIdInput" placeholder="e.g. 987654321" class="form-control" style="font-family:monospace;font-size:0.85rem;width:100%;padding:0.6rem;border-radius:8px;border:1px solid var(--glass-border);" required>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:1.25rem;">
+            <input type="checkbox" id="tgEnabledCheckbox" checked style="width:18px;height:18px;cursor:pointer;">
+            <label for="tgEnabledCheckbox" style="font-size:0.88rem;cursor:pointer;font-weight:600;">Enable instant push alerts</label>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+            <button type="button" class="btn btn-secondary" onclick="saveTelegramSettings(true)" id="tgTestBtn" style="justify-content:center;padding:0.65rem;font-weight:600;">
+              🔔 Send Test Alert
+            </button>
+            <button type="submit" class="btn btn-primary" id="tgSaveBtn" style="justify-content:center;padding:0.65rem;font-weight:700;background:linear-gradient(135deg,#0088cc 0%,#006699 100%);border:none;color:white;">
+              💾 Save Settings
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <script>
     let cachedUsers = [];
     let cachedAllApplications = [];
@@ -506,6 +565,77 @@
     function closeAndroidPairModal() {
       const modal = document.getElementById('androidPairModalOverlay');
       if (modal) modal.classList.remove('active');
+    }
+
+    async function openTelegramSettingsModal() {
+      const modal = document.getElementById('telegramSettingsModalOverlay');
+      const alertBox = document.getElementById('telegramSettingsAlert');
+      if (alertBox) alertBox.style.display = 'none';
+      if (modal) modal.classList.add('active');
+
+      try {
+        const res = await fetch('/api/admin/settings/telegram');
+        const data = await res.json();
+        if (res.ok && data.success && data.settings) {
+          document.getElementById('tgBotTokenInput').value = data.settings.botToken || '';
+          document.getElementById('tgChatIdInput').value = data.settings.chatId || '';
+          document.getElementById('tgEnabledCheckbox').checked = data.settings.enabled !== false;
+        }
+      } catch (e) {}
+    }
+
+    function closeTelegramSettingsModal() {
+      const modal = document.getElementById('telegramSettingsModalOverlay');
+      if (modal) modal.classList.remove('active');
+    }
+
+    async function saveTelegramSettings(isTest = false) {
+      const botToken = document.getElementById('tgBotTokenInput').value.trim();
+      const chatId = document.getElementById('tgChatIdInput').value.trim();
+      const enabled = document.getElementById('tgEnabledCheckbox').checked;
+      const alertBox = document.getElementById('telegramSettingsAlert');
+      const btn = isTest ? document.getElementById('tgTestBtn') : document.getElementById('tgSaveBtn');
+
+      alertBox.style.display = 'none';
+      if (!botToken || !chatId) {
+        alertBox.style.display = 'block';
+        alertBox.style.background = 'rgba(255,59,48,0.12)';
+        alertBox.style.color = '#dc2626';
+        alertBox.textContent = 'Please enter both Bot Token and Chat ID.';
+        return;
+      }
+
+      const originalText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = isTest ? 'Sending Test...' : 'Saving...';
+
+      try {
+        const res = await fetch('/api/admin/settings/telegram', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ botToken, chatId, enabled, isTest })
+        });
+        const data = await res.json().catch(() => ({}));
+
+        alertBox.style.display = 'block';
+        if (res.ok && data.success) {
+          alertBox.style.background = 'rgba(52,199,89,0.15)';
+          alertBox.style.color = '#15803d';
+          alertBox.textContent = data.message || (isTest ? '🎉 Test notification sent! Check Telegram.' : 'Settings saved successfully!');
+        } else {
+          alertBox.style.background = 'rgba(255,59,48,0.12)';
+          alertBox.style.color = '#dc2626';
+          alertBox.textContent = data.error || 'Failed to update Telegram settings.';
+        }
+      } catch (err) {
+        alertBox.style.display = 'block';
+        alertBox.style.background = 'rgba(255,59,48,0.12)';
+        alertBox.style.color = '#dc2626';
+        alertBox.textContent = 'Request error: ' + err.message;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
+      }
     }
 
     async function submitAdminWalletAdjust(e) {
@@ -1686,6 +1816,9 @@
     });
     document.getElementById('editUserModalOverlay').addEventListener('click', e => {
       if (e.target === e.currentTarget) closeEditUserModal();
+    });
+    document.getElementById('telegramSettingsModalOverlay').addEventListener('click', e => {
+      if (e.target === e.currentTarget) closeTelegramSettingsModal();
     });
 
     async function logout() {

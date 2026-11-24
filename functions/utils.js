@@ -33,3 +33,41 @@ export function arrayBufferToBase64(buffer) {
   }
   return btoa(binary);
 }
+
+// Dispatches formatted HTML alert to Admin Telegram Bot
+export async function sendTelegramAlert(env, messageHtml) {
+  try {
+    let token = env?.TELEGRAM_BOT_TOKEN;
+    let chatId = env?.TELEGRAM_CHAT_ID;
+
+    if (!token || !chatId) {
+      if (env?.DB) {
+        const rows = await env.DB.prepare(
+          "SELECT key, value FROM system_settings WHERE key IN ('telegram_bot_token', 'telegram_chat_id', 'telegram_alerts_enabled')"
+        ).all();
+        if (rows && rows.results) {
+          const map = {};
+          rows.results.forEach(r => { map[r.key] = r.value; });
+          if (map.telegram_alerts_enabled === '0') return;
+          token = token || map.telegram_bot_token;
+          chatId = chatId || map.telegram_chat_id;
+        }
+      }
+    }
+
+    if (!token || !chatId) return;
+
+    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: messageHtml,
+        parse_mode: 'HTML',
+        disable_web_page_preview: true
+      })
+    });
+  } catch (err) {
+    console.error('Telegram notification error:', err);
+  }
+}

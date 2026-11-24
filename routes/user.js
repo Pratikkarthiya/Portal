@@ -356,9 +356,9 @@ router.get('/wallet', requireUser, (req, res) => {
 });
 
 /**
- * 5. Candidate Wallet: Top-up Balance via UPI
+ * 5. Candidate Wallet: Top-up Balance via UPI (handles both /wallet/topup and /wallet)
  */
-router.post('/wallet/topup', requireUser, upload.single('receipt'), (req, res) => {
+function handleWalletTopup(req, res) {
   const amount = parseFloat(req.body.amount || '0');
   const utrNumber = (req.body.utrNumber || '').trim();
   const receiptUrl = req.file ? '/uploads/' + req.file.filename : (req.body.receiptUrl || '');
@@ -416,7 +416,10 @@ router.post('/wallet/topup', requireUser, upload.single('receipt'), (req, res) =
     newBalance,
     transactionId: trxId
   });
-});
+}
+
+router.post('/wallet/topup', requireUser, upload.single('receipt'), handleWalletTopup);
+router.post('/wallet', requireUser, upload.single('receipt'), handleWalletTopup);
 
 /**
  * 6. Real-time Payment Verification Checker (for automatic popup)

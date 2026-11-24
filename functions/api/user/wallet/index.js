@@ -1,4 +1,4 @@
-import { getSession, jsonResponse, arrayBufferToBase64 } from '../../../utils.js';
+import { getSession, jsonResponse, arrayBufferToBase64, sendTelegramAlert } from '../../../utils.js';
 
 export async function onRequestGet({ request, env }) {
   const session = await getSession(request, env);
@@ -67,7 +67,7 @@ export async function onRequestPost({ request, env }) {
       return jsonResponse({ error: 'Please provide your 12-digit Bank UTR / Transaction ID' }, 400);
     }
 
-    const user = await env.DB.prepare('SELECT wallet_balance FROM users WHERE id = ?').bind(session.user_id).first();
+    const user = await env.DB.prepare('SELECT id, name, email, wallet_balance FROM users WHERE id = ?').bind(session.user_id).first();
     const currentBalance = user && user.wallet_balance ? Number(user.wallet_balance) : 0.00;
 
     // Check if this UTR was already submitted in wallet transactions
@@ -116,6 +116,13 @@ export async function onRequestPost({ request, env }) {
       INSERT INTO wallet_transactions (user_id, type, amount, balance_after, reference_id, description, receipt_url, status, created_at)
       VALUES (?, 'credit', ?, ?, ?, 'Prepaid Wallet Top-up (Verified UPI)', ?, 'approved', datetime("now"))
     `).bind(session.user_id, amount, newBalance, utrNumber, receiptUrl).run();
+
+    // Send Telegram alert to admin
+    try {
+      const candidateLabel = user ? `${user.name} (${user.email})` : `User #${session.user_id}`;
+      const timeStr = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+      sendTelegramAlert(env, `💰 <b>KP CYBER — WALLET TOP-UP!</b>\n━━━━━━━━━━━━━━━━━━\n👤 <b>Candidate:</b> ${candidateLabel}\n💵 <b>Amount Credited:</b> ₹${amount.toFixed(2)}\n🏦 <b>New Wallet Balance:</b> ₹${newBalance.toFixed(2)}\n🧾 <b>Verified UTR:</b> <code>${utrNumber}</code>\n⏰ <b>Time:</b> ${timeStr}\n🔗 <a href="https://kpcyber.in/admin">Open Admin Wallet Ledger</a>`);
+    } catch (e) {}
 
     return jsonResponse({
       success: true,
