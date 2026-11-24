@@ -97,9 +97,10 @@ router.post('/applications', requireUser, (req, res) => {
       return res.status(400).json({ error: 'An applicant photo upload is required' });
     }
 
-    const user = queryOne('SELECT application_fee, wallet_balance FROM users WHERE id = ?', [req.session.userId]);
+    const user = queryOne('SELECT application_fee, wallet_balance, payment_mode FROM users WHERE id = ?', [req.session.userId]);
     const feePerApp = user && user.application_fee ? user.application_fee : 50.00;
     const walletBalance = user && user.wallet_balance ? Number(user.wallet_balance) : 0.00;
+    const paymentMode = user && user.payment_mode ? user.payment_mode : 'batch';
     const photoUrl = '/uploads/' + req.files['photo'][0].filename;
 
     let screenshotUrl = '';
@@ -133,6 +134,76 @@ router.post('/applications', requireUser, (req, res) => {
         applicationId: appId
       });
     }
+
+    // =========================================================
+    // PLAN TYPE 1: ONE-TIME PAYMENT (PAY EACH TIME / PER APPLICATION)
+    // =========================================================
+    if (paymentMode === 'one_time') {
+      if (!utrNumber || utrNumber.trim().length < 6) {
+        return res.status(400).json({
+          error: `Payment required: ₹${feePerApp.toFixed(2)} for this application. Please pay via UPI or enter your Bank UTR.`,
+          requiresPayment: true,
+          isOneTimePayment: true,
+          amountDue: feePerApp,
+          paymentMode: 'one_time'
+        });
+      }
+
+      const cleanUtr = utrNumber.trim();
+      const bankEvent = queryOne('SELECT id, amount, used_by_user_id FROM bank_events WHERE utr = ?', [cleanUtr]);
+
+      if (!bankEvent) {
+        return res.status(400).json({
+          error: `❌ Payment Failed: UTR "${cleanUtr}" is invalid or not received by bank. Please transfer ₹${feePerApp.toFixed(2)} to UPI ID pratikkarthiya6@oksbi and enter the genuine 12-digit UTR.`,
+          requiresPayment: true,
+          isOneTimePayment: true,
+          amountDue: feePerApp,
+          paymentMode: 'one_time'
+        });
+      }
+
+      if (bankEvent.used_by_user_id) {
+        return res.status(400).json({
+          error: `❌ Payment Rejected: UTR "${cleanUtr}" has already been used by another transaction.`,
+          requiresPayment: true,
+          isOneTimePayment: true,
+          amountDue: feePerApp,
+          paymentMode: 'one_time'
+        });
+      }
+
+      if (Number(bankEvent.amount) < feePerApp) {
+        return res.status(400).json({
+          error: `❌ Amount Mismatch: Bank received ₹${Number(bankEvent.amount).toFixed(2)}, which is less than the required ₹${feePerApp.toFixed(2)}.`,
+          requiresPayment: true,
+          isOneTimePayment: true,
+          amountDue: feePerApp,
+          paymentMode: 'one_time'
+        });
+      }
+
+      runSql('UPDATE bank_events SET used_by_user_id = ?, used_for = "application_onetime" WHERE id = ?', [req.session.userId, bankEvent.id]);
+
+      const appId = runSql(
+        `INSERT INTO applications 
+         (user_id, application_number, date_of_birth, app_password, photo_url, payment_status, payment_id, payment_screenshot_url, payment_amount, payment_method, paid_at) 
+         VALUES (?, ?, ?, ?, ?, 'paid', ?, ?, ?, 'UPI_ONETIME_PAYMENT', CURRENT_TIMESTAMP)`,
+        [req.session.userId, applicationNumber, dateOfBirth, appPassword, photoUrl, cleanUtr, screenshotUrl, feePerApp]
+      );
+
+      return res.json({
+        success: true,
+        message: `🎉 Application submitted & paid! (Fee: ₹${feePerApp.toFixed(2)}, UTR: ${cleanUtr}).`,
+        isOneTimePayment: true,
+        totalPaid: feePerApp,
+        utr: cleanUtr,
+        applicationId: appId
+      });
+    }
+
+    // =========================================================
+    // PLAN TYPE 2: 5-APPLICATION BATCH PAYMENT
+    // =========================================================
 
     const unpaidApps = queryAll(
       'SELECT id FROM applications WHERE user_id = ? AND payment_status = "unpaid" ORDER BY id ASC',

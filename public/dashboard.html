@@ -578,6 +578,7 @@
     let is5thApplication = false;
     let batchTotal = 250.00;
     let singleFee = 50.00;
+    let userPaymentMode = 'batch';
     let pendingFormData = null;
     let allUserApplications = [];
     let currentAppFilter = 'all';
@@ -814,60 +815,94 @@
           const b = await res.json();
           singleFee = b.feePerApp || 50.00;
           batchTotal = b.batchTotal || (singleFee * 5);
+          userPaymentMode = b.paymentMode || 'batch';
           const unpaidCount = b.unpaidCount || 0;
 
           const currentSlot = (unpaidCount % 5) + 1;
-          is5thApplication = (unpaidCount % 5) === 4;
-
-          document.getElementById('batchTotalDisplay').textContent = `₹${batchTotal.toFixed(2)}`;
-          document.getElementById('singleFeeNote').textContent = `(₹${singleFee.toFixed(2)} / application)`;
+          is5thApplication = (userPaymentMode === 'batch') && ((unpaidCount % 5) === 4);
 
           // Profile view fees
           document.getElementById('profSingleFee').textContent = `₹${singleFee.toFixed(2)}`;
           document.getElementById('profBatchFee').textContent = `₹${batchTotal.toFixed(2)}`;
-          document.getElementById('profBatchDue').textContent = is5thApplication ? 'Slot 5/5: Payment Due' : `Slot ${currentSlot}/5: Apps 1-4 Free`;
 
-          const segments = document.querySelectorAll('#progressSegments .segment');
-          segments.forEach((seg, idx) => {
-            if (idx < (unpaidCount % 5)) {
-              seg.style.background = 'var(--accent-orange)';
-              seg.style.borderColor = 'rgba(255,149,0,0.5)';
-            } else if (idx === (unpaidCount % 5)) {
-              seg.style.background = is5thApplication ? 'var(--accent-blue)' : 'rgba(255,255,255,0.85)';
-              seg.style.borderColor = 'var(--glass-border)';
+          if (userPaymentMode === 'one_time') {
+            document.getElementById('batchTotalDisplay').textContent = `₹${singleFee.toFixed(2)}`;
+            document.getElementById('singleFeeNote').textContent = `(One-Time Payment / App)`;
+            document.getElementById('profBatchDue').textContent = `Plan: One-Time (₹${singleFee.toFixed(2)}/app)`;
+
+            const segments = document.querySelectorAll('#progressSegments .segment');
+            segments.forEach(seg => {
+              seg.style.background = 'rgba(88,86,214,0.3)';
+              seg.style.borderColor = 'rgba(88,86,214,0.4)';
+            });
+
+            if (userWalletBalance >= singleFee) {
+              document.getElementById('batchBadge').className = 'badge badge-approved';
+              document.getElementById('batchBadge').style.background = 'rgba(52,199,89,0.18)';
+              document.getElementById('batchBadge').style.color = '#15803d';
+              document.getElementById('batchBadge').textContent = `💳 Wallet Active (₹${userWalletBalance.toFixed(2)})`;
+              document.getElementById('batchExplainer').innerHTML = `<strong style="color:#15803d;">Wallet Active!</strong> ₹${singleFee.toFixed(2)} is auto-deducted from your wallet for each application submitted.`;
+              document.getElementById('formTitle').innerHTML = `<span>⚡</span> Submit Application (Pay ₹${singleFee.toFixed(2)} from Wallet)`;
+              document.getElementById('submitBtn').style.background = 'linear-gradient(135deg,#34c759 0%,#248a3d 100%)';
+              document.getElementById('submitBtn').textContent = `🚀 Submit & Pay ₹${singleFee.toFixed(2)} from Wallet (Balance: ₹${userWalletBalance.toFixed(2)})`;
             } else {
-              seg.style.background = 'rgba(255,255,255,0.3)';
-              seg.style.borderColor = 'var(--glass-border)';
+              document.getElementById('batchBadge').className = 'badge';
+              document.getElementById('batchBadge').style.background = 'rgba(88,86,214,0.15)';
+              document.getElementById('batchBadge').style.color = '#5856d6';
+              document.getElementById('batchBadge').textContent = `⚡ One-Time: ₹${singleFee.toFixed(2)}/App`;
+              document.getElementById('batchExplainer').innerHTML = `<strong style="color:var(--text-main);">One-Time Payment Plan:</strong> Each application is ₹${singleFee.toFixed(2)}. Submitting will prompt instant UPI payment for this single application.`;
+              document.getElementById('formTitle').innerHTML = `<span>⚡</span> Submit Application (₹${singleFee.toFixed(2)})`;
+              document.getElementById('submitBtn').style.background = '';
+              document.getElementById('submitBtn').textContent = `💳 Proceed to Pay ₹${singleFee.toFixed(2)} & Submit`;
             }
-          });
-
-          if (userWalletBalance >= singleFee) {
-            document.getElementById('batchBadge').className = 'badge badge-approved';
-            document.getElementById('batchBadge').style.background = 'rgba(52,199,89,0.18)';
-            document.getElementById('batchBadge').style.color = '#15803d';
-            document.getElementById('batchBadge').textContent = `💳 Wallet Active (₹${userWalletBalance.toFixed(2)})`;
-            document.getElementById('batchExplainer').innerHTML = `<strong style="color:#15803d;">Prepaid Wallet Active!</strong> Applications are automatically paid from your wallet balance (₹${singleFee.toFixed(2)}/app) with zero delay.`;
-            document.getElementById('formTitle').innerHTML = `<span>⚡</span> Submit Application (Pay ₹${singleFee.toFixed(2)} from Wallet)`;
-            document.getElementById('submitBtn').style.background = 'linear-gradient(135deg,#34c759 0%,#248a3d 100%)';
-            document.getElementById('submitBtn').textContent = `🚀 Submit & Pay ₹${singleFee.toFixed(2)} from Wallet (Balance: ₹${userWalletBalance.toFixed(2)})`;
-          } else if (is5thApplication) {
-            document.getElementById('batchBadge').className = 'badge badge-approved';
-            document.getElementById('batchBadge').style.background = '';
-            document.getElementById('batchBadge').style.color = '';
-            document.getElementById('batchBadge').textContent = '⚠️ Slot 5 of 5 — Payment Due!';
-            document.getElementById('batchExplainer').innerHTML = `<strong style="color:var(--text-main);">This is your 5th application.</strong> Submitting this will prompt payment of ₹${batchTotal.toFixed(2)} covering all 5 applications.`;
-            document.getElementById('formTitle').innerHTML = `<span>⚡</span> Submit 5th Application & Pay Batch (₹${batchTotal.toFixed(2)})`;
-            document.getElementById('submitBtn').style.background = '';
-            document.getElementById('submitBtn').textContent = `💳 Proceed to Pay ₹${batchTotal.toFixed(2)} for all 5 Applications`;
           } else {
-            document.getElementById('batchBadge').className = 'badge';
-            document.getElementById('batchBadge').style.background = 'rgba(0,113,227,0.15)';
-            document.getElementById('batchBadge').style.color = 'var(--accent-blue)';
-            document.getElementById('batchBadge').textContent = `Slot ${currentSlot} of 5`;
-            document.getElementById('batchExplainer').textContent = `Applications 1 to 4 submit without payment. (${5 - currentSlot} more before batch payment).`;
-            document.getElementById('formTitle').innerHTML = `<span>📝</span> Submit Application #${currentSlot}`;
-            document.getElementById('submitBtn').style.background = '';
-            document.getElementById('submitBtn').textContent = `🚀 Submit Application #${currentSlot} (No Payment Required)`;
+            // 5-Batch Plan
+            document.getElementById('batchTotalDisplay').textContent = `₹${batchTotal.toFixed(2)}`;
+            document.getElementById('singleFeeNote').textContent = `(₹${singleFee.toFixed(2)} / application)`;
+            document.getElementById('profBatchDue').textContent = is5thApplication ? 'Slot 5/5: Payment Due' : `Slot ${currentSlot}/5: Apps 1-4 Free`;
+
+            const segments = document.querySelectorAll('#progressSegments .segment');
+            segments.forEach((seg, idx) => {
+              if (idx < (unpaidCount % 5)) {
+                seg.style.background = 'var(--accent-orange)';
+                seg.style.borderColor = 'rgba(255,149,0,0.5)';
+              } else if (idx === (unpaidCount % 5)) {
+                seg.style.background = is5thApplication ? 'var(--accent-blue)' : 'rgba(255,255,255,0.85)';
+                seg.style.borderColor = 'var(--glass-border)';
+              } else {
+                seg.style.background = 'rgba(255,255,255,0.3)';
+                seg.style.borderColor = 'var(--glass-border)';
+              }
+            });
+
+            if (userWalletBalance >= singleFee) {
+              document.getElementById('batchBadge').className = 'badge badge-approved';
+              document.getElementById('batchBadge').style.background = 'rgba(52,199,89,0.18)';
+              document.getElementById('batchBadge').style.color = '#15803d';
+              document.getElementById('batchBadge').textContent = `💳 Wallet Active (₹${userWalletBalance.toFixed(2)})`;
+              document.getElementById('batchExplainer').innerHTML = `<strong style="color:#15803d;">Prepaid Wallet Active!</strong> Applications are automatically paid from your wallet balance (₹${singleFee.toFixed(2)}/app) with zero delay.`;
+              document.getElementById('formTitle').innerHTML = `<span>⚡</span> Submit Application (Pay ₹${singleFee.toFixed(2)} from Wallet)`;
+              document.getElementById('submitBtn').style.background = 'linear-gradient(135deg,#34c759 0%,#248a3d 100%)';
+              document.getElementById('submitBtn').textContent = `🚀 Submit & Pay ₹${singleFee.toFixed(2)} from Wallet (Balance: ₹${userWalletBalance.toFixed(2)})`;
+            } else if (is5thApplication) {
+              document.getElementById('batchBadge').className = 'badge badge-approved';
+              document.getElementById('batchBadge').style.background = '';
+              document.getElementById('batchBadge').style.color = '';
+              document.getElementById('batchBadge').textContent = '⚠️ Slot 5 of 5 — Payment Due!';
+              document.getElementById('batchExplainer').innerHTML = `<strong style="color:var(--text-main);">This is your 5th application.</strong> Submitting this will prompt payment of ₹${batchTotal.toFixed(2)} covering all 5 applications.`;
+              document.getElementById('formTitle').innerHTML = `<span>⚡</span> Submit 5th Application & Pay Batch (₹${batchTotal.toFixed(2)})`;
+              document.getElementById('submitBtn').style.background = '';
+              document.getElementById('submitBtn').textContent = `💳 Proceed to Pay ₹${batchTotal.toFixed(2)} for all 5 Applications`;
+            } else {
+              document.getElementById('batchBadge').className = 'badge';
+              document.getElementById('batchBadge').style.background = 'rgba(0,113,227,0.15)';
+              document.getElementById('batchBadge').style.color = 'var(--accent-blue)';
+              document.getElementById('batchBadge').textContent = `Slot ${currentSlot} of 5`;
+              document.getElementById('batchExplainer').textContent = `Applications 1 to 4 submit without payment. (${5 - currentSlot} more before batch payment).`;
+              document.getElementById('formTitle').innerHTML = `<span>📝</span> Submit Application #${currentSlot}`;
+              document.getElementById('submitBtn').style.background = '';
+              document.getElementById('submitBtn').textContent = `🚀 Submit Application #${currentSlot} (No Payment Required)`;
+            }
           }
         }
       } catch (e) {
@@ -897,11 +932,18 @@
       // If user has enough wallet balance, proceed with wallet auto-deduct!
       const canPayWithWallet = userWalletBalance >= singleFee;
 
-      if (!canPayWithWallet && is5thApplication) {
-        submitBtn.disabled = false;
-        submitBtn.textContent = `💳 Proceed to Pay ₹${batchTotal.toFixed(2)} for all 5 Applications`;
-        openBatchPaymentModal(appNumber, batchTotal);
-        return;
+      if (!canPayWithWallet) {
+        if (userPaymentMode === 'one_time') {
+          submitBtn.disabled = false;
+          submitBtn.textContent = `💳 Proceed to Pay ₹${singleFee.toFixed(2)} & Submit`;
+          openBatchPaymentModal(appNumber, singleFee, true);
+          return;
+        } else if (is5thApplication) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = `💳 Proceed to Pay ₹${batchTotal.toFixed(2)} for all 5 Applications`;
+          openBatchPaymentModal(appNumber, batchTotal, false);
+          return;
+        }
       }
 
       submitBtn.disabled = true;
@@ -940,13 +982,24 @@
       }
     });
 
-    function openBatchPaymentModal(appNumber, total) {
+    function openBatchPaymentModal(appNumber, total, isOneTime = false) {
       document.getElementById('modalFeeAmount').textContent = `₹${total.toFixed(2)}`;
       document.getElementById('manualUtrInput').value = '';
       document.getElementById('paymentScreenshotInput').value = '';
+      
+      const titleEl = document.querySelector('#youpiModalOverlay h3');
+      if (titleEl) {
+        titleEl.textContent = isOneTime ? `⚡ Pay ₹${total.toFixed(2)} for Application #${appNumber}` : `💳 Settle 5-Application Batch (₹${total.toFixed(2)})`;
+      }
+      const confirmBtn = document.getElementById('confirmPaymentBtn');
+      if (confirmBtn) {
+        confirmBtn.textContent = isOneTime ? `✅ Submit & Settle Application (₹${total.toFixed(2)})` : `✅ Submit 5th Application & Settle All 5`;
+      }
+
       document.getElementById('youpiModalOverlay').classList.add('active');
 
-      const upiUri = `upi://pay?pa=${encodeURIComponent(MERCHANT_VPA)}&pn=${encodeURIComponent(MERCHANT_NAME)}&am=${total.toFixed(2)}&cu=INR&tn=Batch5-Apps`;
+      const upiNote = isOneTime ? `App-${appNumber}` : 'Batch5-Apps';
+      const upiUri = `upi://pay?pa=${encodeURIComponent(MERCHANT_VPA)}&pn=${encodeURIComponent(MERCHANT_NAME)}&am=${total.toFixed(2)}&cu=INR&tn=${encodeURIComponent(upiNote)}`;
 
       const qrContainer = document.getElementById('qrcode');
       qrContainer.innerHTML = '';

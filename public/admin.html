@@ -280,6 +280,16 @@
               5-Application batch total: <strong id="createBatchPreview" style="color:var(--accent-blue);">₹250.00</strong>
             </small>
           </div>
+          <div class="form-group" style="background:rgba(88,86,214,0.06);padding:0.75rem;border-radius:10px;border:1px solid rgba(88,86,214,0.2);">
+            <label style="color:#5856d6;font-weight:700;">Payment Settlement Plan</label>
+            <select name="paymentMode" id="createPaymentMode" style="width:100%;padding:0.65rem 0.85rem;border-radius:8px;border:1px solid var(--glass-border);font-weight:600;margin-top:4px;">
+              <option value="batch" selected>📦 5-Application Batch (Settle every 5 apps)</option>
+              <option value="one_time">⚡ One-Time Payment (Pay each app individually)</option>
+            </select>
+            <small style="color:var(--text-secondary);font-size:0.75rem;margin-top:4px;display:block;">
+              Choose whether user pays per 5 applications or on each individual submission.
+            </small>
+          </div>
           <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; margin-top: 0.5rem;">Create User Account</button>
         </form>
       </div>
@@ -312,6 +322,13 @@
             <small style="color:var(--text-secondary);font-size:0.75rem;margin-top:4px;display:block;">
               5-Application batch fee: <strong id="editBatchPreview" style="color:var(--accent-blue);">₹250.00</strong>
             </small>
+          </div>
+          <div class="form-group" style="background:rgba(88,86,214,0.06);padding:0.75rem;border-radius:10px;border:1px solid rgba(88,86,214,0.2);">
+            <label style="color:#5856d6;font-weight:700;">Payment Settlement Plan</label>
+            <select name="paymentMode" id="editPaymentMode" style="width:100%;padding:0.65rem 0.85rem;border-radius:8px;border:1px solid var(--glass-border);font-weight:600;margin-top:4px;">
+              <option value="batch">📦 5-Application Batch (Settle every 5 apps)</option>
+              <option value="one_time">⚡ One-Time Payment (Pay each app individually)</option>
+            </select>
           </div>
           <div class="form-group">
             <label>Reset Password (Leave blank to keep current)</label>
@@ -621,8 +638,13 @@
             </div>
           </td>
           <td>
-            <span style="font-weight:700;color:var(--accent-blue);">₹${((u.application_fee || 50) * 5).toFixed(2)}</span>
-            <button class="view-btn" style="padding:0.15rem 0.5rem;font-size:0.72rem;margin-left:4px;" onclick="openEditUserModal(${u.id})">✏️ Edit</button>
+            <div style="display:flex;align-items:center;gap:4px;">
+              ${u.payment_mode === 'one_time' 
+                ? `<span class="badge" style="background:rgba(88,86,214,0.15);color:#5856d6;font-weight:700;padding:2px 8px;border-radius:6px;">⚡ One-Time (₹${(u.application_fee || 50).toFixed(2)})</span>`
+                : `<span class="badge" style="background:rgba(0,113,227,0.12);color:var(--accent-blue);font-weight:700;padding:2px 8px;border-radius:6px;">📦 5-Batch (₹${((u.application_fee || 50) * 5).toFixed(2)})</span>`
+              }
+              <button class="view-btn" style="padding:0.15rem 0.5rem;font-size:0.72rem;margin-left:4px;" onclick="openEditUserModal(${u.id})">✏️ Edit</button>
+            </div>
           </td>
           <td><span style="font-weight:700;">${u.total_applications}</span></td>
           <td><span style="font-weight:700;color:var(--accent-green);">₹${(u.total_paid || 0).toFixed(2)}</span></td>
@@ -1084,7 +1106,8 @@
           name: form.get('name'),
           email: form.get('email'),
           password: form.get('password'),
-          applicationFee: form.get('applicationFee')
+          applicationFee: form.get('applicationFee'),
+          paymentMode: form.get('paymentMode') || 'batch'
         })
       });
       const data = await res.json();
@@ -1111,6 +1134,8 @@
       const fee = user.application_fee || 50;
       document.getElementById('editUserFee').value = fee.toFixed(2);
       updateEditBatchPreview(fee);
+      const modeSelect = document.getElementById('editPaymentMode');
+      if (modeSelect) modeSelect.value = user.payment_mode || 'batch';
       document.getElementById('editUserNewPassword').value = '';
 
       document.getElementById('editUserError').classList.remove('show');
@@ -1130,7 +1155,8 @@
       const payload = {
         name: form.get('name'),
         email: form.get('email'),
-        applicationFee: form.get('applicationFee')
+        applicationFee: form.get('applicationFee'),
+        paymentMode: form.get('paymentMode') || 'batch'
       };
       const newPassword = form.get('newPassword');
       if (newPassword && newPassword.trim()) {

@@ -20,8 +20,9 @@ function requireUser(req, res, next) {
  * 1. Get YouPI payment parameters & batch status for 5-application cycle
  */
 router.get('/config', requireUser, (req, res) => {
-  const user = queryOne('SELECT id, name, application_fee FROM users WHERE id = ?', [req.session.userId]);
+  const user = queryOne('SELECT id, name, application_fee, payment_mode FROM users WHERE id = ?', [req.session.userId]);
   const feePerApp = user && user.application_fee ? user.application_fee : 50.00;
+  const paymentMode = user && user.payment_mode ? user.payment_mode : 'batch';
 
   const unpaidCount = queryOne(
     'SELECT COUNT(*) as c FROM applications WHERE user_id = ? AND payment_status = "unpaid"',
@@ -36,6 +37,8 @@ router.get('/config', requireUser, (req, res) => {
     merchantName: YOUPI_CONFIG.merchantName,
     feePerApp: feePerApp,
     batchFee: batchFee,
+    paymentMode: paymentMode,
+    isOneTimePayment: paymentMode === 'one_time',
     unpaidCount: unpaidCount,
     slotNumber: (unpaidCount % 5) + 1, // 1 to 5
     is5thApp: unpaidCount === 4,

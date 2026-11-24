@@ -7,7 +7,7 @@ export async function onRequestGet({ request, params, env }) {
   }
 
   const userId = params.userId;
-  const user = await env.DB.prepare('SELECT id, name, email, application_fee, created_at FROM users WHERE id = ?').bind(userId).first();
+  const user = await env.DB.prepare('SELECT id, name, email, application_fee, wallet_balance, payment_mode, created_at FROM users WHERE id = ?').bind(userId).first();
   if (!user) {
     return jsonResponse({ error: 'User not found' }, 404);
   }
@@ -39,19 +39,20 @@ export async function onRequestPut({ request, params, env }) {
   }
 
   const userId = params.userId;
-  const { name, email, applicationFee, newPassword } = await request.json();
+  const { name, email, applicationFee, paymentMode, newPassword } = await request.json();
 
   const fee = parseFloat(applicationFee) > 0 ? parseFloat(applicationFee) : 50.00;
+  const mode = paymentMode === 'one_time' ? 'one_time' : 'batch';
 
   if (newPassword && newPassword.trim()) {
     await env.DB.prepare(
-      'UPDATE users SET name = ?, email = ?, application_fee = ?, password = ? WHERE id = ?'
-    ).bind(name, email, fee, newPassword.trim(), userId).run();
+      'UPDATE users SET name = ?, email = ?, application_fee = ?, payment_mode = ?, password = ? WHERE id = ?'
+    ).bind(name, email, fee, mode, newPassword.trim(), userId).run();
   } else {
     await env.DB.prepare(
-      'UPDATE users SET name = ?, email = ?, application_fee = ? WHERE id = ?'
-    ).bind(name, email, fee, userId).run();
+      'UPDATE users SET name = ?, email = ?, application_fee = ?, payment_mode = ? WHERE id = ?'
+    ).bind(name, email, fee, mode, userId).run();
   }
 
-  return jsonResponse({ success: true, message: `User updated successfully (Fee: ₹${fee.toFixed(2)})` });
+  return jsonResponse({ success: true, message: `User updated successfully (Plan: ${mode === 'one_time' ? 'One-Time' : '5-Batch'}, Fee: ₹${fee.toFixed(2)})` });
 }

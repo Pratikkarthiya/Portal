@@ -82,9 +82,10 @@ export async function onRequestPost({ request, env }) {
       }
     }
 
-    const user = await env.DB.prepare('SELECT application_fee, wallet_balance FROM users WHERE id = ?').bind(session.user_id).first();
+    const user = await env.DB.prepare('SELECT application_fee, wallet_balance, payment_mode FROM users WHERE id = ?').bind(session.user_id).first();
     const feePerApp = user && user.application_fee ? user.application_fee : 50.00;
     const walletBalance = user && user.wallet_balance ? Number(user.wallet_balance) : 0.00;
+    const paymentMode = user && user.payment_mode ? user.payment_mode : 'batch';
 
     // PREPAID WALLET CHECK: If user has enough balance, auto-pay instantly from wallet
     if (walletBalance >= feePerApp) {
@@ -116,6 +117,80 @@ export async function onRequestPost({ request, env }) {
         applicationId: resW.meta.last_row_id
       });
     }
+
+    // =========================================================
+    // PLAN TYPE 1: ONE-TIME PAYMENT (PAY EACH TIME / PER APPLICATION)
+    // =========================================================
+    if (paymentMode === 'one_time') {
+      if (!utrNumber || utrNumber.trim().length < 6) {
+        return jsonResponse({
+          error: `Payment required: ₹${feePerApp.toFixed(2)} for this application. Please pay via UPI or enter your Bank UTR.`,
+          requiresPayment: true,
+          isOneTimePayment: true,
+          amountDue: feePerApp,
+          paymentMode: 'one_time'
+        }, 400);
+      }
+
+      const cleanUtr = utrNumber.trim();
+      const bankEvent = await env.DB.prepare(
+        'SELECT id, amount, used_by_user_id FROM bank_events WHERE utr = ?'
+      ).bind(cleanUtr).first();
+
+      if (!bankEvent) {
+        return jsonResponse({
+          error: `❌ Payment Failed: UTR "${cleanUtr}" is invalid or not received by bank. Please transfer ₹${feePerApp.toFixed(2)} to UPI ID pratikkarthiya6@oksbi and enter the genuine 12-digit UTR.`,
+          requiresPayment: true,
+          isOneTimePayment: true,
+          amountDue: feePerApp,
+          paymentMode: 'one_time'
+        }, 400);
+      }
+
+      if (bankEvent.used_by_user_id) {
+        return jsonResponse({
+          error: `❌ Payment Rejected: UTR "${cleanUtr}" has already been used by another transaction.`,
+          requiresPayment: true,
+          isOneTimePayment: true,
+          amountDue: feePerApp,
+          paymentMode: 'one_time'
+        }, 400);
+      }
+
+      if (Number(bankEvent.amount) < feePerApp) {
+        return jsonResponse({
+          error: `❌ Amount Mismatch: Bank received ₹${Number(bankEvent.amount).toFixed(2)}, which is less than the required ₹${feePerApp.toFixed(2)}.`,
+          requiresPayment: true,
+          isOneTimePayment: true,
+          amountDue: feePerApp,
+          paymentMode: 'one_time'
+        }, 400);
+      }
+
+      // Mark bank event as used
+      await env.DB.prepare(
+        'UPDATE bank_events SET used_by_user_id = ?, used_for = "application_onetime" WHERE id = ?'
+      ).bind(session.user_id, bankEvent.id).run();
+
+      const res1 = await env.DB.prepare(
+        `INSERT INTO applications 
+         (user_id, application_number, date_of_birth, app_password, photo_url, payment_status, payment_id, payment_screenshot_url, payment_amount, payment_method, paid_at) 
+         VALUES (?, ?, ?, ?, ?, 'paid', ?, ?, ?, 'UPI_ONETIME_PAYMENT', datetime("now"))`
+      ).bind(session.user_id, applicationNumber, dateOfBirth, appPassword, photoUrl, cleanUtr, screenshotUrl, feePerApp).run();
+
+      return jsonResponse({
+        success: true,
+        message: `🎉 Application submitted & paid! (Fee: ₹${feePerApp.toFixed(2)}, UTR: ${cleanUtr}).`,
+        isOneTimePayment: true,
+        totalPaid: feePerApp,
+        utr: cleanUtr,
+        applicationId: res1.meta.last_row_id
+      });
+    }
+
+    // =========================================================
+    // PLAN TYPE 2: 5-APPLICATION BATCH PAYMENT
+    // =========================================================
 
     const { results: unpaidApps } = await env.DB.prepare(
       'SELECT id FROM applications WHERE user_id = ? AND payment_status = "unpaid" ORDER BY id ASC'

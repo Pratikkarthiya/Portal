@@ -13,7 +13,7 @@ function requireAdmin(req, res, next) {
 
 // Admin creates new user account with customized Application Fee
 router.post('/users', requireAdmin, (req, res) => {
-  const { name, email, password, applicationFee } = req.body;
+  const { name, email, password, applicationFee, paymentMode } = req.body;
   if (!name || !email || !password) {
     return res.status(400).json({ error: 'Name, email, and password are required' });
   }
@@ -24,21 +24,23 @@ router.post('/users', requireAdmin, (req, res) => {
   }
 
   const fee = parseFloat(applicationFee) > 0 ? parseFloat(applicationFee) : 50.00;
+  const mode = paymentMode === 'one_time' ? 'one_time' : 'batch';
   const hash = bcrypt.hashSync(password, 10);
   const newUserId = runSql(
-    'INSERT INTO users (name, email, password, application_fee) VALUES (?, ?, ?, ?)',
-    [name, email, hash, fee]
+    'INSERT INTO users (name, email, password, application_fee, payment_mode) VALUES (?, ?, ?, ?, ?)',
+    [name, email, hash, fee, mode]
   );
 
   res.json({
     success: true,
-    message: `User account created successfully with application fee of ₹${fee.toFixed(2)}`,
+    message: `User account created successfully (${mode === 'one_time' ? 'One-Time' : '5-Batch'}, fee ₹${fee.toFixed(2)})`,
     userId: newUserId,
-    applicationFee: fee
+    applicationFee: fee,
+    paymentMode: mode
   });
 });
 
-// Admin updates user details (Name, Email, Application Fee, optional Password)
+// Admin updates user details (Name, Email, Application Fee, Payment Mode, optional Password)
 router.put('/users/:userId', requireAdmin, (req, res) => {
   const userId = Number(req.params.userId);
   const user = queryOne('SELECT * FROM users WHERE id = ?', [userId]);
@@ -46,7 +48,7 @@ router.put('/users/:userId', requireAdmin, (req, res) => {
     return res.status(404).json({ error: 'User not found' });
   }
 
-  const { name, email, applicationFee, newPassword } = req.body;
+  const { name, email, applicationFee, paymentMode, newPassword } = req.body;
   if (!name || !email) {
     return res.status(400).json({ error: 'Name and email are required' });
   }
@@ -60,30 +62,31 @@ router.put('/users/:userId', requireAdmin, (req, res) => {
   }
 
   const fee = parseFloat(applicationFee) > 0 ? parseFloat(applicationFee) : user.application_fee;
+  const mode = paymentMode === 'one_time' ? 'one_time' : 'batch';
 
   if (newPassword && newPassword.trim().length >= 6) {
     const hash = bcrypt.hashSync(newPassword.trim(), 10);
     runSql(
-      'UPDATE users SET name = ?, email = ?, application_fee = ?, password = ? WHERE id = ?',
-      [name, email, fee, hash, userId]
+      'UPDATE users SET name = ?, email = ?, application_fee = ?, payment_mode = ?, password = ? WHERE id = ?',
+      [name, email, fee, mode, hash, userId]
     );
   } else {
     runSql(
-      'UPDATE users SET name = ?, email = ?, application_fee = ? WHERE id = ?',
-      [name, email, fee, userId]
+      'UPDATE users SET name = ?, email = ?, application_fee = ?, payment_mode = ? WHERE id = ?',
+      [name, email, fee, mode, userId]
     );
   }
 
   res.json({
     success: true,
-    message: `User profile & application fee updated to ₹${fee.toFixed(2)} successfully!`
+    message: `User updated successfully (${mode === 'one_time' ? 'One-Time Payment' : '5-Batch Payment'}, fee ₹${fee.toFixed(2)})`
   });
 });
 
 // Get all users with application counts & payment stats
 router.get('/users', requireAdmin, (req, res) => {
   const users = queryAll(`
-    SELECT u.id, u.name, u.email, u.application_fee, u.wallet_balance, u.created_at,
+    SELECT u.id, u.name, u.email, u.application_fee, u.wallet_balance, u.payment_mode, u.created_at,
            COUNT(a.id) as total_applications,
            SUM(CASE WHEN a.status = 'pending' THEN 1 ELSE 0 END) as pending,
            SUM(CASE WHEN a.status = 'approved' THEN 1 ELSE 0 END) as approved,

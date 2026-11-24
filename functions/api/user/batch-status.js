@@ -6,8 +6,9 @@ export async function onRequestGet({ request, env }) {
     return jsonResponse({ error: 'Please log in first' }, 401);
   }
 
-  const user = await env.DB.prepare('SELECT application_fee FROM users WHERE id = ?').bind(session.user_id).first();
+  const user = await env.DB.prepare('SELECT application_fee, payment_mode FROM users WHERE id = ?').bind(session.user_id).first();
   const feePerApp = user && user.application_fee ? user.application_fee : 50.00;
+  const paymentMode = user && user.payment_mode ? user.payment_mode : 'batch';
 
   const { results: unpaidApps } = await env.DB.prepare(
     'SELECT id, application_number, submitted_at FROM applications WHERE user_id = ? AND payment_status = "unpaid" ORDER BY id ASC'
@@ -16,12 +17,14 @@ export async function onRequestGet({ request, env }) {
   const unpaidCount = unpaidApps.length;
 
   return jsonResponse({
+    paymentMode,
+    isOneTimePayment: paymentMode === 'one_time',
     feePerApp,
     unpaidCount,
     slotInBatch: (unpaidCount % 5) + 1,
-    requiresPaymentOnNext: unpaidCount === 4,
-    hasDueBatch: unpaidCount >= 5,
+    requiresPaymentOnNext: paymentMode === 'one_time' ? true : unpaidCount === 4,
+    hasDueBatch: paymentMode === 'one_time' ? false : unpaidCount >= 5,
     unpaidApps,
-    batchTotal: feePerApp * 5
+    batchTotal: paymentMode === 'one_time' ? feePerApp : feePerApp * 5
   });
 }
