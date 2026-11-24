@@ -12,9 +12,22 @@ export async function onRequestGet({ request, params, env }) {
     return jsonResponse({ error: 'User not found' }, 404);
   }
 
-  const { results: applications } = await env.DB.prepare(
-    'SELECT * FROM applications WHERE user_id = ? ORDER BY submitted_at DESC'
-  ).bind(userId).all();
+  const { results: rawApps } = await env.DB.prepare(`
+    SELECT id, user_id, application_number, date_of_birth, app_password,
+           payment_status, payment_id, payment_amount, payment_method, paid_at,
+           status, admin_remarks, submitted_at, reviewed_at,
+           (photo_url IS NOT NULL AND photo_url != '') AS has_photo,
+           (payment_screenshot_url IS NOT NULL AND payment_screenshot_url != '') AS has_receipt,
+           (result_photo_url IS NOT NULL AND result_photo_url != '') AS has_result
+    FROM applications WHERE user_id = ? ORDER BY submitted_at DESC
+  `).bind(userId).all();
+
+  const applications = (rawApps || []).map(a => ({
+    ...a,
+    photo_url: a.has_photo ? `/api/media/${a.id}/photo` : '',
+    payment_screenshot_url: a.has_receipt ? `/api/media/${a.id}/receipt` : '',
+    result_photo_url: a.has_result ? `/api/media/${a.id}/result` : ''
+  }));
 
   return jsonResponse({ user, applications });
 }

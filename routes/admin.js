@@ -98,28 +98,54 @@ router.get('/users', requireAdmin, (req, res) => {
   res.json({ users });
 });
 
-// Get all applications across all users with user name and email
+// Get all applications across all users with user name and email (lightweight URLs)
 router.get('/applications', requireAdmin, (req, res) => {
-  const applications = queryAll(`
-    SELECT a.*, u.name as user_name, u.email as user_email, u.application_fee
+  const rawApps = queryAll(`
+    SELECT a.id, a.user_id, a.application_number, a.date_of_birth, a.app_password,
+           a.payment_status, a.payment_id, a.payment_amount, a.payment_method, a.paid_at,
+           a.status, a.admin_remarks, a.submitted_at, a.reviewed_at,
+           (a.photo_url IS NOT NULL AND a.photo_url != '') AS has_photo,
+           (a.payment_screenshot_url IS NOT NULL AND a.payment_screenshot_url != '') AS has_receipt,
+           (a.result_photo_url IS NOT NULL AND a.result_photo_url != '') AS has_result,
+           u.name as user_name, u.email as user_email, u.application_fee
     FROM applications a
     JOIN users u ON a.user_id = u.id
     ORDER BY a.submitted_at DESC
   `);
+
+  const applications = (rawApps || []).map(a => ({
+    ...a,
+    photo_url: a.has_photo ? `/api/media/${a.id}/photo` : '',
+    payment_screenshot_url: a.has_receipt ? `/api/media/${a.id}/receipt` : '',
+    result_photo_url: a.has_result ? `/api/media/${a.id}/result` : ''
+  }));
+
   res.json({ applications });
 });
 
-// Get specific user's applications & profile details
+// Get specific user's applications & profile details (lightweight URLs)
 router.get('/users/:userId/applications', requireAdmin, (req, res) => {
   const user = queryOne('SELECT id, name, email, application_fee, created_at FROM users WHERE id = ?', [Number(req.params.userId)]);
   if (!user) {
     return res.status(404).json({ error: 'User not found' });
   }
 
-  const applications = queryAll(
-    'SELECT * FROM applications WHERE user_id = ? ORDER BY submitted_at DESC',
-    [Number(req.params.userId)]
-  );
+  const rawApps = queryAll(`
+    SELECT id, user_id, application_number, date_of_birth, app_password,
+           payment_status, payment_id, payment_amount, payment_method, paid_at,
+           status, admin_remarks, submitted_at, reviewed_at,
+           (photo_url IS NOT NULL AND photo_url != '') AS has_photo,
+           (payment_screenshot_url IS NOT NULL AND payment_screenshot_url != '') AS has_receipt,
+           (result_photo_url IS NOT NULL AND result_photo_url != '') AS has_result
+    FROM applications WHERE user_id = ? ORDER BY submitted_at DESC
+  `, [Number(req.params.userId)]);
+
+  const applications = (rawApps || []).map(a => ({
+    ...a,
+    photo_url: a.has_photo ? `/api/media/${a.id}/photo` : '',
+    payment_screenshot_url: a.has_receipt ? `/api/media/${a.id}/receipt` : '',
+    result_photo_url: a.has_result ? `/api/media/${a.id}/result` : ''
+  }));
 
   res.json({ user, applications });
 });

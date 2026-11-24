@@ -29,6 +29,36 @@ app.use('/api/user', userRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/youpi', youpiRoutes);
 
+// High-performance media serving endpoint (serves binary image with HTTP cache headers)
+const { queryOne } = require('./db');
+app.get('/api/media/:appId/:type', (req, res) => {
+  const { appId, type } = req.params;
+  let col = 'photo_url';
+  if (type === 'receipt') col = 'payment_screenshot_url';
+  else if (type === 'result') col = 'result_photo_url';
+  else if (type !== 'photo') return res.status(400).send('Invalid media type');
+
+  const app = queryOne(`SELECT ${col} AS media_data FROM applications WHERE id = ?`, [Number(appId)]);
+  if (!app || !app.media_data) return res.status(404).send('Not found');
+
+  const dataStr = (app.media_data || '').trim();
+  if (dataStr.startsWith('http://') || dataStr.startsWith('https://') || dataStr.startsWith('/')) {
+    return res.redirect(dataStr);
+  }
+  if (dataStr.startsWith('data:')) {
+    const comma = dataStr.indexOf(',');
+    const meta = dataStr.substring(0, comma);
+    const base64 = dataStr.substring(comma + 1);
+    const mimeMatch = meta.match(/data:([^;]+)/);
+    const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+    const buffer = Buffer.from(base64, 'base64');
+    res.setHeader('Content-Type', mime);
+    res.setHeader('Cache-Control', 'public, max-age=604800, immutable');
+    return res.send(buffer);
+  }
+  res.status(404).send('Not found');
+});
+
 // Page routes
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));

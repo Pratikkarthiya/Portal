@@ -176,13 +176,25 @@ router.post('/applications', requireUser, (req, res) => {
   });
 });
 
-// Get user's applications
+// Get user's applications (lightweight URLs)
 router.get('/applications', requireUser, (req, res) => {
-  const apps = queryAll(
-    `SELECT id, application_number, date_of_birth, photo_url, result_photo_url, payment_status, payment_id, payment_screenshot_url, payment_amount, payment_method, paid_at, status, admin_remarks, submitted_at, reviewed_at 
+  const rawApps = queryAll(
+    `SELECT id, application_number, date_of_birth, app_password,
+            payment_status, payment_id, payment_amount, payment_method, paid_at,
+            status, admin_remarks, submitted_at, reviewed_at,
+            (photo_url IS NOT NULL AND photo_url != '') AS has_photo,
+            (payment_screenshot_url IS NOT NULL AND payment_screenshot_url != '') AS has_receipt,
+            (result_photo_url IS NOT NULL AND result_photo_url != '') AS has_result
      FROM applications WHERE user_id = ? ORDER BY submitted_at DESC`,
     [req.session.userId]
   );
+
+  const apps = (rawApps || []).map(a => ({
+    ...a,
+    photo_url: a.has_photo ? `/api/media/${a.id}/photo` : '',
+    payment_screenshot_url: a.has_receipt ? `/api/media/${a.id}/receipt` : '',
+    result_photo_url: a.has_result ? `/api/media/${a.id}/result` : ''
+  }));
 
   res.json({ applications: apps });
 });

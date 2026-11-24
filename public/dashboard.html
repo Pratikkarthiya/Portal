@@ -413,8 +413,8 @@
       }
     }
 
-    // Auto-compress large photos up to 10MB down to optimal portal size
-    function compressImage(file, maxDimension = 900, quality = 0.75) {
+    // Auto-compress large photos up to 10MB down to optimal lightweight web size
+    function compressImage(file, maxDimension = 650, quality = 0.7) {
       return new Promise((resolve) => {
         if (!file || !file.type.startsWith('image/')) {
           return resolve(file);
@@ -630,7 +630,7 @@
           return;
         }
         confirmBtn.textContent = 'Optimizing Receipt & Submitting...';
-        const optReceipt = await compressImage(screenshotFile, 1200, 0.85);
+        const optReceipt = await compressImage(screenshotFile, 850, 0.72);
         pendingFormData.set('paymentScreenshot', optReceipt, screenshotFile.name);
       }
 
