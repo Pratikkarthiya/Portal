@@ -50,6 +50,51 @@ function requireUser(req, res, next) {
   next();
 }
 
+function escapeTgHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+async function sendTelegramAlertNode(messageHtml) {
+  try {
+    const rows = queryAll("SELECT key, value FROM system_settings WHERE key IN ('telegram_bot_token', 'telegram_chat_id', 'telegram_alerts_enabled')");
+    const map = {};
+    (rows || []).forEach(r => { map[r.key] = r.value; });
+    if (map.telegram_alerts_enabled === '0') return;
+    const token = map.telegram_bot_token;
+    const chatId = map.telegram_chat_id;
+    if (!token || !chatId) return;
+
+    let resp = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: messageHtml,
+        parse_mode: 'HTML',
+        disable_web_page_preview: true
+      })
+    });
+    if (!resp.ok) {
+      const errJson = await resp.json().catch(() => ({}));
+      if (errJson?.description && errJson.description.toLowerCase().includes('entities')) {
+        const plainText = messageHtml.replace(/<[^>]+>/g, '');
+        await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: chatId,
+            text: plainText,
+            disable_web_page_preview: true
+          })
+        });
+      }
+    }
+  } catch (err) {
+    console.error('Telegram notification error:', err);
+  }
+}
+
 /**
  * 1. Get user's current batch status (how many pending unpaid applications in current 5-slot batch)
  */
@@ -97,10 +142,12 @@ router.post('/applications', requireUser, (req, res) => {
       return res.status(400).json({ error: 'An applicant photo upload is required' });
     }
 
-    const user = queryOne('SELECT application_fee, wallet_balance, payment_mode FROM users WHERE id = ?', [req.session.userId]);
+    const user = queryOne('SELECT id, name, email, application_fee, wallet_balance, payment_mode FROM users WHERE id = ?', [req.session.userId]);
     const feePerApp = user && user.application_fee ? user.application_fee : 50.00;
     const walletBalance = user && user.wallet_balance ? Number(user.wallet_balance) : 0.00;
     const paymentMode = user && user.payment_mode ? user.payment_mode : 'batch';
+    const candidateLabel = user ? `${escapeTgHtml(user.name)} (${escapeTgHtml(user.email)})` : `User #${req.session.userId}`;
+    const timeNow = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
     const photoUrl = '/uploads/' + req.files['photo'][0].filename;
 
     let screenshotUrl = '';
@@ -125,6 +172,8 @@ router.post('/applications', requireUser, (req, res) => {
          VALUES (?, ?, ?, ?, ?, 'paid', 'WALLET-PAID', '', ?, 'WALLET_BALANCE', CURRENT_TIMESTAMP)`,
         [req.session.userId, applicationNumber, dateOfBirth, appPassword, photoUrl, feePerApp]
       );
+
+      sendTelegramAlertNode(`🔔 <b>KP CYBER — APPLICATION SUBMITTED!</b>\n━━━━━━━━━━━━━━━━━━\n👤 <b>Candidate:</b> ${candidateLabel}\n📝 <b>App Number:</b> <code>${escapeTgHtml(applicationNumber)}</code>\n🎂 <b>DOB:</b> ${escapeTgHtml(dateOfBirth)}\n🔑 <b>Password:</b> <code>${escapeTgHtml(appPassword)}</code>\n💳 <b>Fee:</b> ₹${feePerApp.toFixed(2)} (⚡ Paid from Wallet)\n🏦 <b>Wallet Balance:</b> ₹${newBalance.toFixed(2)}\n⏰ <b>Time:</b> ${timeNow}\n🔗 <a href="https://kpcyber.in/admin">Open Admin Review</a>`).catch(() => {});
 
       return res.json({
         success: true,
@@ -191,6 +240,8 @@ router.post('/applications', requireUser, (req, res) => {
         [req.session.userId, applicationNumber, dateOfBirth, appPassword, photoUrl, cleanUtr, screenshotUrl, feePerApp]
       );
 
+      sendTelegramAlertNode(`🔔 <b>KP CYBER — ONE-TIME APPLICATION PAID!</b>\n━━━━━━━━━━━━━━━━━━\n👤 <b>Candidate:</b> ${candidateLabel}\n📝 <b>App Number:</b> <code>${escapeTgHtml(applicationNumber)}</code>\n🎂 <b>DOB:</b> ${escapeTgHtml(dateOfBirth)}\n🔑 <b>Password:</b> <code>${escapeTgHtml(appPassword)}</code>\n💵 <b>Fee Paid:</b> ₹${feePerApp.toFixed(2)}\n🧾 <b>Verified UTR:</b> <code>${escapeTgHtml(cleanUtr)}</code>\n⏰ <b>Time:</b> ${timeNow}\n🔗 <a href="https://kpcyber.in/admin">Open Admin Review</a>`).catch(() => {});
+
       return res.json({
         success: true,
         message: `🎉 Application submitted & paid! (Fee: ₹${feePerApp.toFixed(2)}, UTR: ${cleanUtr}).`,
@@ -244,6 +295,8 @@ router.post('/applications', requireUser, (req, res) => {
         );
       }
 
+      sendTelegramAlertNode(`🎉 <b>KP CYBER — BATCH OF 5 PAID & SETTLED!</b>\n━━━━━━━━━━━━━━━━━━\n👤 <b>Candidate:</b> ${candidateLabel}\n📝 <b>Final App (5/5):</b> <code>${escapeTgHtml(applicationNumber)}</code>\n💰 <b>Total Batch Paid:</b> ₹${batchAmount.toFixed(2)}\n🧾 <b>Verified UTR:</b> <code>${escapeTgHtml(cleanUtr)}</code>\n⏰ <b>Time:</b> ${timeNow}\n🔗 <a href="https://kpcyber.in/admin">Open Admin Review</a>`).catch(() => {});
+
       return res.json({
         success: true,
         message: `🎉 Batch payment verified! All 5 applications (Total ₹${batchAmount.toFixed(2)}) marked paid with UTR: ${cleanUtr}.`,
@@ -264,6 +317,8 @@ router.post('/applications', requireUser, (req, res) => {
     );
 
     const slotNumber = currentUnpaidCount + 1;
+
+    sendTelegramAlertNode(`📝 <b>KP CYBER — APPLICATION SUBMITTED (Slot ${slotNumber}/5)</b>\n━━━━━━━━━━━━━━━━━━\n👤 <b>Candidate:</b> ${candidateLabel}\n📝 <b>App Number:</b> <code>${escapeTgHtml(applicationNumber)}</code>\n🎂 <b>DOB:</b> ${escapeTgHtml(dateOfBirth)}\n🔑 <b>Password:</b> <code>${escapeTgHtml(appPassword)}</code>\n📦 <b>Batch Progress:</b> ${slotNumber} of 5 submitted\n⏰ <b>Time:</b> ${timeNow}\n🔗 <a href="https://kpcyber.in/admin">Open Admin Review</a>`).catch(() => {});
     res.json({
       success: true,
       message: `Application #${slotNumber} submitted successfully! No payment needed now (payment required after every 5 applications).`,
@@ -409,6 +464,11 @@ function handleWalletTopup(req, res) {
      VALUES (?, 'credit', ?, ?, ?, 'Prepaid Wallet Top-up (UPI)', ?, 'approved')`,
     [req.session.userId, amount, newBalance, utrNumber, receiptUrl]
   );
+
+  const candidateUser = queryOne('SELECT name, email FROM users WHERE id = ?', [req.session.userId]);
+  const candidateLabel = candidateUser ? `${escapeTgHtml(candidateUser.name)} (${escapeTgHtml(candidateUser.email)})` : `User #${req.session.userId}`;
+  const timeStr = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+  sendTelegramAlertNode(`💰 <b>KP CYBER — WALLET TOP-UP!</b>\n━━━━━━━━━━━━━━━━━━\n👤 <b>Candidate:</b> ${candidateLabel}\n💵 <b>Amount Credited:</b> ₹${amount.toFixed(2)}\n🏦 <b>New Wallet Balance:</b> ₹${newBalance.toFixed(2)}\n🧾 <b>Verified UTR:</b> <code>${escapeTgHtml(utrNumber)}</code>\n⏰ <b>Time:</b> ${timeStr}\n🔗 <a href="https://kpcyber.in/admin">Open Admin Wallet Ledger</a>`).catch(() => {});
 
   res.json({
     success: true,

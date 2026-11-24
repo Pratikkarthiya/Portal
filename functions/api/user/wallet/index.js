@@ -1,4 +1,4 @@
-import { getSession, jsonResponse, arrayBufferToBase64, sendTelegramAlert } from '../../../utils.js';
+import { getSession, jsonResponse, arrayBufferToBase64, sendTelegramAlert, escapeTgHtml } from '../../../utils.js';
 
 export async function onRequestGet({ request, env }) {
   const session = await getSession(request, env);
@@ -119,10 +119,13 @@ export async function onRequestPost({ request, env }) {
 
     // Send Telegram alert to admin
     try {
-      const candidateLabel = user ? `${user.name} (${user.email})` : `User #${session.user_id}`;
+      const candidateLabel = user ? `${escapeTgHtml(user.name)} (${escapeTgHtml(user.email)})` : `User #${session.user_id}`;
+      const escUtr = escapeTgHtml(utrNumber);
       const timeStr = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
-      sendTelegramAlert(env, `💰 <b>KP CYBER — WALLET TOP-UP!</b>\n━━━━━━━━━━━━━━━━━━\n👤 <b>Candidate:</b> ${candidateLabel}\n💵 <b>Amount Credited:</b> ₹${amount.toFixed(2)}\n🏦 <b>New Wallet Balance:</b> ₹${newBalance.toFixed(2)}\n🧾 <b>Verified UTR:</b> <code>${utrNumber}</code>\n⏰ <b>Time:</b> ${timeStr}\n🔗 <a href="https://kpcyber.in/admin">Open Admin Wallet Ledger</a>`);
-    } catch (e) {}
+      await sendTelegramAlert(env, `💰 <b>KP CYBER — WALLET TOP-UP!</b>\n━━━━━━━━━━━━━━━━━━\n👤 <b>Candidate:</b> ${candidateLabel}\n💵 <b>Amount Credited:</b> ₹${amount.toFixed(2)}\n🏦 <b>New Wallet Balance:</b> ₹${newBalance.toFixed(2)}\n🧾 <b>Verified UTR:</b> <code>${escUtr}</code>\n⏰ <b>Time:</b> ${timeStr}\n🔗 <a href="https://kpcyber.in/admin">Open Admin Wallet Ledger</a>`);
+    } catch (e) {
+      console.error('Telegram wallet alert error:', e);
+    }
 
     return jsonResponse({
       success: true,

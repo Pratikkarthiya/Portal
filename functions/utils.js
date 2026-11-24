@@ -34,6 +34,14 @@ export function arrayBufferToBase64(buffer) {
   return btoa(binary);
 }
 
+export function escapeTgHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 // Dispatches formatted HTML alert to Admin Telegram Bot
 export async function sendTelegramAlert(env, messageHtml) {
   try {
@@ -55,9 +63,12 @@ export async function sendTelegramAlert(env, messageHtml) {
       }
     }
 
-    if (!token || !chatId) return;
+    if (!token || !chatId) {
+      console.warn('Telegram alert skipped: token or chatId missing');
+      return;
+    }
 
-    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+    let resp = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -67,6 +78,23 @@ export async function sendTelegramAlert(env, messageHtml) {
         disable_web_page_preview: true
       })
     });
+
+    if (!resp.ok) {
+      const errJson = await resp.json().catch(() => ({}));
+      // Fallback: If Telegram couldn't parse HTML entities, send as clean plain text
+      if (errJson?.description && errJson.description.toLowerCase().includes('entities')) {
+        const plainText = messageHtml.replace(/<[^>]+>/g, '');
+        resp = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: chatId,
+            text: plainText,
+            disable_web_page_preview: true
+          })
+        });
+      }
+    }
   } catch (err) {
     console.error('Telegram notification error:', err);
   }

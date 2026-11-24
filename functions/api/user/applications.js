@@ -1,4 +1,4 @@
-import { getSession, jsonResponse, arrayBufferToBase64, sendTelegramAlert } from '../../utils.js';
+import { getSession, jsonResponse, arrayBufferToBase64, sendTelegramAlert, escapeTgHtml } from '../../utils.js';
 
 export async function onRequestGet({ request, env }) {
   const session = await getSession(request, env);
@@ -86,7 +86,10 @@ export async function onRequestPost({ request, env }) {
     const feePerApp = user && user.application_fee ? user.application_fee : 50.00;
     const walletBalance = user && user.wallet_balance ? Number(user.wallet_balance) : 0.00;
     const paymentMode = user && user.payment_mode ? user.payment_mode : 'batch';
-    const candidateLabel = user ? `${user.name} (${user.email})` : `User #${session.user_id}`;
+    const candidateLabel = user ? `${escapeTgHtml(user.name)} (${escapeTgHtml(user.email)})` : `User #${session.user_id}`;
+    const escAppNum = escapeTgHtml(applicationNumber);
+    const escDob = escapeTgHtml(dateOfBirth);
+    const escPass = escapeTgHtml(appPassword);
     const timeNow = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
 
     // PREPAID WALLET CHECK: If user has enough balance, auto-pay instantly from wallet
@@ -112,8 +115,10 @@ export async function onRequestPost({ request, env }) {
       ).bind(session.user_id, applicationNumber, dateOfBirth, appPassword, photoUrl, feePerApp).run();
 
       try {
-        sendTelegramAlert(env, `🔔 <b>KP CYBER — APPLICATION SUBMITTED!</b>\n━━━━━━━━━━━━━━━━━━\n👤 <b>Candidate:</b> ${candidateLabel}\n📝 <b>App Number:</b> <code>${applicationNumber}</code>\n🎂 <b>DOB:</b> ${dateOfBirth}\n🔑 <b>Password:</b> <code>${appPassword}</code>\n💳 <b>Fee:</b> ₹${feePerApp.toFixed(2)} (⚡ Paid from Wallet)\n🏦 <b>Wallet Balance:</b> ₹${newBalance.toFixed(2)}\n⏰ <b>Time:</b> ${timeNow}\n🔗 <a href="https://kpcyber.in/admin">Open Admin Review</a>`);
-      } catch (e) {}
+        await sendTelegramAlert(env, `🔔 <b>KP CYBER — APPLICATION SUBMITTED!</b>\n━━━━━━━━━━━━━━━━━━\n👤 <b>Candidate:</b> ${candidateLabel}\n📝 <b>App Number:</b> <code>${escAppNum}</code>\n🎂 <b>DOB:</b> ${escDob}\n🔑 <b>Password:</b> <code>${escPass}</code>\n💳 <b>Fee:</b> ₹${feePerApp.toFixed(2)} (⚡ Paid from Wallet)\n🏦 <b>Wallet Balance:</b> ₹${newBalance.toFixed(2)}\n⏰ <b>Time:</b> ${timeNow}\n🔗 <a href="https://kpcyber.in/admin">Open Admin Review</a>`);
+      } catch (e) {
+        console.error('Telegram wallet auto-pay alert error:', e);
+      }
 
       return jsonResponse({
         success: true,
@@ -185,8 +190,11 @@ export async function onRequestPost({ request, env }) {
       ).bind(session.user_id, applicationNumber, dateOfBirth, appPassword, photoUrl, cleanUtr, screenshotUrl, feePerApp).run();
 
       try {
-        sendTelegramAlert(env, `🔔 <b>KP CYBER — ONE-TIME APPLICATION PAID!</b>\n━━━━━━━━━━━━━━━━━━\n👤 <b>Candidate:</b> ${candidateLabel}\n📝 <b>App Number:</b> <code>${applicationNumber}</code>\n🎂 <b>DOB:</b> ${dateOfBirth}\n🔑 <b>Password:</b> <code>${appPassword}</code>\n💵 <b>Fee Paid:</b> ₹${feePerApp.toFixed(2)}\n🧾 <b>Verified UTR:</b> <code>${cleanUtr}</code>\n⏰ <b>Time:</b> ${timeNow}\n🔗 <a href="https://kpcyber.in/admin">Open Admin Review</a>`);
-      } catch (e) {}
+        const escUtr = escapeTgHtml(cleanUtr);
+        await sendTelegramAlert(env, `🔔 <b>KP CYBER — ONE-TIME APPLICATION PAID!</b>\n━━━━━━━━━━━━━━━━━━\n👤 <b>Candidate:</b> ${candidateLabel}\n📝 <b>App Number:</b> <code>${escAppNum}</code>\n🎂 <b>DOB:</b> ${escDob}\n🔑 <b>Password:</b> <code>${escPass}</code>\n💵 <b>Fee Paid:</b> ₹${feePerApp.toFixed(2)}\n🧾 <b>Verified UTR:</b> <code>${escUtr}</code>\n⏰ <b>Time:</b> ${timeNow}\n🔗 <a href="https://kpcyber.in/admin">Open Admin Review</a>`);
+      } catch (e) {
+        console.error('Telegram onetime alert error:', e);
+      }
 
       return jsonResponse({
         success: true,
@@ -264,8 +272,11 @@ export async function onRequestPost({ request, env }) {
       }
 
       try {
-        sendTelegramAlert(env, `🎉 <b>KP CYBER — BATCH OF 5 PAID & SETTLED!</b>\n━━━━━━━━━━━━━━━━━━\n👤 <b>Candidate:</b> ${candidateLabel}\n📝 <b>Final App (5/5):</b> <code>${applicationNumber}</code>\n💰 <b>Total Batch Paid:</b> ₹${batchAmount.toFixed(2)}\n🧾 <b>Verified UTR:</b> <code>${cleanUtr}</code>\n⏰ <b>Time:</b> ${timeNow}\n🔗 <a href="https://kpcyber.in/admin">Open Admin Review</a>`);
-      } catch (e) {}
+        const escUtr = escapeTgHtml(cleanUtr);
+        await sendTelegramAlert(env, `🎉 <b>KP CYBER — BATCH OF 5 PAID & SETTLED!</b>\n━━━━━━━━━━━━━━━━━━\n👤 <b>Candidate:</b> ${candidateLabel}\n📝 <b>Final App (5/5):</b> <code>${escAppNum}</code>\n💰 <b>Total Batch Paid:</b> ₹${batchAmount.toFixed(2)}\n🧾 <b>Verified UTR:</b> <code>${escUtr}</code>\n⏰ <b>Time:</b> ${timeNow}\n🔗 <a href="https://kpcyber.in/admin">Open Admin Review</a>`);
+      } catch (e) {
+        console.error('Telegram batch5 alert error:', e);
+      }
 
       return jsonResponse({
         success: true,
@@ -286,8 +297,10 @@ export async function onRequestPost({ request, env }) {
     const slotNumber = currentUnpaidCount + 1;
 
     try {
-      sendTelegramAlert(env, `📝 <b>KP CYBER — APPLICATION SUBMITTED (Slot ${slotNumber}/5)</b>\n━━━━━━━━━━━━━━━━━━\n👤 <b>Candidate:</b> ${candidateLabel}\n📝 <b>App Number:</b> <code>${applicationNumber}</code>\n🎂 <b>DOB:</b> ${dateOfBirth}\n🔑 <b>Password:</b> <code>${appPassword}</code>\n📦 <b>Batch Progress:</b> ${slotNumber} of 5 submitted\n⏰ <b>Time:</b> ${timeNow}\n🔗 <a href="https://kpcyber.in/admin">Open Admin Review</a>`);
-    } catch (e) {}
+      await sendTelegramAlert(env, `📝 <b>KP CYBER — APPLICATION SUBMITTED (Slot ${slotNumber}/5)</b>\n━━━━━━━━━━━━━━━━━━\n👤 <b>Candidate:</b> ${candidateLabel}\n📝 <b>App Number:</b> <code>${escAppNum}</code>\n🎂 <b>DOB:</b> ${escDob}\n🔑 <b>Password:</b> <code>${escPass}</code>\n📦 <b>Batch Progress:</b> ${slotNumber} of 5 submitted\n⏰ <b>Time:</b> ${timeNow}\n🔗 <a href="https://kpcyber.in/admin">Open Admin Review</a>`);
+    } catch (e) {
+      console.error('Telegram slot alert error:', e);
+    }
 
     return jsonResponse({
       success: true,
