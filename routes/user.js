@@ -305,8 +305,30 @@ router.post('/wallet/topup', requireUser, upload.single('receipt'), (req, res) =
 
   const duplicate = queryOne('SELECT id FROM wallet_transactions WHERE reference_id = ? AND status != "rejected"', [utrNumber]);
   if (duplicate) {
-    return res.status(400).json({ error: `UTR / Transaction Ref "${utrNumber}" has already been submitted.` });
+    return res.status(400).json({ error: `❌ UTR / Transaction Ref "${utrNumber}" has already been submitted and processed.` });
   }
+
+  // Strict Real-Time Bank Verification Check
+  const bankEvent = queryOne('SELECT id, amount, used_by_user_id FROM bank_events WHERE utr = ?', [utrNumber]);
+  if (!bankEvent) {
+    return res.status(400).json({
+      error: `❌ Payment Failed: UTR "${utrNumber}" is invalid or not received by bank. Please ensure you transferred ₹${amount.toFixed(2)} to UPI ID pratikkarthiya6@oksbi and entered the genuine 12-digit UTR.`
+    });
+  }
+
+  if (bankEvent.used_by_user_id) {
+    return res.status(400).json({
+      error: `❌ Payment Rejected: UTR "${utrNumber}" has already been claimed by another transaction.`
+    });
+  }
+
+  if (Number(bankEvent.amount) < amount) {
+    return res.status(400).json({
+      error: `❌ Amount Mismatch: Bank received ₹${Number(bankEvent.amount).toFixed(2)}, which is less than requested ₹${amount.toFixed(2)}.`
+    });
+  }
+
+  runSql('UPDATE bank_events SET used_by_user_id = ?, used_for = "wallet" WHERE id = ?', [req.session.userId, bankEvent.id]);
 
   const newBalance = currentBalance + amount;
   runSql('UPDATE users SET wallet_balance = ? WHERE id = ?', [newBalance, req.session.userId]);

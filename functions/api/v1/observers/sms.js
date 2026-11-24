@@ -18,6 +18,13 @@ export async function onRequestPost({ request, env }) {
 
     let updatedCount = 0;
     if (utr) {
+      // 0. Record into bank_events
+      await env.DB.prepare(`
+        INSERT INTO bank_events (utr, amount, sender_vpa, raw_text, created_at)
+        VALUES (?, ?, '', ?, datetime("now"))
+        ON CONFLICT(utr) DO UPDATE SET amount = excluded.amount
+      `).bind(utr, amount, smsBody).run();
+
       const matchingApps = await env.DB.prepare(
         'SELECT id, user_id FROM applications WHERE payment_id = ? AND payment_status != "paid"'
       ).bind(utr).all();
@@ -33,6 +40,8 @@ export async function onRequestPost({ request, env }) {
           `).bind(amount, app.id).run();
           updatedCount++;
         }
+        await env.DB.prepare('UPDATE bank_events SET used_by_user_id = ?, used_for = "applications" WHERE utr = ?')
+          .bind(matchingApps.results[0].user_id, utr).run();
       }
 
       // Check pending wallet top-up
@@ -46,6 +55,8 @@ export async function onRequestPost({ request, env }) {
         const newBal = curBal + Number(pendingTopup.amount);
         await env.DB.prepare('UPDATE users SET wallet_balance = ? WHERE id = ?').bind(newBal, pendingTopup.user_id).run();
         await env.DB.prepare('UPDATE wallet_transactions SET status = "approved", balance_after = ? WHERE id = ?').bind(newBal, pendingTopup.id).run();
+        await env.DB.prepare('UPDATE bank_events SET used_by_user_id = ?, used_for = "wallet" WHERE utr = ?')
+          .bind(pendingTopup.user_id, utr).run();
         updatedCount++;
       }
     }

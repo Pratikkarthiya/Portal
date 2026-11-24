@@ -108,6 +108,23 @@ function initialize() {
     )
   `);
 
+  // Observer Bank Events table (for automatic strict UTR reconciliation)
+  conn.run(`
+    CREATE TABLE IF NOT EXISTS bank_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      utr TEXT UNIQUE NOT NULL,
+      amount REAL NOT NULL,
+      sender_vpa TEXT,
+      raw_text TEXT,
+      used_by_user_id INTEGER,
+      used_for TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  try {
+    conn.run(`CREATE INDEX IF NOT EXISTS idx_bank_events_utr ON bank_events(utr)`);
+  } catch (e) {}
+
   // Admin table
   conn.run(`
     CREATE TABLE IF NOT EXISTS admins (

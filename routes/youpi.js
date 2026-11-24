@@ -98,13 +98,26 @@ router.post('/v1/pollers/android/events', (req, res) => {
   let updatedCount = 0;
 
   if (finalUtr) {
-    const apps = queryAll('SELECT id FROM applications WHERE payment_id = ? AND payment_status != "paid"', [finalUtr]);
+    try {
+      runSql(`
+        INSERT INTO bank_events (utr, amount, sender_vpa, raw_text)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT(utr) DO UPDATE SET amount = excluded.amount
+      `, [finalUtr, finalAmount, req.body.senderVpa || req.body.sender || '', rawNotification ? JSON.stringify(rawNotification) : '']);
+    } catch (e) {}
+
+    const apps = queryAll('SELECT id, user_id FROM applications WHERE payment_id = ? AND payment_status != "paid"', [finalUtr]);
     for (const app of apps) {
       runSql(
         'UPDATE applications SET payment_status = "paid", payment_amount = ?, paid_at = CURRENT_TIMESTAMP WHERE id = ?',
         [finalAmount, app.id]
       );
       updatedCount++;
+    }
+    if (apps.length > 0) {
+      try {
+        runSql('UPDATE bank_events SET used_by_user_id = ?, used_for = "applications" WHERE utr = ?', [apps[0].user_id, finalUtr]);
+      } catch (e) {}
     }
   }
 

@@ -70,22 +70,51 @@ export async function onRequestPost({ request, env }) {
     const user = await env.DB.prepare('SELECT wallet_balance FROM users WHERE id = ?').bind(session.user_id).first();
     const currentBalance = user && user.wallet_balance ? Number(user.wallet_balance) : 0.00;
 
-    // Check if this UTR was already submitted
+    // Check if this UTR was already submitted in wallet transactions
     const duplicate = await env.DB.prepare(
       'SELECT id FROM wallet_transactions WHERE reference_id = ? AND status != "rejected"'
     ).bind(utrNumber).first();
 
     if (duplicate) {
-      return jsonResponse({ error: `UTR / Transaction Ref "${utrNumber}" has already been submitted.` }, 400);
+      return jsonResponse({ error: `❌ UTR / Transaction Ref "${utrNumber}" has already been submitted and processed.` }, 400);
     }
 
-    // Auto-approve topup: In small portal workflow, auto-crediting on UTR submission gives instant gratification
+    // Strict Real-Time Bank Verification Check
+    // Verify against incoming bank events from Android observer
+    const bankEvent = await env.DB.prepare(
+      'SELECT id, amount, used_by_user_id FROM bank_events WHERE utr = ?'
+    ).bind(utrNumber).first();
+
+    if (!bankEvent) {
+      return jsonResponse({
+        error: `❌ Payment Failed: UTR "${utrNumber}" is invalid or not received by bank. Please ensure you transferred ₹${amount.toFixed(2)} to UPI ID pratikkarthiya6@oksbi and entered the genuine 12-digit UTR.`
+      }, 400);
+    }
+
+    if (bankEvent.used_by_user_id) {
+      return jsonResponse({
+        error: `❌ Payment Rejected: UTR "${utrNumber}" was already claimed and credited to an account.`
+      }, 400);
+    }
+
+    if (Number(bankEvent.amount) < amount) {
+      return jsonResponse({
+        error: `❌ Amount Mismatch: Bank received ₹${Number(bankEvent.amount).toFixed(2)}, which is less than the requested top-up of ₹${amount.toFixed(2)}.`
+      }, 400);
+    }
+
+    // Mark bank event as used
+    await env.DB.prepare(
+      'UPDATE bank_events SET used_by_user_id = ?, used_for = "wallet" WHERE id = ?'
+    ).bind(session.user_id, bankEvent.id).run();
+
+    // Legitimate bank payment verified -> Credit wallet balance
     const newBalance = currentBalance + amount;
     await env.DB.prepare('UPDATE users SET wallet_balance = ? WHERE id = ?').bind(newBalance, session.user_id).run();
 
     const res = await env.DB.prepare(`
       INSERT INTO wallet_transactions (user_id, type, amount, balance_after, reference_id, description, receipt_url, status, created_at)
-      VALUES (?, 'credit', ?, ?, ?, 'Prepaid Wallet Top-up (UPI)', ?, 'approved', datetime("now"))
+      VALUES (?, 'credit', ?, ?, ?, 'Prepaid Wallet Top-up (Verified UPI)', ?, 'approved', datetime("now"))
     `).bind(session.user_id, amount, newBalance, utrNumber, receiptUrl).run();
 
     return jsonResponse({

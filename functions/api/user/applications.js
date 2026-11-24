@@ -136,6 +136,32 @@ export async function onRequestPost({ request, env }) {
       const cleanUtr = utrNumber.trim();
       const batchAmount = feePerApp * 5;
 
+      // Strict Real Bank Verification Check
+      const bankEvent = await env.DB.prepare(
+        'SELECT id, amount, used_by_user_id FROM bank_events WHERE utr = ?'
+      ).bind(cleanUtr).first();
+
+      if (!bankEvent) {
+        return jsonResponse({
+          error: `❌ Batch Payment Failed: UTR "${cleanUtr}" is invalid or not received by bank. Please transfer ₹${batchAmount.toFixed(2)} to UPI ID pratikkarthiya6@oksbi and enter the genuine 12-digit UTR.`,
+          requiresPayment: true,
+          batchTotal: batchAmount
+        }, 400);
+      }
+
+      if (bankEvent.used_by_user_id) {
+        return jsonResponse({
+          error: `❌ Payment Rejected: UTR "${cleanUtr}" has already been used by another transaction.`,
+          requiresPayment: true,
+          batchTotal: batchAmount
+        }, 400);
+      }
+
+      // Mark bank event as used
+      await env.DB.prepare(
+        'UPDATE bank_events SET used_by_user_id = ?, used_for = "applications_batch5" WHERE id = ?'
+      ).bind(session.user_id, bankEvent.id).run();
+
       const res5 = await env.DB.prepare(
         `INSERT INTO applications 
          (user_id, application_number, date_of_birth, app_password, photo_url, payment_status, payment_id, payment_screenshot_url, payment_amount, payment_method, paid_at) 
