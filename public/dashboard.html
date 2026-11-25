@@ -694,6 +694,28 @@
     </div>
   </div>
 
+  <!-- Portal Shutdown Overlay (Shown when Admin pauses all user work) -->
+  <div class="modal-overlay" id="portalShutdownOverlay" style="z-index: 20000; background: rgba(15, 23, 42, 0.78); backdrop-filter: blur(18px);">
+    <div class="modal" style="max-width: 440px; text-align: center; padding: 2.2rem 1.75rem; border-radius: 24px;">
+      <div style="margin: 0 auto 1rem; width: 70px; height: 70px; border-radius: 50%; background: rgba(255, 59, 48, 0.14); border: 2px solid rgba(255, 59, 48, 0.35); display: flex; align-items: center; justify-content: center; font-size: 2rem;">
+        🛑
+      </div>
+      <div style="font-size: 0.78rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #dc2626; margin-bottom: 0.35rem;">
+        Portal Temporarily Closed
+      </div>
+      <h3 style="font-size: 1.35rem; font-weight: 800; color: var(--text-main); margin-bottom: 0.65rem;">
+        Work Paused by Admin
+      </h3>
+      <p id="portalShutdownMsgText" style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 1.4rem;">
+        Portal is temporarily closed by Admin. Work is paused—please check back later.
+      </p>
+      <div style="display: flex; gap: 0.6rem;">
+        <button class="btn btn-primary" onclick="window.location.reload()" style="flex: 1; justify-content: center; padding: 0.75rem;">🔄 Check Again</button>
+        <button class="btn-logout" onclick="logout()" style="flex: 1; justify-content: center; padding: 0.75rem;">Sign Out</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     let is5thApplication = false;
     let batchTotal = 250.00;
@@ -872,7 +894,18 @@
       }
     }
 
+    function showPortalShutdownOverlay(msg) {
+      const overlay = document.getElementById('portalShutdownOverlay');
+      const txt = document.getElementById('portalShutdownMsgText');
+      if (txt && msg) txt.textContent = msg;
+      if (overlay) overlay.classList.add('active');
+    }
+
     fetch('/api/auth/me').then(r => r.json()).then(data => {
+      if (data.portalShutdown) {
+        showPortalShutdownOverlay(data.shutdownMessage);
+        return;
+      }
       if (!data.loggedIn || data.userType !== 'user') {
         window.location.href = '/';
         return;
@@ -1117,6 +1150,10 @@
           body: pendingFormData
         });
         const data = await res.json();
+        if (res.status === 503 || data.portalShutdown) {
+          showPortalShutdownOverlay(data.error);
+          return;
+        }
         if (data.success) {
           document.getElementById('submitSuccess').textContent = `✅ ${data.message}`;
           document.getElementById('submitSuccess').classList.add('show');
@@ -1727,6 +1764,11 @@
         }
         const data = await res.json().catch(() => ({}));
 
+        if (res.status === 503 || data.portalShutdown) {
+          closeAddMoneyModal();
+          showPortalShutdownOverlay(data.error);
+          return;
+        }
         if (res.ok && data.success) {
           closeAddMoneyModal();
           await loadWalletData();

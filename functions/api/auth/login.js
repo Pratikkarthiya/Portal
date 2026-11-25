@@ -1,6 +1,11 @@
-import { jsonResponse } from '../../utils.js';
+import { jsonResponse, getPortalShutdownState } from '../../utils.js';
 
 export async function onRequestPost({ request, env }) {
+  const shutdown = await getPortalShutdownState(env);
+  if (shutdown.isShutdown) {
+    return jsonResponse({ error: shutdown.message, portalShutdown: true }, 503);
+  }
+
   const { email, password } = await request.json();
   if (!email || !password) {
     return jsonResponse({ error: 'Email and password required' }, 400);

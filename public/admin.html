@@ -15,6 +15,7 @@
       <span>Admin Console</span>
     </a>
     <div class="nav-links">
+      <button class="btn btn-sm" id="portalShutdownBtn" onclick="togglePortalShutdown()" style="background:rgba(52,199,89,0.16);color:#15803d;border:1px solid rgba(52,199,89,0.35);font-weight:700;" title="Stop or resume all user work">🟢 Portal Online (Shutdown)</button>
       <button class="btn btn-primary btn-sm" onclick="openCreateUserModal()">➕ Provision User ID</button>
       <button class="btn-logout" onclick="logout()">Sign Out</button>
     </div>
@@ -771,8 +772,78 @@
         window.location.href = '/admin/login';
         return;
       }
-      Promise.all([loadStats(), loadUsers(), loadAllApplications(), loadWalletTransactions(), loadBankEvents()]);
+      Promise.all([loadStats(), loadUsers(), loadAllApplications(), loadWalletTransactions(), loadBankEvents(), loadShutdownStatus()]);
     });
+
+    let currentPortalShutdown = false;
+    let currentShutdownMessage = 'Portal is temporarily closed by Admin. Work is paused—please check back later.';
+
+    async function loadShutdownStatus() {
+      try {
+        const res = await fetch('/api/admin/settings/shutdown');
+        const data = await res.json();
+        if (res.ok && data.success) {
+          currentPortalShutdown = !!data.isShutdown;
+          currentShutdownMessage = data.message || currentShutdownMessage;
+          renderShutdownButton();
+        }
+      } catch (e) {}
+    }
+
+    function renderShutdownButton() {
+      const btn = document.getElementById('portalShutdownBtn');
+      if (!btn) return;
+      if (currentPortalShutdown) {
+        btn.style.background = 'linear-gradient(135deg, #ff3b30 0%, #c81e1e 100%)';
+        btn.style.color = '#ffffff';
+        btn.style.border = 'none';
+        btn.textContent = '🔴 PORTAL SHUT DOWN (Resume)';
+      } else {
+        btn.style.background = 'rgba(52,199,89,0.16)';
+        btn.style.color = '#15803d';
+        btn.style.border = '1px solid rgba(52,199,89,0.35)';
+        btn.textContent = '🟢 Portal Online (Shutdown)';
+      }
+    }
+
+    async function togglePortalShutdown() {
+      const btn = document.getElementById('portalShutdownBtn');
+      const nextState = !currentPortalShutdown;
+      let msgToSave = currentShutdownMessage;
+
+      if (nextState) {
+        const reason = prompt(
+          '🛑 SHUT DOWN PORTAL FOR ALL USERS?\n\nAll user logins, application submissions, and wallet top-ups will be stopped immediately.\n\nEnter message to show users:',
+          currentShutdownMessage
+        );
+        if (reason === null) return;
+        msgToSave = reason.trim() || currentShutdownMessage;
+      } else {
+        if (!confirm('🟢 RESUME PORTAL?\n\nUsers will be able to log in and submit applications again.')) return;
+      }
+
+      if (btn) btn.disabled = true;
+      try {
+        const res = await fetch('/api/admin/settings/shutdown', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ isShutdown: nextState, message: msgToSave })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          currentPortalShutdown = !!data.isShutdown;
+          currentShutdownMessage = data.message || msgToSave;
+          renderShutdownButton();
+          alert(data.statusText || 'Portal status updated!');
+        } else {
+          alert(data.error || 'Failed to update portal shutdown status.');
+        }
+      } catch (err) {
+        alert('Error: ' + err.message);
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
 
     function updateCreateBatchPreview(val) {
       const f = parseFloat(val) || 0;

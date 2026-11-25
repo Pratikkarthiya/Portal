@@ -46,6 +46,14 @@
   </div>
 
   <script>
+    fetch('/api/auth/me').then(r => r.json()).then(data => {
+      if (data && data.portalShutdown) {
+        const el = document.getElementById('alertError');
+        el.textContent = '🛑 ' + (data.shutdownMessage || 'Portal is temporarily closed by Admin.');
+        el.classList.add('show');
+      }
+    }).catch(() => {});
+
     document.getElementById('loginForm').addEventListener('submit', async e => {
       e.preventDefault();
       const form = new FormData(e.target);

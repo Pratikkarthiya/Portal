@@ -42,6 +42,24 @@ export function escapeTgHtml(str) {
     .replace(/>/g, '&gt;');
 }
 
+export async function getPortalShutdownState(env) {
+  const defaultMsg = 'Portal is temporarily closed by Admin. Work is paused—please check back later.';
+  try {
+    if (!env?.DB) return { isShutdown: false, message: defaultMsg };
+    const rows = await env.DB.prepare(
+      "SELECT key, value FROM system_settings WHERE key IN ('portal_shutdown', 'portal_shutdown_message')"
+    ).all();
+    const map = {};
+    (rows?.results || []).forEach(r => { map[r.key] = r.value; });
+    return {
+      isShutdown: map.portal_shutdown === '1',
+      message: (map.portal_shutdown_message || '').trim() || defaultMsg
+    };
+  } catch (e) {
+    return { isShutdown: false, message: defaultMsg };
+  }
+}
+
 // Dispatches formatted HTML alert to Admin Telegram Bot
 export async function sendTelegramAlert(env, messageHtml) {
   try {

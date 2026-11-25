@@ -364,6 +364,44 @@ router.post('/settings/telegram', requireAdmin, async (req, res) => {
   res.json({ success: true, message: 'Telegram alert settings saved successfully.' });
 });
 
+// Admin Portal Shutdown / Resume Work toggle
+router.get('/settings/shutdown', requireAdmin, (req, res) => {
+  const rows = queryAll("SELECT key, value FROM system_settings WHERE key IN ('portal_shutdown', 'portal_shutdown_message')");
+  const map = {};
+  (rows || []).forEach(r => { map[r.key] = r.value; });
+  res.json({
+    success: true,
+    isShutdown: map.portal_shutdown === '1',
+    message: (map.portal_shutdown_message || '').trim() || 'Portal is temporarily closed by Admin. Work is paused—please check back later.'
+  });
+});
+
+router.post('/settings/shutdown', requireAdmin, (req, res) => {
+  const isShutdown = !!req.body.isShutdown;
+  const customMessage = req.body.message !== undefined ? String(req.body.message).trim() : undefined;
+
+  runSql(
+    'INSERT INTO system_settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at',
+    ['portal_shutdown', isShutdown ? '1' : '0']
+  );
+
+  if (customMessage !== undefined) {
+    runSql(
+      'INSERT INTO system_settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at',
+      ['portal_shutdown_message', customMessage]
+    );
+  }
+
+  res.json({
+    success: true,
+    isShutdown,
+    message: customMessage || 'Portal is temporarily closed by Admin. Work is paused—please check back later.',
+    statusText: isShutdown
+      ? '🔴 Portal is now SHUT DOWN. All user logins, submissions, and top-ups are stopped.'
+      : '🟢 Portal is now ONLINE. Users can work normally.'
+  });
+});
+
 // Dashboard stats including revenue
 router.get('/stats', requireAdmin, (req, res) => {
   const totalUsers = queryOne('SELECT COUNT(*) as c FROM users');

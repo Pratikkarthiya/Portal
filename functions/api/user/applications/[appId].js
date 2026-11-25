@@ -1,9 +1,14 @@
-import { getSession, jsonResponse } from '../../../utils.js';
+import { getSession, jsonResponse, getPortalShutdownState } from '../../../utils.js';
 
 export async function onRequestPut({ request, params, env }) {
   const session = await getSession(request, env);
   if (!session || session.user_type !== 'user') {
     return jsonResponse({ error: 'Please log in first' }, 401);
+  }
+
+  const shutdown = await getPortalShutdownState(env);
+  if (shutdown.isShutdown) {
+    return jsonResponse({ error: shutdown.message, portalShutdown: true }, 503);
   }
 
   const appId = params.appId;

@@ -50,6 +50,21 @@ function requireUser(req, res, next) {
   next();
 }
 
+function rejectIfShutdown(req, res, next) {
+  try {
+    const rows = queryAll("SELECT key, value FROM system_settings WHERE key IN ('portal_shutdown', 'portal_shutdown_message')");
+    const map = {};
+    (rows || []).forEach(r => { map[r.key] = r.value; });
+    if (map.portal_shutdown === '1') {
+      return res.status(503).json({
+        error: (map.portal_shutdown_message || '').trim() || 'Portal is temporarily closed by Admin. Work is paused—please check back later.',
+        portalShutdown: true
+      });
+    }
+  } catch (e) {}
+  next();
+}
+
 function escapeTgHtml(str) {
   if (!str) return '';
   return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -127,7 +142,7 @@ router.get('/batch-status', requireUser, (req, res) => {
  * - Applications 1 to 4 in a cycle: Submit directly with status 'unpaid' (NO payment required).
  * - Application 5 in a cycle: Requires Bank UTR and optional/recommended payment screenshot for all 5.
  */
-router.post('/applications', requireUser, (req, res) => {
+router.post('/applications', requireUser, rejectIfShutdown, (req, res) => {
   multiUpload(req, res, function (err) {
     if (err) {
       return res.status(400).json({ error: err.message });
@@ -354,7 +369,7 @@ router.get('/applications', requireUser, (req, res) => {
 });
 
 // Candidate corrects and resubmits application
-router.put('/applications/:appId', requireUser, (req, res) => {
+router.put('/applications/:appId', requireUser, rejectIfShutdown, (req, res) => {
   const appId = Number(req.params.appId);
   const app = queryOne('SELECT id, user_id, status FROM applications WHERE id = ? AND user_id = ?', [appId, req.session.userId]);
   if (!app) {
@@ -478,8 +493,8 @@ function handleWalletTopup(req, res) {
   });
 }
 
-router.post('/wallet/topup', requireUser, upload.single('receipt'), handleWalletTopup);
-router.post('/wallet', requireUser, upload.single('receipt'), handleWalletTopup);
+router.post('/wallet/topup', requireUser, rejectIfShutdown, upload.single('receipt'), handleWalletTopup);
+router.post('/wallet', requireUser, rejectIfShutdown, upload.single('receipt'), handleWalletTopup);
 
 /**
  * 6. Real-time Payment Verification Checker (for automatic popup)

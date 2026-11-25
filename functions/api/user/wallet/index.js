@@ -1,4 +1,4 @@
-import { getSession, jsonResponse, arrayBufferToBase64, sendTelegramAlert, escapeTgHtml } from '../../../utils.js';
+import { getSession, jsonResponse, arrayBufferToBase64, sendTelegramAlert, escapeTgHtml, getPortalShutdownState } from '../../../utils.js';
 
 export async function onRequestGet({ request, env }) {
   const session = await getSession(request, env);
@@ -27,6 +27,11 @@ export async function onRequestPost({ request, env }) {
     const session = await getSession(request, env);
     if (!session || session.user_type !== 'user') {
       return jsonResponse({ error: 'Please log in first' }, 401);
+    }
+
+    const shutdown = await getPortalShutdownState(env);
+    if (shutdown.isShutdown) {
+      return jsonResponse({ error: shutdown.message, portalShutdown: true }, 503);
     }
 
     let amount = 0;
