@@ -3,126 +3,344 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard — Portal Flow</title>
+  <title>Candidate Portal — KP Cyber</title>
   <link rel="stylesheet" href="/style.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    /* Modern User-Friendly Dashboard Enhancements */
+    .kp-hero-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+    }
+    .kp-card {
+      background: var(--glass-bg-card);
+      backdrop-filter: var(--ios-blur);
+      -webkit-backdrop-filter: var(--ios-blur);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-ios-md);
+      padding: 1.25rem 1.35rem;
+      box-shadow: var(--glass-shadow);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .kp-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--glass-shadow-lg);
+    }
+    .kp-card-wallet {
+      background: linear-gradient(135deg, rgba(255,255,255,0.72) 0%, rgba(220,252,231,0.68) 100%);
+      border-color: rgba(52, 199, 89, 0.4);
+    }
+    .kp-card-label {
+      font-size: 0.74rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+    .kp-big-num {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -0.6px;
+      margin: 0.35rem 0 0.2rem 0;
+      line-height: 1.1;
+    }
+    .kp-chip-row {
+      display: flex;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+      margin-top: 0.85rem;
+    }
+    .kp-chip-btn {
+      padding: 0.32rem 0.7rem;
+      font-size: 0.78rem;
+      font-weight: 700;
+      border-radius: 999px;
+      border: 1px solid rgba(21, 128, 61, 0.28);
+      background: rgba(255, 255, 255, 0.75);
+      color: #15803d;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .kp-chip-btn:hover {
+      background: #15803d;
+      color: #fff;
+    }
+    .kp-mini-stats {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.55rem;
+      margin-top: 0.65rem;
+    }
+    .kp-mini-stat {
+      background: rgba(255, 255, 255, 0.55);
+      border: 1px solid var(--glass-border-subtle);
+      border-radius: 12px;
+      padding: 0.5rem 0.7rem;
+    }
+    .kp-mini-stat .num {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+    .kp-mini-stat .lbl {
+      font-size: 0.7rem;
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+    .kp-upload-zone {
+      border: 2px dashed rgba(0, 113, 227, 0.35);
+      background: rgba(255, 255, 255, 0.55);
+      border-radius: 14px;
+      padding: 0.9rem 1rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+    }
+    .kp-upload-zone:hover {
+      border-color: var(--accent-blue);
+      background: rgba(255, 255, 255, 0.8);
+    }
+    .kp-pass-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .kp-pass-wrap input {
+      padding-right: 2.6rem !important;
+      width: 100%;
+    }
+    .kp-eye-btn {
+      position: absolute;
+      right: 8px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-size: 1.05rem;
+      padding: 4px;
+      opacity: 0.7;
+    }
+    .kp-eye-btn:hover { opacity: 1; }
+    .kp-alert-banner {
+      display: none;
+      background: linear-gradient(135deg, rgba(254, 243, 199, 0.95) 0%, rgba(253, 230, 138, 0.9) 100%);
+      border: 1.5px solid rgba(245, 158, 11, 0.5);
+      border-radius: 16px;
+      padding: 0.9rem 1.2rem;
+      margin-bottom: 1.25rem;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      box-shadow: 0 6px 20px rgba(245, 158, 11, 0.15);
+    }
+    .kp-profile-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem 1.5rem;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--glass-bg-card);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-ios-md);
+      padding: 1rem 1.35rem;
+      margin-bottom: 1.25rem;
+      box-shadow: var(--glass-shadow);
+    }
+    .kp-profile-pill {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .kp-profile-pill span.k {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      color: var(--text-secondary);
+      font-weight: 700;
+    }
+    .kp-profile-pill span.v {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .kp-sub-tabs {
+      display: inline-flex;
+      background: rgba(255, 255, 255, 0.45);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      padding: 4px;
+      gap: 4px;
+    }
+    .kp-sub-tab {
+      border: none;
+      background: transparent;
+      padding: 0.45rem 0.95rem;
+      border-radius: 9px;
+      font-size: 0.84rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .kp-sub-tab.active {
+      background: white;
+      color: var(--accent-blue);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+    .kp-step-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.74rem;
+      font-weight: 700;
+      color: var(--accent-blue);
+      background: rgba(0, 113, 227, 0.1);
+      padding: 3px 9px;
+      border-radius: 999px;
+      margin-bottom: 0.4rem;
+    }
+    @media (max-width: 640px) {
+      .kp-big-num { font-size: 1.65rem; }
+      .navbar { padding: 0 0.9rem; }
+      #userName { display: none; }
+    }
+  </style>
 </head>
 <body>
   <div class="mesh-bg-overlay"></div>
 
   <nav class="navbar">
     <a class="logo" href="/dashboard">
-      <div class="logo-icon"></div>
-      <span>Portal Flow</span>
+      <div class="logo-icon">⚡</div>
+      <span>KP Cyber</span>
     </a>
     <div class="nav-links">
-      <div id="walletNavPill" style="display:flex;align-items:center;gap:0.4rem;padding:0.35rem 0.75rem;background:rgba(52,199,89,0.15);border:1px solid rgba(52,199,89,0.35);border-radius:20px;cursor:pointer;" onclick="switchSection('wallet')" title="Click to view wallet passbook">
+      <div id="walletNavPill" style="display:flex;align-items:center;gap:0.4rem;padding:0.35rem 0.75rem;background:rgba(52,199,89,0.16);border:1px solid rgba(52,199,89,0.35);border-radius:20px;cursor:pointer;" onclick="switchSection('wallet')" title="Open Wallet & Payments">
         <span style="font-size:0.95rem;">💳</span>
         <span style="font-weight:700;font-size:0.85rem;color:#15803d;" id="navWalletBalance">₹0.00</span>
-        <button class="btn btn-sm" onclick="event.stopPropagation();openAddMoneyModal()" style="padding:2px 8px;font-size:0.75rem;background:#15803d;color:white;border:none;border-radius:12px;margin-left:4px;cursor:pointer;">+ Add</button>
+        <button class="btn btn-sm" onclick="event.stopPropagation();openAddMoneyModal()" style="padding:2px 9px;font-size:0.75rem;background:#15803d;color:white;border:none;border-radius:12px;margin-left:2px;cursor:pointer;font-weight:700;">+ Add</button>
       </div>
-      <span id="userName" style="color:var(--text-main);font-size:.88rem;font-weight:600;padding: 0.4rem 0.8rem; background:rgba(255,255,255,0.4);border-radius:20px;border:1px solid var(--glass-border);"></span>
+      <span id="userName" style="color:var(--text-main);font-size:.86rem;font-weight:600;padding: 0.4rem 0.85rem; background:rgba(255,255,255,0.48);border-radius:20px;border:1px solid var(--glass-border);"></span>
       <button class="btn-logout" onclick="logout()">Sign Out</button>
     </div>
   </nav>
 
   <div class="dashboard">
-    <div class="dashboard-header" style="margin-bottom:1.25rem;">
-      <h2>Candidate Portal</h2>
-    </div>
-
-    <!-- Particular Section Switcher: Apple iOS Segmented Tabs -->
-    <div class="ios-segmented-tabs" id="userTabs">
-      <button class="ios-tab-btn active" onclick="switchSection('batch')">📦 Batch Cycle</button>
-      <button class="ios-tab-btn" onclick="switchSection('submit')">📝 Submit Application</button>
-      <button class="ios-tab-btn" onclick="switchSection('apps')">📑 My Applications</button>
-      <button class="ios-tab-btn" onclick="switchSection('wallet')">💳 Prepaid Wallet</button>
-      <button class="ios-tab-btn" onclick="switchSection('profile')">👤 My Profile & Fee</button>
-      <button class="ios-tab-btn" onclick="switchSection('payments')">🧾 Batch Payments</button>
+    <!-- Clean 3-Tab Switcher -->
+    <div class="ios-segmented-tabs" id="userTabs" style="margin-bottom:1.25rem;">
+      <button class="ios-tab-btn active" data-tab="home" onclick="switchSection('home')">🏠 Home &amp; Apply</button>
+      <button class="ios-tab-btn" data-tab="apps" onclick="switchSection('apps')">📑 My Applications <span id="tabAppBadge" style="font-size:0.75rem;opacity:0.8;"></span></button>
+      <button class="ios-tab-btn" data-tab="wallet" onclick="switchSection('wallet')">💳 Wallet &amp; Payments</button>
     </div>
 
     <!-- ========================================================
-         SECTION 1: 5-APPLICATION BATCH CYCLE & OVERVIEW
+         SECTION 1: HOME & APPLY (ALL-IN-ONE WORKSPACE)
          ======================================================== -->
-    <div class="dashboard-section active" id="section-batch">
-      <!-- 5-Application Batch Progress Pill -->
-      <div style="background:var(--glass-bg-card);backdrop-filter:var(--ios-blur);border:1px solid var(--glass-border);border-radius:var(--radius-ios-md);padding:1.5rem 1.75rem;margin-bottom:1.5rem;box-shadow:var(--glass-shadow);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1.25rem;">
-        <div style="flex:1;min-width:280px;">
-          <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.4rem;">
-            <span style="font-size:1.3rem;">📦</span>
-            <span style="font-weight:700;font-size:1.05rem;color:var(--text-main);">5-Application Batch Cycle</span>
-            <span class="badge" id="batchBadge" style="background:rgba(0,113,227,0.15);color:var(--accent-blue);font-size:0.75rem;">Slot 1 of 5</span>
-          </div>
-          <div style="font-size:0.85rem;color:var(--text-secondary);line-height:1.45;" id="batchExplainer">
-            Applications 1 to 4 submit without payment. On the 5th application, pay for all 5 applications together.
-          </div>
+    <div class="dashboard-section active" id="section-home">
+      <!-- Action Needed Banner (Visible only when an app needs correction) -->
+      <div class="kp-alert-banner" id="correctionAlertBanner">
+        <div>
+          <div style="font-weight:800;font-size:0.95rem;color:#92400e;">⚠️ Action Needed: Application Correction Requested</div>
+          <div style="font-size:0.82rem;color:#78350f;" id="correctionAlertSub">Please review admin remarks and resubmit.</div>
+        </div>
+        <button class="btn btn-sm" onclick="openCorrectionsQueue()" style="background:#d97706;color:white;border:none;font-weight:700;padding:0.45rem 0.95rem;border-radius:10px;cursor:pointer;">
+          ✏️ Fix Now →
+        </button>
+      </div>
 
-          <!-- 5-Segment Progress Bar -->
-          <div style="display:flex;gap:7px;margin-top:0.85rem;" id="progressSegments">
-            <div class="segment" style="flex:1;height:10px;border-radius:5px;background:rgba(255,255,255,0.5);border:1px solid var(--glass-border);"></div>
-            <div class="segment" style="flex:1;height:10px;border-radius:5px;background:rgba(255,255,255,0.5);border:1px solid var(--glass-border);"></div>
-            <div class="segment" style="flex:1;height:10px;border-radius:5px;background:rgba(255,255,255,0.5);border:1px solid var(--glass-border);"></div>
-            <div class="segment" style="flex:1;height:10px;border-radius:5px;background:rgba(255,255,255,0.5);border:1px solid var(--glass-border);"></div>
-            <div class="segment" style="flex:1;height:10px;border-radius:5px;background:rgba(255,255,255,0.5);border:1px solid var(--glass-border);"></div>
+      <!-- 3 Clean Overview Cards -->
+      <div class="kp-hero-grid">
+        <!-- Card 1: Prepaid Wallet -->
+        <div class="kp-card kp-card-wallet">
+          <div>
+            <div class="kp-card-label">
+              <span>💳 Prepaid Wallet</span>
+              <button class="kp-chip-btn" onclick="openAddMoneyModal()" style="background:#15803d;color:#fff;border:none;">+ Add Money</button>
+            </div>
+            <div class="kp-big-num" style="color:#15803d;" id="walletBigBalance">₹0.00</div>
+            <div style="font-size:0.8rem;color:#166534;font-weight:600;" id="walletCoverageText">Covers 0 applications</div>
+          </div>
+          <div class="kp-chip-row">
+            <button class="kp-chip-btn" onclick="openAddMoneyModal(100)">+₹100</button>
+            <button class="kp-chip-btn" onclick="openAddMoneyModal(250)">+₹250</button>
+            <button class="kp-chip-btn" onclick="openAddMoneyModal(500)">+₹500</button>
+            <button class="kp-chip-btn" onclick="switchSection('wallet')" style="color:var(--accent-blue);border-color:rgba(0,113,227,0.28);">Passbook ↗</button>
           </div>
         </div>
 
-        <div style="text-align:right;">
-          <div style="font-size:0.75rem;color:var(--text-secondary);text-transform:uppercase;font-weight:600;">5-App Batch Total</div>
-          <div style="font-size:1.8rem;font-weight:800;color:var(--accent-blue);" id="batchTotalDisplay">₹250.00</div>
-          <div style="font-size:0.75rem;color:var(--text-tertiary);" id="singleFeeNote">(₹50.00 / application)</div>
+        <!-- Card 2: Billing Plan & Batch Cycle -->
+        <div class="kp-card">
+          <div>
+            <div class="kp-card-label">
+              <span>📦 Billing Plan</span>
+              <span class="badge" id="batchBadge" style="background:rgba(0,113,227,0.14);color:var(--accent-blue);font-size:0.72rem;">Slot 1 of 5</span>
+            </div>
+            <div class="kp-big-num" style="color:var(--accent-blue);" id="batchTotalDisplay">₹250.00</div>
+            <div style="font-size:0.78rem;color:var(--text-secondary);font-weight:600;" id="singleFeeNote">(₹50.00 / application)</div>
+            <div style="font-size:0.8rem;color:var(--text-secondary);line-height:1.4;margin-top:0.5rem;" id="batchExplainer">
+              Apps 1–4 submit free; 5th settles the batch.
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;margin-top:0.85rem;" id="progressSegments">
+            <div class="segment" style="flex:1;height:9px;border-radius:5px;background:rgba(255,255,255,0.55);border:1px solid var(--glass-border);"></div>
+            <div class="segment" style="flex:1;height:9px;border-radius:5px;background:rgba(255,255,255,0.55);border:1px solid var(--glass-border);"></div>
+            <div class="segment" style="flex:1;height:9px;border-radius:5px;background:rgba(255,255,255,0.55);border:1px solid var(--glass-border);"></div>
+            <div class="segment" style="flex:1;height:9px;border-radius:5px;background:rgba(255,255,255,0.55);border:1px solid var(--glass-border);"></div>
+            <div class="segment" style="flex:1;height:9px;border-radius:5px;background:rgba(255,255,255,0.55);border:1px solid var(--glass-border);"></div>
+          </div>
+        </div>
+
+        <!-- Card 3: Submission Summary -->
+        <div class="kp-card">
+          <div>
+            <div class="kp-card-label">
+              <span>📊 My Submissions</span>
+              <button class="kp-chip-btn" onclick="switchSection('apps')" style="color:var(--accent-blue);border-color:rgba(0,113,227,0.28);">View All →</button>
+            </div>
+            <div class="kp-mini-stats">
+              <div class="kp-mini-stat" onclick="switchSection('apps')" style="cursor:pointer;">
+                <div class="num" id="quickAppCount">0</div>
+                <div class="lbl">Total Apps</div>
+              </div>
+              <div class="kp-mini-stat" onclick="switchSection('apps');setAppFilter('approved')" style="cursor:pointer;">
+                <div class="num" style="color:var(--accent-green);" id="profApproved">0</div>
+                <div class="lbl">Approved</div>
+              </div>
+              <div class="kp-mini-stat" onclick="switchSection('apps');setAppFilter('pending')" style="cursor:pointer;">
+                <div class="num" style="color:var(--accent-orange);" id="profPending">0</div>
+                <div class="lbl">Pending</div>
+              </div>
+              <div class="kp-mini-stat" onclick="switchSection('wallet');switchWalletSubTab('payments')" style="cursor:pointer;">
+                <div class="num" style="color:var(--accent-blue);font-size:1rem;" id="profTotalPaid">₹0.00</div>
+                <div class="lbl">Total Settled</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- Quick Action Cards Grid -->
-      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));gap:1.25rem;margin-bottom:1.5rem;">
-        <div class="profile-card" style="display:flex;flex-direction:column;justify-content:space-between;">
+      <!-- Clean Submit Application Card -->
+      <div class="submit-card" style="padding:1.5rem 1.75rem;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:0.75rem;margin-bottom:1.15rem;">
           <div>
-            <h4><span>📝</span> Submit Application</h4>
-            <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:1rem;">
-              Fill in application number, DOB, password, and attach mandatory candidate photo.
+            <h3 id="formTitle" style="margin-bottom:0.2rem;"><span>📝</span> Submit New Application</h3>
+            <p style="font-size:0.84rem;color:var(--text-secondary);">
+              Enter candidate details and attach the passport photo. Everything else is handled automatically.
             </p>
           </div>
-          <button class="btn btn-primary" onclick="switchSection('submit')" style="width:100%;">
-            ➕ Go to Application Form
-          </button>
         </div>
 
-        <div class="profile-card" style="display:flex;flex-direction:column;justify-content:space-between;">
-          <div>
-            <h4><span>📑</span> Track Submissions</h4>
-            <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:1rem;">
-              Check approval status, review admin remarks, and verify bank UTR settlement.
-            </p>
-          </div>
-          <button class="btn btn-primary" onclick="switchSection('apps')" style="width:100%;background:rgba(0,113,227,0.15);color:var(--accent-blue);box-shadow:none;">
-            👁️ View My Applications (<span id="quickAppCount">0</span>)
-          </button>
-        </div>
-
-        <div class="profile-card" style="display:flex;flex-direction:column;justify-content:space-between;">
-          <div>
-            <h4><span>⚡</span> Payment Policy</h4>
-            <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:1rem;">
-              Pay via UPI to <strong>pratikkarthiya6@oksbi</strong> when the 5th application is reached.
-            </p>
-          </div>
-          <button class="btn btn-primary" onclick="switchSection('payments')" style="width:100%;background:rgba(52,199,89,0.15);color:var(--accent-green);box-shadow:none;">
-            💳 View Payment Records
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ========================================================
-         SECTION 2: SUBMIT APPLICATION
-         ======================================================== -->
-    <div class="dashboard-section" id="section-submit">
-      <div class="submit-card">
-        <h3 id="formTitle"><span>📝</span> Submit Application</h3>
-        <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:1.25rem;">
-          Submit your candidate application details and passport photograph.
-        </p>
         <div class="alert alert-error" id="submitError"></div>
         <div class="alert alert-success" id="submitSuccess"></div>
 
@@ -130,39 +348,49 @@
           <div class="form-row">
             <div class="form-group">
               <label>Application Number *</label>
-              <input type="text" name="applicationNumber" id="appNumberInput" required placeholder="e.g. APP-2026-8801">
+              <input type="text" name="applicationNumber" id="appNumberInput" required placeholder="e.g. 1234567890" autocomplete="off">
             </div>
             <div class="form-group">
               <label>Date of Birth *</label>
               <input type="date" name="dateOfBirth" id="dobInput" required>
             </div>
           </div>
+
           <div class="form-row">
             <div class="form-group">
               <label>Application Password *</label>
-              <input type="password" name="appPassword" id="appPasswordInput" required placeholder="Enter password for this app">
+              <div class="kp-pass-wrap">
+                <input type="password" name="appPassword" id="appPasswordInput" required placeholder="Enter application password" autocomplete="off">
+                <button type="button" class="kp-eye-btn" onclick="toggleAppPasswordVisibility()" title="Show/Hide Password" id="appPassEyeBtn">👁️</button>
+              </div>
             </div>
+
             <div class="form-group">
-              <label>Applicant Photo (Required, Up to 10 MB) *</label>
-              <input type="file" name="photo" id="photoInput" accept="image/*" required onchange="previewPhoto(this)">
-              <small style="color:var(--text-secondary);font-size:0.75rem;margin-top:4px;display:block;">Supports JPG, PNG up to 10 MB (auto-optimized for portal)</small>
-              <div class="photo-preview-box" id="photoPreviewBox">
+              <label>Applicant Photo (Up to 10 MB) *</label>
+              <label class="kp-upload-zone" for="photoInput">
+                <span style="font-size:1.5rem;">📷</span>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:0.86rem;font-weight:700;color:var(--text-main);" id="photoZoneTitle">Tap to choose candidate photo</div>
+                  <div style="font-size:0.74rem;color:var(--text-secondary);">JPG or PNG • Auto-optimized</div>
+                </div>
+              </label>
+              <input type="file" name="photo" id="photoInput" accept="image/*" required onchange="previewPhoto(this)" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none;">
+              <div class="photo-preview-box" id="photoPreviewBox" style="margin-top:0.5rem;">
                 <img id="photoPreviewImg" src="" alt="Photo preview">
                 <span style="font-size:0.8rem;color:var(--text-secondary);" id="photoPreviewName"></span>
               </div>
             </div>
           </div>
 
-          <!-- Dynamic Action Button -->
-          <button type="submit" class="btn btn-primary" id="submitBtn" style="width:100%;padding:0.9rem;font-size:1rem;margin-top:0.5rem;">
-            🚀 Submit Application (Free for Now)
+          <button type="submit" class="btn btn-primary" id="submitBtn" style="width:100%;padding:0.95rem;font-size:1rem;margin-top:0.4rem;justify-content:center;">
+            🚀 Submit Application
           </button>
         </form>
       </div>
     </div>
 
     <!-- ========================================================
-         SECTION 3: MY APPLICATIONS (WITH FILTERS & SEARCH)
+         SECTION 2: MY APPLICATIONS (TRACKING & CORRECTIONS)
          ======================================================== -->
     <div class="dashboard-section" id="section-apps">
       <div class="toolbar-bar">
@@ -172,13 +400,13 @@
         </div>
 
         <div class="filter-pills" id="appFilterPills">
-          <button class="filter-pill active" onclick="setAppFilter('all')">All</button>
-          <button class="filter-pill" onclick="setAppFilter('pending')">Pending</button>
-          <button class="filter-pill" onclick="setAppFilter('correction')">⚠️ Needs Correction</button>
-          <button class="filter-pill" onclick="setAppFilter('approved')">Approved</button>
-          <button class="filter-pill" onclick="setAppFilter('rejected')">Rejected</button>
-          <button class="filter-pill" onclick="setAppFilter('paid')">Batch Paid</button>
-          <button class="filter-pill" onclick="setAppFilter('unpaid')">Unpaid</button>
+          <button class="filter-pill active" data-filter="all" onclick="setAppFilter('all')">All</button>
+          <button class="filter-pill" data-filter="pending" onclick="setAppFilter('pending')">Pending</button>
+          <button class="filter-pill" data-filter="correction" onclick="setAppFilter('correction')">⚠️ Fix Needed</button>
+          <button class="filter-pill" data-filter="approved" onclick="setAppFilter('approved')">Approved</button>
+          <button class="filter-pill" data-filter="rejected" onclick="setAppFilter('rejected')">Rejected</button>
+          <button class="filter-pill" data-filter="paid" onclick="setAppFilter('paid')">Paid</button>
+          <button class="filter-pill" data-filter="unpaid" onclick="setAppFilter('unpaid')">Unpaid</button>
         </div>
       </div>
 
@@ -191,161 +419,50 @@
     </div>
 
     <!-- ========================================================
-         SECTION 4: MY PROFILE & APPLICATION FEE CONTROLS
-         ======================================================== -->
-    <div class="dashboard-section" id="section-profile">
-      <div class="section-header-card">
-        <div>
-          <h3><span>👤</span> Candidate Profile & Pricing Terms</h3>
-          <p>Your candidate account information and administrator-assigned application fee rate.</p>
-        </div>
-        <button class="btn btn-primary btn-sm" onclick="switchSection('submit')">➕ Submit New App</button>
-      </div>
-
-      <div class="profile-grid">
-        <div class="profile-card">
-          <h4><span>ℹ️</span> Account Information</h4>
-          <div class="profile-item">
-            <span class="label">Full Name</span>
-            <span class="value" id="profName">-</span>
-          </div>
-          <div class="profile-item">
-            <span class="label">Email Address (Login ID)</span>
-            <span class="value" id="profEmail">-</span>
-          </div>
-          <div class="profile-item">
-            <span class="label">Candidate ID</span>
-            <span class="value" id="profId">-</span>
-          </div>
-          <div class="profile-item">
-            <span class="label">Registration Date</span>
-            <span class="value" id="profRegistered">-</span>
-          </div>
-        </div>
-
-        <div class="profile-card">
-          <h4><span>💰</span> Application Fee Structure</h4>
-          <div class="profile-item">
-            <span class="label">Single Application Fee</span>
-            <span class="value" style="color:var(--accent-blue);" id="profSingleFee">₹50.00</span>
-          </div>
-          <div class="profile-item">
-            <span class="label">5-Batch Cycle Fee</span>
-            <span class="value" style="font-weight:700;color:var(--accent-blue);" id="profBatchFee">₹250.00</span>
-          </div>
-          <div class="profile-item">
-            <span class="label">Billing Mode</span>
-            <span class="value"><span class="badge badge-approved" style="font-size:0.75rem;">5-App Batch</span></span>
-          </div>
-          <div class="profile-item">
-            <span class="label">Payment Status</span>
-            <span class="value" id="profBatchDue">Apps 1–4 Free</span>
-          </div>
-        </div>
-
-        <div class="profile-card">
-          <h4><span>📊</span> Submission Summary</h4>
-          <div class="profile-item">
-            <span class="label">Total Applications</span>
-            <span class="value" id="profTotalApps">0</span>
-          </div>
-          <div class="profile-item">
-            <span class="label">Approved</span>
-            <span class="value" style="color:var(--accent-green);" id="profApproved">0</span>
-          </div>
-          <div class="profile-item">
-            <span class="label">Pending Review</span>
-            <span class="value" style="color:var(--accent-orange);" id="profPending">0</span>
-          </div>
-          <div class="profile-item">
-            <span class="label">Total Fees Settled</span>
-            <span class="value" style="color:var(--accent-green);font-weight:700;" id="profTotalPaid">₹0.00</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ========================================================
-         SECTION 5: PAYMENTS & RECEIPTS LEDGER
-         ======================================================== -->
-    <div class="dashboard-section" id="section-payments">
-      <div class="section-header-card">
-        <div>
-          <h3><span>💳</span> Batch Payments & Bank UTR Ledger</h3>
-          <p>Record of settled 5-application batches, transaction references, and payment receipts.</p>
-        </div>
-        <div style="font-size:0.85rem;color:var(--text-secondary);">
-          Beneficiary: <strong>Pratik Karthiya</strong> (<code>pratikkarthiya6@oksbi</code>)
-        </div>
-      </div>
-
-      <div class="users-table-wrapper">
-        <div class="table-scroll-container">
-          <table>
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Batch Applications</th>
-                <th>Amount Settled</th>
-                <th>Bank UTR / Ref #</th>
-                <th>Date Settled</th>
-                <th>Receipt Screenshot</th>
-                <th>Payment Status</th>
-              </tr>
-            </thead>
-            <tbody id="paymentLedgerBody">
-              <tr><td colspan="7" style="text-align:center;padding:2.5rem;color:var(--text-secondary)">No payment records yet.</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- ========================================================
-         SECTION 6: PREPAID WALLET & PASSBOOK
+         SECTION 3: WALLET, PROFILE & PAYMENTS HUB
          ======================================================== -->
     <div class="dashboard-section" id="section-wallet">
-      <div class="section-header-card">
-        <div>
-          <h3><span>💳</span> Prepaid Wallet & Passbook</h3>
-          <p>Pre-fund your candidate wallet for instant application submission and zero-delay processing.</p>
+      <!-- Compact Profile & Pricing Strip -->
+      <div class="kp-profile-strip">
+        <div class="kp-profile-pill">
+          <span class="k">Candidate</span>
+          <span class="v"><span id="profName">-</span> <small style="font-weight:500;color:var(--text-secondary);" id="profId"></small></span>
         </div>
-        <button class="btn btn-primary" onclick="openAddMoneyModal()" style="background:linear-gradient(135deg,#34c759 0%,#248a3d 100%);border:none;font-weight:700;">
+        <div class="kp-profile-pill">
+          <span class="k">Email</span>
+          <span class="v" id="profEmail">-</span>
+        </div>
+        <div class="kp-profile-pill">
+          <span class="k">Fee Rate</span>
+          <span class="v" style="color:var(--accent-blue);"><span id="profSingleFee">₹50.00</span>/app • <small id="profBatchFee">₹250.00</small> batch</span>
+        </div>
+        <div class="kp-profile-pill">
+          <span class="k">Current Status</span>
+          <span class="v" id="profBatchDue">Apps 1–4 Free</span>
+        </div>
+        <div class="kp-profile-pill" style="display:none;">
+          <span class="v" id="profRegistered">-</span>
+          <span class="v" id="profTotalApps">0</span>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="openAddMoneyModal()" style="background:linear-gradient(135deg,#34c759 0%,#248a3d 100%);border:none;font-weight:700;">
           ➕ Add Money to Wallet
         </button>
       </div>
 
-      <!-- Wallet Overview Cards -->
-      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:1.25rem;margin-bottom:1.5rem;">
-        <div class="profile-card" style="background:linear-gradient(135deg,rgba(52,199,89,0.12) 0%,rgba(0,113,227,0.08) 100%);border:1px solid rgba(52,199,89,0.35);">
-          <div style="font-size:0.8rem;text-transform:uppercase;color:var(--text-secondary);font-weight:700;">Available Wallet Balance</div>
-          <div style="font-size:2.5rem;font-weight:800;color:#15803d;margin:0.5rem 0;" id="walletBigBalance">₹0.00</div>
-          <div style="font-size:0.85rem;color:var(--text-main);font-weight:600;" id="walletCoverageText">Covers 0 applications at current rate</div>
-          <div style="margin-top:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
-            <button class="btn btn-sm btn-primary" onclick="openAddMoneyModal(100)" style="padding:0.35rem 0.75rem;font-size:0.8rem;">+ ₹100</button>
-            <button class="btn btn-sm btn-primary" onclick="openAddMoneyModal(250)" style="padding:0.35rem 0.75rem;font-size:0.8rem;">+ ₹250</button>
-            <button class="btn btn-sm btn-primary" onclick="openAddMoneyModal(500)" style="padding:0.35rem 0.75rem;font-size:0.8rem;">+ ₹500</button>
-            <button class="btn btn-sm btn-primary" onclick="openAddMoneyModal(1000)" style="padding:0.35rem 0.75rem;font-size:0.8rem;">+ ₹1000</button>
+      <!-- Unified Ledger Card with Sub-Tabs -->
+      <div class="users-table-wrapper">
+        <div class="table-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem;padding:0.95rem 1.25rem;">
+          <div class="kp-sub-tabs">
+            <button class="kp-sub-tab active" id="subTabWalletBtn" onclick="switchWalletSubTab('passbook')">💳 Wallet Passbook</button>
+            <button class="kp-sub-tab" id="subTabPaymentsBtn" onclick="switchWalletSubTab('payments')">🧾 Application &amp; Batch Payments</button>
+          </div>
+          <div style="font-size:0.8rem;color:var(--text-secondary);">
+            UPI ID: <code style="font-weight:700;color:var(--text-main);">pratikkarthiya6@oksbi</code>
           </div>
         </div>
 
-        <div class="profile-card">
-          <h4><span>⚡</span> How Prepaid Wallet Works</h4>
-          <ul style="font-size:0.85rem;color:var(--text-secondary);line-height:1.6;padding-left:1.2rem;margin:0.5rem 0 0 0;">
-            <li><strong>Instant Settlement:</strong> When submitting an application, fee is deducted directly from your wallet balance.</li>
-            <li><strong>No Batch Waiting:</strong> Applications are marked <strong>⚡ PAID</strong> immediately on submission.</li>
-            <li><strong>Auto-Verification:</strong> UPI top-ups with 12-digit UTR are credited automatically.</li>
-            <li><strong>Safe & Tracked:</strong> Every transaction is logged with time and remaining balance.</li>
-          </ul>
-        </div>
-      </div>
-
-      <!-- Wallet Transaction History -->
-      <div class="users-table-wrapper">
-        <div class="table-header">
-          <h3>Wallet Passbook & Transaction Ledger</h3>
-        </div>
-        <div class="table-scroll-container">
+        <!-- Sub-view 1: Wallet Passbook -->
+        <div class="table-scroll-container" id="walletLedgerWrap">
           <table>
             <thead>
               <tr>
@@ -364,53 +481,64 @@
             </tbody>
           </table>
         </div>
+
+        <!-- Sub-view 2: Application & Batch Payments -->
+        <div class="table-scroll-container" id="paymentLedgerWrap" style="display:none;">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Applications</th>
+                <th>Amount Settled</th>
+                <th>Bank UTR / Ref #</th>
+                <th>Date Settled</th>
+                <th>Receipt</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="paymentLedgerBody">
+              <tr><td colspan="7" style="text-align:center;padding:2.5rem;color:var(--text-secondary)">No payment records yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- YouPI-PG Glass Batch Checkout Modal with UTR & Screenshot Upload -->
+  <!-- YouPI-PG Glass Batch/One-Time Checkout Modal -->
   <div class="modal-overlay" id="youpiModalOverlay">
-    <div class="modal" style="max-width: 500px; text-align: center;">
+    <div class="modal" style="max-width: 480px; text-align: center;">
       <div class="modal-header">
         <div style="display:flex;align-items:center;gap:0.5rem;">
           <div class="logo-icon" style="width:30px;height:30px;font-size:0.9rem;">⚡</div>
-          <h3 style="font-size:1.15rem;">Batch Payment (5 Applications)</h3>
+          <h3 style="font-size:1.12rem;">Complete UPI Payment</h3>
         </div>
         <button class="modal-close" onclick="closeYoupiModal()">✕</button>
       </div>
-      <div class="modal-body" style="padding:1.5rem 1.75rem;">
-        <div style="background:rgba(0,113,227,0.08);border:1px solid rgba(0,113,227,0.2);border-radius:10px;padding:0.6rem 0.8rem;margin-bottom:1rem;font-size:0.85rem;color:var(--accent-blue);font-weight:600;">
-          🎉 5th Application Reached! Pay for all 5 applications in one single transaction.
-        </div>
+      <div class="modal-body" style="padding:1.35rem 1.5rem;">
+        <div class="kp-step-pill">Step 1: Pay via QR or UPI App</div>
+        <div style="font-size:0.84rem;color:var(--text-secondary);">Paying to <strong style="color:var(--text-main);">Pratik Karthiya</strong> (<code>pratikkarthiya6@oksbi</code>)</div>
+        <div style="font-size:2.2rem;font-weight:800;color:var(--accent-blue);margin:0.35rem 0 0.85rem;" id="modalFeeAmount">₹250.00</div>
 
-        <div style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:0.2rem;">Paying to: <strong style="color:var(--text-main);">Pratik Karthiya</strong></div>
-        <div style="font-size:0.8rem;color:var(--text-tertiary);margin-bottom:0.4rem;">UPI VPA: <code>pratikkarthiya6@oksbi</code></div>
-        <div style="font-size:2.3rem;font-weight:800;color:var(--accent-blue);margin-bottom:1rem;" id="modalFeeAmount">₹250.00</div>
-
-        <!-- High-contrast QR code container -->
-        <div style="display:flex;justify-content:center;margin-bottom:1.25rem;">
+        <div style="display:flex;justify-content:center;margin-bottom:1rem;">
           <div id="qrcode" style="background:#ffffff;padding:12px;border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,0.12);display:inline-block;min-width:180px;min-height:180px;"></div>
         </div>
 
-        <!-- Open in UPI app (GPay / PhonePe / Paytm / BHIM) -->
-        <a id="upiIntentLink" href="#" class="btn btn-primary" style="display:block;margin-bottom:1.25rem;text-decoration:none;font-size:0.95rem;padding:0.75rem;">
-          📱 Open in GPay / PhonePe / UPI App
+        <a id="upiIntentLink" href="#" class="btn btn-primary" style="display:block;margin-bottom:1rem;text-decoration:none;font-size:0.92rem;padding:0.75rem;">
+          📱 Open in GPay / PhonePe / Paytm
         </a>
 
-        <!-- 12-Digit Manual Bank UTR & Screenshot Verification Input -->
-        <div style="background:rgba(255,255,255,0.6);border:1px solid var(--glass-border);border-radius:12px;padding:1.1rem;text-align:left;">
-          <label style="font-weight:700;font-size:0.85rem;display:block;margin-bottom:0.35rem;color:var(--text-main);">
-            Enter 12-Digit Bank UTR / Transaction ID *
-          </label>
-          <input type="text" id="manualUtrInput" placeholder="e.g. 432109876543 (Required)" maxlength="20" style="width:100%;padding:0.65rem 0.85rem;border-radius:8px;border:1px solid var(--glass-border);margin-bottom:0.85rem;font-size:0.9rem;font-weight:600;letter-spacing:0.5px;">
+        <div style="background:rgba(255,255,255,0.65);border:1px solid var(--glass-border);border-radius:12px;padding:1rem;text-align:left;">
+          <div class="kp-step-pill">Step 2: Enter 12-Digit UTR</div>
+          <input type="text" id="manualUtrInput" placeholder="Enter 12-digit Bank UTR (e.g. 432109876543)" maxlength="20" style="width:100%;padding:0.65rem 0.85rem;border-radius:8px;border:1px solid var(--glass-border);margin-bottom:0.75rem;font-size:0.9rem;font-weight:600;letter-spacing:0.5px;">
 
-          <label style="font-weight:700;font-size:0.85rem;display:block;margin-bottom:0.35rem;color:var(--text-main);">
-            Attach Payment Screenshot / Receipt (Optional)
+          <label style="font-weight:600;font-size:0.8rem;display:block;margin-bottom:0.3rem;color:var(--text-secondary);">
+            Screenshot / Receipt (Optional)
           </label>
           <input type="file" id="paymentScreenshotInput" accept="image/*" style="width:100%;font-size:0.82rem;color:var(--text-secondary);margin-bottom:0.85rem;">
 
-          <button class="btn btn-primary" id="confirmPaymentBtn" onclick="finalizeBatchSubmission()" style="width:100%;justify-content:center;padding:0.8rem;background:linear-gradient(135deg,#34c759 0%,#248a3d 100%);border:none;color:white;font-weight:700;">
-            ✅ Submit 5th Application & Settle All 5
+          <button class="btn btn-primary" id="confirmPaymentBtn" onclick="finalizeBatchSubmission()" style="width:100%;justify-content:center;padding:0.82rem;background:linear-gradient(135deg,#34c759 0%,#248a3d 100%);border:none;color:white;font-weight:700;">
+            ✅ Verify Payment &amp; Submit
           </button>
         </div>
       </div>
@@ -423,7 +551,7 @@
       <div class="modal-header">
         <div style="display:flex;align-items:center;gap:0.5rem;">
           <div class="logo-icon" style="width:30px;height:30px;font-size:0.9rem;background:rgba(245,158,11,0.2);color:#b45309;">⚠️</div>
-          <h3 style="font-size:1.15rem;">Edit & Resubmit Application</h3>
+          <h3 style="font-size:1.15rem;">Edit &amp; Resubmit Application</h3>
         </div>
         <button class="modal-close" onclick="closeCorrectionModal()">✕</button>
       </div>
@@ -474,56 +602,50 @@
 
   <!-- Add Money to Wallet Modal -->
   <div class="modal-overlay" id="walletModalOverlay">
-    <div class="modal" style="max-width: 480px; text-align: center;">
+    <div class="modal" style="max-width: 470px; text-align: center;">
       <div class="modal-header">
         <div style="display:flex;align-items:center;gap:0.5rem;">
           <div class="logo-icon" style="width:30px;height:30px;font-size:0.9rem;background:rgba(52,199,89,0.2);color:#15803d;">💳</div>
-          <h3 style="font-size:1.15rem;">Add Money to Wallet</h3>
+          <h3 style="font-size:1.12rem;">Add Money to Wallet</h3>
         </div>
         <button class="modal-close" onclick="closeAddMoneyModal()">✕</button>
       </div>
-      <div class="modal-body" style="padding:1.5rem 1.75rem;">
-        <label style="font-size:0.85rem;font-weight:700;display:block;text-align:left;margin-bottom:0.4rem;color:var(--text-main);">
-          Choose Top-Up Amount
-        </label>
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.5rem;margin-bottom:0.85rem;">
+      <div class="modal-body" style="padding:1.35rem 1.5rem;">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.5rem;margin-bottom:0.75rem;">
           <button type="button" class="btn btn-sm wallet-quick-btn" onclick="setTopupAmount(100)" style="padding:0.5rem;font-weight:700;">₹100</button>
           <button type="button" class="btn btn-sm wallet-quick-btn" onclick="setTopupAmount(250)" style="padding:0.5rem;font-weight:700;">₹250</button>
           <button type="button" class="btn btn-sm wallet-quick-btn active" onclick="setTopupAmount(500)" style="padding:0.5rem;font-weight:700;background:var(--accent-blue);color:white;">₹500</button>
           <button type="button" class="btn btn-sm wallet-quick-btn" onclick="setTopupAmount(1000)" style="padding:0.5rem;font-weight:700;">₹1000</button>
         </div>
 
-        <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1rem;">
+        <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.85rem;">
           <span style="font-weight:700;font-size:1.1rem;color:var(--text-main);">₹</span>
-          <input type="number" id="customTopupInput" value="500" min="10" step="10" oninput="onCustomAmountChange()" style="flex:1;padding:0.6rem 0.8rem;border-radius:8px;border:1px solid var(--glass-border);font-size:1.2rem;font-weight:700;color:var(--accent-blue);">
+          <input type="number" id="customTopupInput" value="500" min="10" step="10" oninput="onCustomAmountChange()" style="flex:1;padding:0.55rem 0.8rem;border-radius:8px;border:1px solid var(--glass-border);font-size:1.15rem;font-weight:700;color:var(--accent-blue);">
         </div>
 
-        <!-- Dynamic High-contrast QR code container -->
-        <div style="display:flex;justify-content:center;margin-bottom:1rem;">
+        <div style="display:flex;justify-content:center;margin-bottom:0.85rem;">
           <div id="walletQrcode" style="background:#ffffff;padding:12px;border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,0.12);display:inline-block;min-width:180px;min-height:180px;"></div>
         </div>
 
-        <!-- Open in UPI app -->
-        <a id="walletUpiIntentLink" href="#" class="btn btn-primary" style="display:block;margin-bottom:1.25rem;text-decoration:none;font-size:0.95rem;padding:0.75rem;">
-          📱 Open in GPay / PhonePe / Paytm / UPI
+        <a id="walletUpiIntentLink" href="#" class="btn btn-primary" style="display:block;margin-bottom:1rem;text-decoration:none;font-size:0.92rem;padding:0.72rem;">
+          📱 Open in GPay / PhonePe / Paytm
         </a>
 
-        <!-- 12-Digit Bank UTR & Screenshot -->
-        <div style="background:rgba(255,255,255,0.6);border:1px solid var(--glass-border);border-radius:12px;padding:1.1rem;text-align:left;">
-          <label style="font-weight:700;font-size:0.85rem;display:block;margin-bottom:0.35rem;color:var(--text-main);">
+        <div style="background:rgba(255,255,255,0.65);border:1px solid var(--glass-border);border-radius:12px;padding:1rem;text-align:left;">
+          <label style="font-weight:700;font-size:0.84rem;display:block;margin-bottom:0.35rem;color:var(--text-main);">
             Enter 12-Digit Bank UTR / Transaction ID *
           </label>
-          <input type="text" id="walletUtrInput" placeholder="e.g. 432109876543 (Required)" maxlength="20" style="width:100%;padding:0.65rem 0.85rem;border-radius:8px;border:1px solid var(--glass-border);margin-bottom:0.85rem;font-size:0.9rem;font-weight:600;letter-spacing:0.5px;">
+          <input type="text" id="walletUtrInput" placeholder="e.g. 432109876543" maxlength="20" style="width:100%;padding:0.62rem 0.85rem;border-radius:8px;border:1px solid var(--glass-border);margin-bottom:0.75rem;font-size:0.9rem;font-weight:600;letter-spacing:0.5px;">
 
-          <label style="font-weight:700;font-size:0.85rem;display:block;margin-bottom:0.35rem;color:var(--text-main);">
-            Attach Payment Screenshot / Receipt (Optional)
+          <label style="font-weight:600;font-size:0.8rem;display:block;margin-bottom:0.3rem;color:var(--text-secondary);">
+            Screenshot / Receipt (Optional)
           </label>
-          <input type="file" id="walletReceiptInput" accept="image/*" style="width:100%;font-size:0.82rem;color:var(--text-secondary);margin-bottom:0.85rem;">
+          <input type="file" id="walletReceiptInput" accept="image/*" style="width:100%;font-size:0.82rem;color:var(--text-secondary);margin-bottom:0.8rem;">
 
-          <div id="walletTopupError" style="display:none;color:var(--accent-red);font-size:0.85rem;margin-bottom:0.85rem;font-weight:600;"></div>
+          <div id="walletTopupError" style="display:none;color:var(--accent-red);font-size:0.85rem;margin-bottom:0.8rem;font-weight:600;"></div>
 
           <button class="btn btn-primary" id="confirmTopupBtn" onclick="submitWalletTopup()" style="width:100%;justify-content:center;padding:0.8rem;background:linear-gradient(135deg,#34c759 0%,#248a3d 100%);border:none;color:white;font-weight:700;">
-            ✅ Verify & Add Money to Wallet
+            ✅ Verify &amp; Add Money to Wallet
           </button>
         </div>
       </div>
@@ -533,7 +655,6 @@
   <!-- Automatic Payment Done Celebration Popup Modal -->
   <div class="modal-overlay" id="paymentSuccessModalOverlay" style="z-index: 10000;">
     <div class="modal" style="max-width: 440px; text-align: center; padding: 2rem 1.75rem; border-radius: 24px; box-shadow: 0 20px 60px rgba(0,0,0,0.25);">
-      <!-- Animated Green Success Checkmark -->
       <div style="margin: 0 auto 1.25rem; width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg, #34c759 0%, #248a3d 100%); display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 25px rgba(52, 199, 89, 0.4); animation: popSuccess 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
         <span style="font-size: 2.2rem; color: white;">✓</span>
       </div>
@@ -548,7 +669,6 @@
         ₹250.00
       </div>
 
-      <!-- Receipt / Details card -->
       <div style="background: rgba(255, 255, 255, 0.65); border: 1px solid var(--glass-border); border-radius: 14px; padding: 1rem; text-align: left; margin-bottom: 1.25rem;">
         <div style="display: flex; justify-content: space-between; margin-bottom: 0.4rem; font-size: 0.85rem;">
           <span style="color: var(--text-secondary);">Bank UTR / Ref #:</span>
@@ -586,14 +706,58 @@
     let paymentCheckTimer = null;
     let paymentCheckStartTime = 0;
 
-    // Soft celebration audio chime using native Web Audio API (zero external assets)
+    function parseUtcDate(d) {
+      if (!d) return new Date(0);
+      const s = String(d).trim();
+      if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(s)) {
+        return new Date(s.replace(' ', 'T') + 'Z');
+      }
+      return new Date(s);
+    }
+
+    function toggleAppPasswordVisibility() {
+      const inp = document.getElementById('appPasswordInput');
+      const btn = document.getElementById('appPassEyeBtn');
+      if (!inp) return;
+      if (inp.type === 'password') {
+        inp.type = 'text';
+        if (btn) btn.textContent = '🙈';
+      } else {
+        inp.type = 'password';
+        if (btn) btn.textContent = '👁️';
+      }
+    }
+
+    function switchWalletSubTab(tab) {
+      const passbookWrap = document.getElementById('walletLedgerWrap');
+      const paymentsWrap = document.getElementById('paymentLedgerWrap');
+      const btnW = document.getElementById('subTabWalletBtn');
+      const btnP = document.getElementById('subTabPaymentsBtn');
+      if (tab === 'payments') {
+        if (passbookWrap) passbookWrap.style.display = 'none';
+        if (paymentsWrap) paymentsWrap.style.display = 'block';
+        if (btnW) btnW.classList.remove('active');
+        if (btnP) btnP.classList.add('active');
+      } else {
+        if (passbookWrap) passbookWrap.style.display = 'block';
+        if (paymentsWrap) paymentsWrap.style.display = 'none';
+        if (btnW) btnW.classList.add('active');
+        if (btnP) btnP.classList.remove('active');
+      }
+    }
+
+    function openCorrectionsQueue() {
+      switchSection('apps');
+      setAppFilter('correction');
+    }
+
     function playSuccessChime() {
       try {
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         if (!AudioContext) return;
         const ctx = new AudioContext();
         const now = ctx.currentTime;
-        const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6 chord
+        const notes = [523.25, 659.25, 783.99, 1046.50];
         notes.forEach((freq, idx) => {
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
@@ -607,12 +771,9 @@
           osc.start(now + idx * 0.08);
           osc.stop(now + idx * 0.08 + 0.6);
         });
-      } catch (e) {
-        // AudioContext may be restricted by autoplay policy
-      }
+      } catch (e) {}
     }
 
-    // Show celebratory payment verified popup modal
     function showPaymentSuccessCelebration(opts = {}) {
       const {
         amount = 250,
@@ -644,10 +805,9 @@
       if (modal) modal.classList.remove('active');
     }
 
-    // Start polling /api/user/check-payment while payment modal is open
     function startAutoPaymentDetection() {
       stopAutoPaymentDetection();
-      paymentCheckStartTime = Date.now() - 3000; // Look back 3 seconds
+      paymentCheckStartTime = Date.now() - 3000;
       paymentCheckTimer = setInterval(async () => {
         try {
           const res = await fetch(`/api/user/check-payment?since=${paymentCheckStartTime}`);
@@ -655,11 +815,9 @@
           const data = await res.json().catch(() => ({}));
           if (data && data.verified) {
             stopAutoPaymentDetection();
-            // Close whatever checkout or top-up modal was active
             closeYoupiModal();
             closeAddMoneyModal();
 
-            // Refresh UI data
             if (data.walletBalance !== undefined) {
               userWalletBalance = Number(data.walletBalance);
               updateWalletUI();
@@ -668,20 +826,17 @@
             loadBatchStatus();
             loadApplications();
 
-            // Pop up celebratory success modal
             showPaymentSuccessCelebration({
               amount: data.amount || 250.00,
               utr: data.utr || data.referenceId || 'BANK-RECONCILED',
-              title: data.type === 'wallet' ? 'Money Added to Wallet!' : 'Batch Payment Verified!',
+              title: data.type === 'wallet' ? 'Money Added to Wallet!' : 'Payment Verified!',
               tag: '⚡ AUTO-VERIFIED VIA OBSERVER',
-              message: data.type === 'wallet' 
+              message: data.type === 'wallet'
                 ? `₹${Number(data.amount).toFixed(2)} has been credited to your prepaid wallet via live UPI reconciliation.`
-                : 'Your batch applications have been marked as PAID immediately. Zero manual review needed!'
+                : 'Your application payment has been marked as PAID immediately.'
             });
           }
-        } catch (e) {
-          // Silent polling retry
-        }
+        } catch (e) {}
       }, 2500);
     }
 
@@ -696,15 +851,21 @@
     const MERCHANT_NAME = 'Pratik Karthiya';
 
     function switchSection(sectionId) {
+      // Map legacy section ids cleanly
+      if (sectionId === 'batch' || sectionId === 'submit') sectionId = 'home';
+      if (sectionId === 'profile') sectionId = 'wallet';
+      if (sectionId === 'payments') {
+        sectionId = 'wallet';
+        switchWalletSubTab('payments');
+      }
+
       document.querySelectorAll('.dashboard-section').forEach(el => el.classList.remove('active'));
       const target = document.getElementById('section-' + sectionId);
       if (target) target.classList.add('active');
 
-      const tabs = document.querySelectorAll('#userTabs .ios-tab-btn');
-      tabs.forEach(btn => btn.classList.remove('active'));
-
-      const map = { 'batch': 0, 'submit': 1, 'apps': 2, 'wallet': 3, 'profile': 4, 'payments': 5 };
-      if (tabs[map[sectionId]]) tabs[map[sectionId]].classList.add('active');
+      document.querySelectorAll('#userTabs .ios-tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === sectionId);
+      });
 
       if (sectionId === 'wallet') {
         loadWalletData();
@@ -719,8 +880,7 @@
       currentUserProfile = data.user;
       userWalletBalance = Number(data.user.wallet_balance || 0);
       document.getElementById('userName').textContent = '👤 ' + data.user.name;
-      
-      // Populate Profile Section
+
       document.getElementById('profName').textContent = data.user.name;
       document.getElementById('profEmail').textContent = data.user.email;
       document.getElementById('profId').textContent = '#' + data.user.id;
@@ -738,16 +898,20 @@
       const box = document.getElementById('photoPreviewBox');
       const img = document.getElementById('photoPreviewImg');
       const name = document.getElementById('photoPreviewName');
+      const zoneTitle = document.getElementById('photoZoneTitle');
       if (input.files && input.files[0]) {
         const file = input.files[0];
         if (file.size > 12 * 1024 * 1024) {
           alert('Photo exceeds 10 MB limit. Please select a photo up to 10 MB.');
           input.value = '';
           box.style.display = 'none';
+          if (zoneTitle) zoneTitle.textContent = 'Tap to choose candidate photo';
           return;
         }
         const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
-        name.textContent = `${file.name} (${sizeMb >= 1 ? sizeMb + ' MB' : (file.size / 1024).toFixed(0) + ' KB'})`;
+        const label = `${file.name} (${sizeMb >= 1 ? sizeMb + ' MB' : (file.size / 1024).toFixed(0) + ' KB'})`;
+        name.textContent = label;
+        if (zoneTitle) zoneTitle.textContent = '✅ ' + file.name;
         const reader = new FileReader();
         reader.onload = e => {
           img.src = e.target.result;
@@ -756,10 +920,10 @@
         reader.readAsDataURL(file);
       } else {
         box.style.display = 'none';
+        if (zoneTitle) zoneTitle.textContent = 'Tap to choose candidate photo';
       }
     }
 
-    // Auto-compress large photos up to 10MB down to optimal lightweight web size
     function compressImage(file, maxDimension = 650, quality = 0.7) {
       return new Promise((resolve) => {
         if (!file || !file.type.startsWith('image/')) {
@@ -821,18 +985,18 @@
           const currentSlot = (unpaidCount % 5) + 1;
           is5thApplication = (userPaymentMode === 'batch') && ((unpaidCount % 5) === 4);
 
-          // Profile view fees
           document.getElementById('profSingleFee').textContent = `₹${singleFee.toFixed(2)}`;
           document.getElementById('profBatchFee').textContent = `₹${batchTotal.toFixed(2)}`;
+          updateWalletUI();
 
           if (userPaymentMode === 'one_time') {
             document.getElementById('batchTotalDisplay').textContent = `₹${singleFee.toFixed(2)}`;
-            document.getElementById('singleFeeNote').textContent = `(One-Time Payment / App)`;
+            document.getElementById('singleFeeNote').textContent = `One-Time Payment / App`;
             document.getElementById('profBatchDue').textContent = `Plan: One-Time (₹${singleFee.toFixed(2)}/app)`;
 
             const segments = document.querySelectorAll('#progressSegments .segment');
             segments.forEach(seg => {
-              seg.style.background = 'rgba(88,86,214,0.3)';
+              seg.style.background = 'rgba(88,86,214,0.28)';
               seg.style.borderColor = 'rgba(88,86,214,0.4)';
             });
 
@@ -840,26 +1004,25 @@
               document.getElementById('batchBadge').className = 'badge badge-approved';
               document.getElementById('batchBadge').style.background = 'rgba(52,199,89,0.18)';
               document.getElementById('batchBadge').style.color = '#15803d';
-              document.getElementById('batchBadge').textContent = `💳 Wallet Active (₹${userWalletBalance.toFixed(2)})`;
-              document.getElementById('batchExplainer').innerHTML = `<strong style="color:#15803d;">Wallet Active!</strong> ₹${singleFee.toFixed(2)} is auto-deducted from your wallet for each application submitted.`;
-              document.getElementById('formTitle').innerHTML = `<span>⚡</span> Submit Application (Pay ₹${singleFee.toFixed(2)} from Wallet)`;
+              document.getElementById('batchBadge').textContent = `⚡ Wallet Ready`;
+              document.getElementById('batchExplainer').innerHTML = `<strong style="color:#15803d;">Wallet Active!</strong> ₹${singleFee.toFixed(2)} auto-deducts per application.`;
+              document.getElementById('formTitle').innerHTML = `<span>⚡</span> Submit Application (₹${singleFee.toFixed(2)} from Wallet)`;
               document.getElementById('submitBtn').style.background = 'linear-gradient(135deg,#34c759 0%,#248a3d 100%)';
-              document.getElementById('submitBtn').textContent = `🚀 Submit & Pay ₹${singleFee.toFixed(2)} from Wallet (Balance: ₹${userWalletBalance.toFixed(2)})`;
+              document.getElementById('submitBtn').textContent = `🚀 Submit & Pay ₹${singleFee.toFixed(2)} from Wallet`;
             } else {
               document.getElementById('batchBadge').className = 'badge';
               document.getElementById('batchBadge').style.background = 'rgba(88,86,214,0.15)';
               document.getElementById('batchBadge').style.color = '#5856d6';
-              document.getElementById('batchBadge').textContent = `⚡ One-Time: ₹${singleFee.toFixed(2)}/App`;
-              document.getElementById('batchExplainer').innerHTML = `<strong style="color:var(--text-main);">One-Time Payment Plan:</strong> Each application is ₹${singleFee.toFixed(2)}. Submitting will prompt instant UPI payment for this single application.`;
-              document.getElementById('formTitle').innerHTML = `<span>⚡</span> Submit Application (₹${singleFee.toFixed(2)})`;
+              document.getElementById('batchBadge').textContent = `⚡ One-Time Plan`;
+              document.getElementById('batchExplainer').innerHTML = `Pay ₹${singleFee.toFixed(2)} via UPI per application, or top up wallet for instant 1-tap submit.`;
+              document.getElementById('formTitle').innerHTML = `<span>📝</span> Submit New Application (₹${singleFee.toFixed(2)})`;
               document.getElementById('submitBtn').style.background = '';
               document.getElementById('submitBtn').textContent = `💳 Proceed to Pay ₹${singleFee.toFixed(2)} & Submit`;
             }
           } else {
-            // 5-Batch Plan
             document.getElementById('batchTotalDisplay').textContent = `₹${batchTotal.toFixed(2)}`;
-            document.getElementById('singleFeeNote').textContent = `(₹${singleFee.toFixed(2)} / application)`;
-            document.getElementById('profBatchDue').textContent = is5thApplication ? 'Slot 5/5: Payment Due' : `Slot ${currentSlot}/5: Apps 1-4 Free`;
+            document.getElementById('singleFeeNote').textContent = `₹${singleFee.toFixed(2)} / app • 5-App Batch`;
+            document.getElementById('profBatchDue').textContent = is5thApplication ? 'Slot 5/5: Payment Due' : `Slot ${currentSlot}/5`;
 
             const segments = document.querySelectorAll('#progressSegments .segment');
             segments.forEach((seg, idx) => {
@@ -879,29 +1042,29 @@
               document.getElementById('batchBadge').className = 'badge badge-approved';
               document.getElementById('batchBadge').style.background = 'rgba(52,199,89,0.18)';
               document.getElementById('batchBadge').style.color = '#15803d';
-              document.getElementById('batchBadge').textContent = `💳 Wallet Active (₹${userWalletBalance.toFixed(2)})`;
-              document.getElementById('batchExplainer').innerHTML = `<strong style="color:#15803d;">Prepaid Wallet Active!</strong> Applications are automatically paid from your wallet balance (₹${singleFee.toFixed(2)}/app) with zero delay.`;
-              document.getElementById('formTitle').innerHTML = `<span>⚡</span> Submit Application (Pay ₹${singleFee.toFixed(2)} from Wallet)`;
+              document.getElementById('batchBadge').textContent = `⚡ Wallet Ready`;
+              document.getElementById('batchExplainer').innerHTML = `<strong style="color:#15803d;">Wallet Active!</strong> ₹${singleFee.toFixed(2)} auto-deducts instantly on submit.`;
+              document.getElementById('formTitle').innerHTML = `<span>⚡</span> Submit Application (₹${singleFee.toFixed(2)} from Wallet)`;
               document.getElementById('submitBtn').style.background = 'linear-gradient(135deg,#34c759 0%,#248a3d 100%)';
-              document.getElementById('submitBtn').textContent = `🚀 Submit & Pay ₹${singleFee.toFixed(2)} from Wallet (Balance: ₹${userWalletBalance.toFixed(2)})`;
+              document.getElementById('submitBtn').textContent = `🚀 Submit & Pay ₹${singleFee.toFixed(2)} from Wallet`;
             } else if (is5thApplication) {
               document.getElementById('batchBadge').className = 'badge badge-approved';
               document.getElementById('batchBadge').style.background = '';
               document.getElementById('batchBadge').style.color = '';
-              document.getElementById('batchBadge').textContent = '⚠️ Slot 5 of 5 — Payment Due!';
-              document.getElementById('batchExplainer').innerHTML = `<strong style="color:var(--text-main);">This is your 5th application.</strong> Submitting this will prompt payment of ₹${batchTotal.toFixed(2)} covering all 5 applications.`;
-              document.getElementById('formTitle').innerHTML = `<span>⚡</span> Submit 5th Application & Pay Batch (₹${batchTotal.toFixed(2)})`;
+              document.getElementById('batchBadge').textContent = '⚠️ Slot 5 of 5 — Due';
+              document.getElementById('batchExplainer').innerHTML = `<strong style="color:var(--text-main);">5th application reached!</strong> Settle ₹${batchTotal.toFixed(2)} for all 5 apps.`;
+              document.getElementById('formTitle').innerHTML = `<span>⚡</span> Submit 5th App &amp; Pay Batch (₹${batchTotal.toFixed(2)})`;
               document.getElementById('submitBtn').style.background = '';
-              document.getElementById('submitBtn').textContent = `💳 Proceed to Pay ₹${batchTotal.toFixed(2)} for all 5 Applications`;
+              document.getElementById('submitBtn').textContent = `💳 Pay ₹${batchTotal.toFixed(2)} & Submit 5th App`;
             } else {
               document.getElementById('batchBadge').className = 'badge';
               document.getElementById('batchBadge').style.background = 'rgba(0,113,227,0.15)';
               document.getElementById('batchBadge').style.color = 'var(--accent-blue)';
               document.getElementById('batchBadge').textContent = `Slot ${currentSlot} of 5`;
-              document.getElementById('batchExplainer').textContent = `Applications 1 to 4 submit without payment. (${5 - currentSlot} more before batch payment).`;
+              document.getElementById('batchExplainer').textContent = `Apps 1–4 submit free (${5 - currentSlot} more before batch payment).`;
               document.getElementById('formTitle').innerHTML = `<span>📝</span> Submit Application #${currentSlot}`;
               document.getElementById('submitBtn').style.background = '';
-              document.getElementById('submitBtn').textContent = `🚀 Submit Application #${currentSlot} (No Payment Required)`;
+              document.getElementById('submitBtn').textContent = `🚀 Submit Application #${currentSlot} (Free Now)`;
             }
           }
         }
@@ -924,12 +1087,11 @@
           return;
         }
         submitBtn.disabled = true;
-        submitBtn.textContent = 'Optimizing Photo & Preparing...';
+        submitBtn.textContent = 'Optimizing Photo...';
         const optPhoto = await compressImage(photoFile, 1200, 0.85);
         pendingFormData.set('photo', optPhoto, photoFile.name);
       }
 
-      // If user has enough wallet balance, proceed with wallet auto-deduct!
       const canPayWithWallet = userWalletBalance >= singleFee;
 
       if (!canPayWithWallet) {
@@ -940,7 +1102,7 @@
           return;
         } else if (is5thApplication) {
           submitBtn.disabled = false;
-          submitBtn.textContent = `💳 Proceed to Pay ₹${batchTotal.toFixed(2)} for all 5 Applications`;
+          submitBtn.textContent = `💳 Pay ₹${batchTotal.toFixed(2)} & Submit 5th App`;
           openBatchPaymentModal(appNumber, batchTotal, false);
           return;
         }
@@ -961,6 +1123,8 @@
           document.getElementById('submitError').classList.remove('show');
           document.getElementById('submitForm').reset();
           document.getElementById('photoPreviewBox').style.display = 'none';
+          const zoneTitle = document.getElementById('photoZoneTitle');
+          if (zoneTitle) zoneTitle.textContent = 'Tap to choose candidate photo';
           if (data.walletBalance !== undefined) {
             userWalletBalance = Number(data.walletBalance);
             updateWalletUI();
@@ -986,14 +1150,14 @@
       document.getElementById('modalFeeAmount').textContent = `₹${total.toFixed(2)}`;
       document.getElementById('manualUtrInput').value = '';
       document.getElementById('paymentScreenshotInput').value = '';
-      
+
       const titleEl = document.querySelector('#youpiModalOverlay h3');
       if (titleEl) {
-        titleEl.textContent = isOneTime ? `⚡ Pay ₹${total.toFixed(2)} for Application #${appNumber}` : `💳 Settle 5-Application Batch (₹${total.toFixed(2)})`;
+        titleEl.textContent = isOneTime ? `⚡ Pay ₹${total.toFixed(2)} for App #${appNumber}` : `💳 Settle 5-App Batch (₹${total.toFixed(2)})`;
       }
       const confirmBtn = document.getElementById('confirmPaymentBtn');
       if (confirmBtn) {
-        confirmBtn.textContent = isOneTime ? `✅ Submit & Settle Application (₹${total.toFixed(2)})` : `✅ Submit 5th Application & Settle All 5`;
+        confirmBtn.textContent = isOneTime ? `✅ Verify & Submit (₹${total.toFixed(2)})` : `✅ Verify & Settle All 5 Apps`;
       }
 
       document.getElementById('youpiModalOverlay').classList.add('active');
@@ -1037,8 +1201,9 @@
       }
 
       const confirmBtn = document.getElementById('confirmPaymentBtn');
+      const origText = confirmBtn.textContent;
       confirmBtn.disabled = true;
-      confirmBtn.textContent = 'Submitting with Screenshot...';
+      confirmBtn.textContent = 'Verifying UTR...';
 
       pendingFormData.set('utrNumber', utr);
 
@@ -1047,7 +1212,7 @@
         if (screenshotFile.size > 12 * 1024 * 1024) {
           alert('Receipt screenshot exceeds 10 MB limit. Please select an image under 10 MB.');
           confirmBtn.disabled = false;
-          confirmBtn.textContent = '✅ Submit 5th Application & Settle All 5';
+          confirmBtn.textContent = origText;
           return;
         }
         confirmBtn.textContent = 'Optimizing Receipt & Submitting...';
@@ -1068,6 +1233,8 @@
           document.getElementById('submitError').classList.remove('show');
           document.getElementById('submitForm').reset();
           document.getElementById('photoPreviewBox').style.display = 'none';
+          const zoneTitle = document.getElementById('photoZoneTitle');
+          if (zoneTitle) zoneTitle.textContent = 'Tap to choose candidate photo';
           if (data.walletBalance !== undefined) {
             userWalletBalance = Number(data.walletBalance);
             updateWalletUI();
@@ -1078,11 +1245,11 @@
           setTimeout(() => document.getElementById('submitSuccess').classList.remove('show'), 6000);
 
           showPaymentSuccessCelebration({
-            amount: batchTotal,
+            amount: data.totalPaid || (userPaymentMode === 'one_time' ? singleFee : batchTotal),
             utr: utr,
-            title: '5-Application Batch Submitted!',
+            title: data.isOneTimePayment ? 'Application Paid & Submitted!' : '5-Application Batch Submitted!',
             tag: '⚡ PAYMENT SETTLED',
-            message: 'All 5 applications have been submitted and their payments verified.'
+            message: data.message || 'Your application and payment have been verified.'
           });
         } else {
           alert(data.error || `Payment submission failed (HTTP ${res.status}). Please verify your UTR and retry.`);
@@ -1091,7 +1258,7 @@
         alert('Submission failed: ' + (err.message || 'Please check your connection and retry.'));
       } finally {
         confirmBtn.disabled = false;
-        confirmBtn.textContent = '✅ Submit 5th Application & Settle All 5';
+        confirmBtn.textContent = origText;
       }
     }
 
@@ -1100,10 +1267,10 @@
       const data = await res.json();
       allUserApplications = data.applications || [];
 
-      // Update counters
       const total = allUserApplications.length;
       const approved = allUserApplications.filter(a => a.status === 'approved').length;
       const pending = allUserApplications.filter(a => a.status === 'pending').length;
+      const corrections = allUserApplications.filter(a => a.status === 'correction');
       const paid = allUserApplications.filter(a => a.payment_status === 'paid');
       const totalPaidAmount = paid.reduce((sum, a) => sum + (a.payment_amount || 0), 0);
 
@@ -1112,6 +1279,19 @@
       document.getElementById('profApproved').textContent = approved;
       document.getElementById('profPending').textContent = pending;
       document.getElementById('profTotalPaid').textContent = `₹${totalPaidAmount.toFixed(2)}`;
+      const tabBadge = document.getElementById('tabAppBadge');
+      if (tabBadge) tabBadge.textContent = total > 0 ? `(${total})` : '';
+
+      const corrBanner = document.getElementById('correctionAlertBanner');
+      if (corrBanner) {
+        if (corrections.length > 0) {
+          corrBanner.style.display = 'flex';
+          document.getElementById('correctionAlertSub').textContent =
+            `${corrections.length} application${corrections.length === 1 ? '' : 's'} need your attention (e.g. #${corrections[0].application_number}).`;
+        } else {
+          corrBanner.style.display = 'none';
+        }
+      }
 
       renderApplicationsList();
       renderPaymentLedger();
@@ -1119,8 +1299,9 @@
 
     function setAppFilter(filter) {
       currentAppFilter = filter;
-      document.querySelectorAll('#appFilterPills .filter-pill').forEach(btn => btn.classList.remove('active'));
-      event.target.classList.add('active');
+      document.querySelectorAll('#appFilterPills .filter-pill').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.filter === filter);
+      });
       renderApplicationsList();
     }
 
@@ -1151,32 +1332,28 @@
       }
 
       list.innerHTML = filtered.map(app => `
-        <div class="app-card" style="${app.status === 'correction' ? 'border-color: rgba(245, 158, 11, 0.4); box-shadow: 0 4px 18px rgba(245, 158, 11, 0.12);' : ''}">
+        <div class="app-card" style="${app.status === 'correction' ? 'border-color: rgba(245, 158, 11, 0.45); box-shadow: 0 4px 18px rgba(245, 158, 11, 0.14);' : ''}">
           ${app.photo_url ? `<a href="${app.photo_url}" target="_blank" title="View Full Photo"><img src="${app.photo_url}" alt="App Photo" class="app-thumb"></a>` : ''}
           <div class="app-info">
             <div class="app-num">${app.application_number}</div>
-            <div class="app-meta">DOB: <strong>${app.date_of_birth}</strong> &nbsp;•&nbsp; Submitted: ${new Date(app.submitted_at).toLocaleDateString()}</div>
+            <div class="app-meta">DOB: <strong>${app.date_of_birth}</strong> &nbsp;•&nbsp; Submitted: ${parseUtcDate(app.submitted_at).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })}</div>
             <div class="app-meta" style="margin-top:0.35rem;display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
-              ${app.payment_status === 'paid' ? 
-                `<span class="badge badge-approved" style="font-size:0.75rem;">⚡ Paid (Batch)</span>
-                 <span style="font-size:0.8rem;color:var(--text-secondary);">UTR: <code style="background:rgba(255,255,255,0.7);padding:2px 6px;border-radius:4px;font-weight:700;color:var(--accent-blue);">${app.payment_id || 'N/A'}</code></span>
-                 ${app.payment_screenshot_url ? `<a href="${app.payment_screenshot_url}" target="_blank" style="font-size:0.8rem;color:var(--accent-blue);font-weight:600;text-decoration:none;">🧾 View Receipt</a>` : ''}` :
-                `<span class="badge badge-pending" style="font-size:0.75rem;">⏳ Unpaid (Due on 5th Application)</span>`
+              ${app.payment_status === 'paid' ?
+                `<span class="badge badge-approved" style="font-size:0.75rem;">⚡ Paid</span>
+                 <span style="font-size:0.8rem;color:var(--text-secondary);">Ref: <code style="background:rgba(255,255,255,0.7);padding:2px 6px;border-radius:4px;font-weight:700;color:var(--accent-blue);">${app.payment_id || 'PAID'}</code></span>
+                 ${app.payment_screenshot_url ? `<a href="${app.payment_screenshot_url}" target="_blank" style="font-size:0.8rem;color:var(--accent-blue);font-weight:600;text-decoration:none;">🧾 Receipt</a>` : ''}` :
+                `<span class="badge badge-pending" style="font-size:0.75rem;">⏳ Unpaid (Due on 5th App)</span>`
               }
             </div>
 
             ${app.status === 'correction' ? `
               <div style="margin-top:0.65rem;padding:0.75rem 0.95rem;background:rgba(245, 158, 11, 0.12);border:1.5px solid rgba(245, 158, 11, 0.4);border-radius:10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem;">
                 <div>
-                  <div style="font-weight:700;font-size:0.88rem;color:#b45309;display:flex;align-items:center;gap:6px;">
-                    <span>⚠️</span> Action Required: Admin Requested Correction
-                  </div>
-                  <div style="font-size:0.82rem;color:var(--text-main);margin-top:2px;">
-                    <strong>Remarks:</strong> ${app.admin_remarks || 'Please verify and correct application details.'}
-                  </div>
+                  <div style="font-weight:700;font-size:0.88rem;color:#b45309;">⚠️ Action Required: Admin Requested Correction</div>
+                  <div style="font-size:0.82rem;color:var(--text-main);margin-top:2px;"><strong>Remarks:</strong> ${app.admin_remarks || 'Please verify and correct application details.'}</div>
                 </div>
-                <button class="btn btn-primary btn-sm" onclick="openCandidateCorrectionModal(${app.id})" style="background:linear-gradient(135deg,#f59e0b 0%,#d97706 100%);border:none;color:white;font-weight:700;padding:0.45rem 0.9rem;box-shadow:0 3px 10px rgba(245, 158, 11, 0.3);">
-                  ✏️ Edit & Resubmit Application
+                <button class="btn btn-primary btn-sm" onclick="openCandidateCorrectionModal(${app.id})" style="background:linear-gradient(135deg,#f59e0b 0%,#d97706 100%);border:none;color:white;font-weight:700;padding:0.45rem 0.9rem;">
+                  ✏️ Edit &amp; Resubmit
                 </button>
               </div>
             ` : (app.admin_remarks ? `<div class="app-meta" style="margin-top:.4rem;padding:.4rem .8rem;background:rgba(255,255,255,0.45);border-radius:8px;border:1px solid var(--glass-border-subtle);display:inline-block;">💬 <strong>Admin Feedback:</strong> ${app.admin_remarks}</div>` : '')}
@@ -1188,17 +1365,13 @@
                     <img src="${app.result_photo_url}" alt="Result Slip" style="width:48px;height:48px;object-fit:cover;border-radius:8px;border:1.5px solid white;box-shadow:0 3px 8px rgba(0,0,0,0.12);">
                   </a>
                   <div>
-                    <div style="font-weight:700;font-size:0.88rem;color:#15803d;display:flex;align-items:center;gap:4px;">
-                      <span>📄</span> Result / Admit Card Available!
-                    </div>
-                    <div style="font-size:0.75rem;color:var(--text-secondary);">Your application result photo has been issued by the admin.</div>
+                    <div style="font-weight:700;font-size:0.88rem;color:#15803d;">📄 Result / Admit Card Ready!</div>
+                    <div style="font-size:0.75rem;color:var(--text-secondary);">Issued by KP Cyber Admin.</div>
                   </div>
                 </div>
-                <div style="display:flex;gap:0.4rem;">
-                  <a href="${app.result_photo_url}" target="_blank" class="view-btn" style="background:#15803d;color:white;border:none;font-weight:700;font-size:0.78rem;padding:0.4rem 0.8rem;text-decoration:none;">
-                    🔍 View Result Photo ↗
-                  </a>
-                </div>
+                <a href="${app.result_photo_url}" target="_blank" class="view-btn" style="background:#15803d;color:white;border:none;font-weight:700;font-size:0.78rem;padding:0.4rem 0.8rem;text-decoration:none;">
+                  🔍 View Result ↗
+                </a>
               </div>
             ` : ''}
           </div>
@@ -1212,41 +1385,43 @@
       const paidApps = allUserApplications.filter(a => a.payment_status === 'paid');
 
       if (paidApps.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2.5rem;color:var(--text-secondary)">No batch payments settled yet. Payments are recorded when you complete 5 applications.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2.5rem;color:var(--text-secondary)">No application payments settled yet.</td></tr>';
         return;
       }
 
-      // Group by payment_id (UTR)
       const batches = {};
       paidApps.forEach(a => {
-        const utr = a.payment_id || 'Unknown-Ref';
-        if (!batches[utr]) {
-          batches[utr] = {
-            utr,
+        const isWalletPay = a.payment_id === 'WALLET-PAID' || a.payment_method === 'WALLET_BALANCE';
+        const key = isWalletPay ? `WALLET-${a.id}` : (a.payment_id || 'Unknown-Ref');
+        if (!batches[key]) {
+          batches[key] = {
+            utr: a.payment_id || 'Unknown-Ref',
             apps: [],
             totalAmount: 0,
             date: a.paid_at || a.submitted_at,
             receiptUrl: a.payment_screenshot_url
           };
         }
-        batches[utr].apps.push(a.application_number);
-        batches[utr].totalAmount += (a.payment_amount || 0);
-        if (!batches[utr].receiptUrl && a.payment_screenshot_url) {
-          batches[utr].receiptUrl = a.payment_screenshot_url;
+        batches[key].apps.push(a.application_number);
+        batches[key].totalAmount += (a.payment_amount || 0);
+        if (!batches[key].receiptUrl && a.payment_screenshot_url) {
+          batches[key].receiptUrl = a.payment_screenshot_url;
         }
       });
 
       const rows = Object.values(batches);
+      rows.sort((a, b) => parseUtcDate(b.date) - parseUtcDate(a.date));
+
       tbody.innerHTML = rows.map((b, idx) => `
         <tr>
           <td>${idx + 1}</td>
           <td>
             <div style="font-weight:600;font-size:0.85rem;">${b.apps.join(', ')}</div>
-            <small style="color:var(--text-secondary);">${b.apps.length} applications batch</small>
+            <small style="color:var(--text-secondary);">${b.apps.length} ${b.apps.length === 1 ? 'application' : 'applications batch'}</small>
           </td>
           <td><strong style="color:var(--accent-blue);">₹${b.totalAmount.toFixed(2)}</strong></td>
           <td><code style="font-weight:700;background:rgba(255,255,255,0.6);padding:2px 8px;border-radius:4px;">${b.utr}</code></td>
-          <td>${new Date(b.date).toLocaleDateString()}</td>
+          <td>${b.date ? parseUtcDate(b.date).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' }) : '-'}</td>
           <td>
             ${b.receiptUrl ? `<a href="${b.receiptUrl}" target="_blank" class="view-btn" style="padding:0.25rem 0.6rem;font-size:0.75rem;text-decoration:none;">🧾 Receipt</a>` : '<span style="color:var(--text-tertiary);font-size:0.8rem;">No file</span>'}
           </td>
@@ -1335,7 +1510,7 @@
             reader.readAsDataURL(compressed);
           });
         } catch (err) {
-          console.warn('Photo processing failed, proceeding without photo update:', err);
+          console.warn('Photo processing failed:', err);
         }
       }
 
@@ -1410,7 +1585,7 @@
       const tbody = document.getElementById('walletLedgerBody');
       if (!tbody) return;
       if (!walletTransactions || walletTransactions.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2.5rem;color:var(--text-secondary)">No wallet transactions recorded yet. Add money to start submitting with zero delay.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2.5rem;color:var(--text-secondary)">No wallet transactions yet. Click "+ Add Money" to top up!</td></tr>';
         return;
       }
       tbody.innerHTML = walletTransactions.map((tx, idx) => `
@@ -1433,7 +1608,7 @@
             </code>
           </td>
           <td><div style="font-size:0.85rem;color:var(--text-main);">${tx.description || '-'}</div></td>
-          <td><span style="font-size:0.8rem;color:var(--text-secondary);">${new Date(tx.created_at).toLocaleString()}</span></td>
+          <td><span style="font-size:0.8rem;color:var(--text-secondary);">${parseUtcDate(tx.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' })}</span></td>
           <td><span class="badge badge-approved">${tx.status || 'approved'}</span></td>
         </tr>
       `).join('');
