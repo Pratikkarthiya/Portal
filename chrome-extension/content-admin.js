@@ -2,6 +2,12 @@
 
 window.postMessage({ type: 'KP_CYBER_EXT_READY', version: '1.0.0' }, window.location.origin);
 
+chrome.runtime.onMessage.addListener((msg) => {
+  if (msg && msg.action === 'KP_CYBER_REFRESH_APPS') {
+    window.postMessage({ type: 'KP_CYBER_REFRESH_APPS' }, window.location.origin);
+  }
+});
+
 window.addEventListener('message', async (event) => {
   if (event.source !== window || event.origin !== window.location.origin) return;
   const msg = event.data;
