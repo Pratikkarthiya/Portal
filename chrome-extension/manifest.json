@@ -1,0 +1,47 @@
+{
+  "manifest_version": 3,
+  "name": "KP Cyber → LL Exam Bot Auto-Fill",
+  "version": "1.0.0",
+  "description": "1-Click auto-fill candidate Application Number, DOB, Password, and Photo from KP Cyber Admin Console into kabirservices.online/exam-bot.",
+  "permissions": [
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://kabirservices.online/*",
+    "https://kpcyber.in/*",
+    "https://www.kpcyber.in/*",
+    "https://portal-2a3.pages.dev/*",
+    "https://*.portal-2a3.pages.dev/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "KP Cyber Exam Bot Auto-Fill"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://kpcyber.in/admin*",
+        "https://www.kpcyber.in/admin*",
+        "https://portal-2a3.pages.dev/admin*",
+        "https://*.portal-2a3.pages.dev/admin*",
+        "http://localhost:3000/admin*",
+        "http://127.0.0.1:3000/admin*"
+      ],
+      "js": ["content-admin.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://kabirservices.online/exam-bot*"
+      ],
+      "js": ["content-exambot.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

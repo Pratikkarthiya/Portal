@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>KP Cyber Auto-Fill</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 350px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f8fafc;
+      color: #0f172a;
+      padding: 12px;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .header h2 { font-size: 14px; font-weight: 700; color: #0f172a; }
+    select, button { font-family: inherit; }
+    .controls {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+    select {
+      flex: 1;
+      padding: 6px 8px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 12px;
+      background: white;
+    }
+    .btn-refresh {
+      padding: 6px 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      background: white;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .status {
+      font-size: 12px;
+      padding: 8px 10px;
+      border-radius: 6px;
+      margin-bottom: 10px;
+      background: #e2e8f0;
+      color: #334155;
+      display: none;
+    }
+    .status.error { display: block; background: #fee2e2; color: #b91c1c; }
+    .status.ok { display: block; background: #dcfce7; color: #15803d; }
+    .status.info { display: block; background: #e0f2fe; color: #0369a1; }
+    .list {
+      max-height: 360px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .card {
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 9px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+    .card-info { min-width: 0; flex: 1; }
+    .app-num { font-family: monospace; font-weight: 700; font-size: 13px; color: #0f172a; }
+    .meta { font-size: 11px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .btn-fill {
+      background: #1a6b3a;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn-fill:disabled { opacity: 0.6; cursor: wait; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h2>⚡ KP Cyber → Exam Bot</h2>
+    <a href="https://kabirservices.online/exam-bot" target="_blank" style="font-size:11px;color:#0284c7;text-decoration:none;font-weight:600;">Open Exam Bot ↗</a>
+  </div>
+
+  <div class="controls">
+    <select id="portalUrl">
+      <option value="https://kpcyber.in">kpcyber.in</option>
+      <option value="https://portal-2a3.pages.dev">portal-2a3.pages.dev</option>
+      <option value="http://localhost:3000">localhost:3000</option>
+    </select>
+    <button class="btn-refresh" id="refreshBtn">🔄 Load</button>
+  </div>
+
+  <div id="statusBox" class="status"></div>
+  <div id="appsList" class="list"></div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

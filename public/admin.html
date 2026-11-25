@@ -1013,8 +1013,9 @@
             </div>
           </td>
           <td>
-            <div style="display:flex;gap:0.45rem;align-items:center;white-space:nowrap;">
+            <div style="display:flex;gap:0.4rem;align-items:center;white-space:nowrap;">
               <button class="btn-review" onclick="openSingleAppReview(${app.id})">🔍 Review & Result</button>
+              <button class="copy-all-btn" onclick="sendToExamBot(${app.id}, this)" style="background:rgba(26,107,58,0.12);color:#15803d;border-color:rgba(26,107,58,0.3);" title="Auto-fill on kabirservices.online/exam-bot">🚀 Exam Bot</button>
               <button class="copy-all-btn" onclick="copyAppDetails('${app.application_number}', '${app.date_of_birth}', '${app.app_password}', this)" title="Copy in 1-Line">📋 Copy 1-Line</button>
             </div>
           </td>
@@ -1091,6 +1092,9 @@
             <div class="mac-actions">
               <button class="copy-all-btn" style="flex:1;justify-content:center;padding:0.6rem 0.5rem;font-size:0.8rem;" onclick="copyAppDetails('${app.application_number}', '${app.date_of_birth}', '${app.app_password}', this)">
                 📋 Copy 1-Line
+              </button>
+              <button class="copy-all-btn" style="flex:1;justify-content:center;padding:0.6rem 0.5rem;font-size:0.8rem;background:rgba(26,107,58,0.12);color:#15803d;border-color:rgba(26,107,58,0.3);" onclick="sendToExamBot(${app.id}, this)">
+                🚀 Exam Bot
               </button>
               <button class="btn-review" style="flex:1;justify-content:center;padding:0.6rem 0.5rem;font-size:0.8rem;" onclick="openSingleAppReview(${app.id})">
                 🔍 Review & Result
@@ -1511,11 +1515,16 @@
           <div style="background:rgba(255,255,255,0.65);border-radius:10px;padding:0.75rem 1rem;margin-bottom:1rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;border:1px solid var(--glass-border-subtle);">
             <div>
               <span style="font-size:0.85rem;font-weight:600;color:var(--text-main);">Application Credentials:</span>
-              <span style="font-size:0.78rem;color:var(--text-secondary);display:block;">Copy individual items or copy all credentials together</span>
+              <span style="font-size:0.78rem;color:var(--text-secondary);display:block;">Copy credentials or 1-click auto-fill on LL Exam Bot</span>
             </div>
-            <button class="copy-all-btn" onclick="copyAppDetails('${app.application_number}', '${app.date_of_birth}', '${app.app_password}', this)">
-              📋 Copy in 1-Line (App# DOB Password)
-            </button>
+            <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+              <button class="copy-all-btn" onclick="sendToExamBot(${app.id}, this)" style="background:rgba(26,107,58,0.12);color:#15803d;border-color:rgba(26,107,58,0.3);">
+                🚀 Auto-Fill Exam Bot
+              </button>
+              <button class="copy-all-btn" onclick="copyAppDetails('${app.application_number}', '${app.date_of_birth}', '${app.app_password}', this)">
+                📋 Copy in 1-Line (App# DOB Password)
+              </button>
+            </div>
           </div>
 
           <div class="review-card-content">
@@ -1803,9 +1812,14 @@
           <!-- Quick Copy Banner -->
           <div style="background:rgba(255,255,255,0.65);border-radius:10px;padding:0.6rem 0.9rem;margin-bottom:0.85rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;border:1px solid var(--glass-border-subtle);">
             <span style="font-size:0.82rem;font-weight:600;color:var(--text-main);">Application Credentials</span>
-            <button class="copy-all-btn" style="padding:0.35rem 0.75rem;font-size:0.78rem;" onclick="copyAppDetails('${app.application_number}', '${app.date_of_birth}', '${app.app_password}', this)">
-              📋 Copy 1-Line (App# DOB Pass)
-            </button>
+            <div style="display:flex;gap:0.45rem;flex-wrap:wrap;">
+              <button class="copy-all-btn" style="padding:0.35rem 0.75rem;font-size:0.78rem;background:rgba(26,107,58,0.12);color:#15803d;border-color:rgba(26,107,58,0.3);" onclick="sendToExamBot(${app.id}, this)">
+                🚀 Auto-Fill Exam Bot
+              </button>
+              <button class="copy-all-btn" style="padding:0.35rem 0.75rem;font-size:0.78rem;" onclick="copyAppDetails('${app.application_number}', '${app.date_of_birth}', '${app.app_password}', this)">
+                📋 Copy 1-Line (App# DOB Pass)
+              </button>
+            </div>
           </div>
 
           <div class="review-card-content">
@@ -2193,6 +2207,67 @@
           btnElement.style.borderColor = '';
         }, 2000);
       }
+    }
+
+    const pendingExamBotRequests = {};
+    window.addEventListener('message', (event) => {
+      if (event.source !== window || event.origin !== window.location.origin) return;
+      const msg = event.data;
+      if (!msg || typeof msg !== 'object') return;
+      if (msg.type === 'KP_CYBER_EXT_ACK' && msg.requestId && pendingExamBotRequests[msg.requestId]) {
+        pendingExamBotRequests[msg.requestId].ack = true;
+      }
+    });
+
+    function sendToExamBot(appId, btnElement) {
+      if (window.event) window.event.stopPropagation();
+      const app = (cachedAllApplications || []).find(a => a.id === appId);
+      if (!app) return;
+
+      const reqId = 'eb_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+      pendingExamBotRequests[reqId] = { ack: false };
+
+      const origHtml = btnElement ? btnElement.innerHTML : '';
+      if (btnElement) {
+        btnElement.innerHTML = '⏳ Sending...';
+      }
+
+      window.postMessage({
+        type: 'KP_CYBER_AUTOFILL_EXAM_BOT',
+        requestId: reqId,
+        payload: {
+          id: app.id,
+          applicationNumber: app.application_number,
+          dateOfBirth: app.date_of_birth,
+          appPassword: app.app_password,
+          photoUrl: app.photo_url || '',
+          candidateName: app.user_name || ''
+        }
+      }, window.location.origin);
+
+      setTimeout(() => {
+        const state = pendingExamBotRequests[reqId];
+        delete pendingExamBotRequests[reqId];
+
+        if (state && state.ack) {
+          if (btnElement) {
+            btnElement.innerHTML = '✅ Sent to Exam Bot!';
+            setTimeout(() => { btnElement.innerHTML = origHtml; }, 2200);
+          }
+        } else {
+          if (btnElement) btnElement.innerHTML = origHtml;
+          const formattedDob = formatDob(app.date_of_birth);
+          copyToClipboard(`${app.application_number} ${formattedDob} ${app.app_password}`);
+          alert(
+            '⚡ To enable 1-Click Auto-Fill (including Photo) on kabirservices.online/exam-bot:\n\n' +
+            '1. Open Chrome and go to: chrome://extensions\n' +
+            '2. Turn ON "Developer mode" (top right)\n' +
+            '3. Click "Load unpacked" and choose folder:\n' +
+            '   E:\\KP\\chrome-extension\n\n' +
+            '✅ Credentials have been copied to your clipboard in the meantime!'
+          );
+        }
+      }, 650);
     }
 
     // Copy in exact single line like: "1234567890 10-12-2007 ABC123"
