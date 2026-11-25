@@ -146,6 +146,21 @@ router.get('/wallet-transactions', requireAdmin, (req, res) => {
   res.json({ success: true, transactions });
 });
 
+// Admin gets all incoming Android bank/UPI events (claimed and unclaimed)
+router.get('/bank-events', requireAdmin, (req, res) => {
+  const events = queryAll(`
+    SELECT be.id, be.utr, be.amount, be.sender_vpa, be.raw_text,
+           be.used_by_user_id, be.used_for, be.created_at,
+           u.name as claimed_user_name, u.email as claimed_user_email
+    FROM bank_events be
+    LEFT JOIN users u ON be.used_by_user_id = u.id
+    ORDER BY be.id DESC
+    LIMIT 300
+  `);
+
+  res.json({ success: true, events: events || [] });
+});
+
 // Get all applications across all users with user name and email (lightweight URLs)
 router.get('/applications', requireAdmin, (req, res) => {
   const rawApps = queryAll(`

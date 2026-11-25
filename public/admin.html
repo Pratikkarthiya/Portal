@@ -223,31 +223,78 @@
     </div>
 
     <!-- ========================================================
-         SECTION 4: PAYMENTS & UTR LEDGER
+         SECTION 4: PAYMENTS & UTR LEDGER (COMPLETE PAYMENT TRACKING)
          ======================================================== -->
     <div class="dashboard-section" id="admin-section-payments">
       <div class="section-header-card">
         <div>
-          <h3><span>💳</span> UPI Payment & Bank UTR Ledger</h3>
-          <p>Reconcile prepaid wallet top-ups, settled batches, one-time payments, verified UTR numbers, and receipts.</p>
+          <h3><span>💳</span> Master Payment & Bank UTR Tracker</h3>
+          <p>Track every rupee: UPI wallet top-ups, batch & one-time payments, wallet usage, pending slots, and live Android bank alerts.</p>
         </div>
-        <div>
-          <span class="badge badge-approved" style="font-size:0.85rem;">Pratik Karthiya (pratikkarthiya6@oksbi)</span>
+        <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+          <span class="badge badge-approved" style="font-size:0.82rem;">Pratik Karthiya (pratikkarthiya6@oksbi)</span>
+          <button class="btn btn-sm" onclick="refreshAllPaymentRecords()" id="refreshPaymentsBtn" style="background:rgba(0,113,227,0.14);color:var(--accent-blue);border:1px solid rgba(0,113,227,0.28);padding:0.4rem 0.8rem;border-radius:10px;font-weight:700;cursor:pointer;">🔄 Refresh</button>
+          <button class="btn btn-sm" onclick="exportPaymentsCsv()" style="background:rgba(52,199,89,0.15);color:#15803d;border:1px solid rgba(52,199,89,0.3);padding:0.4rem 0.8rem;border-radius:10px;font-weight:700;cursor:pointer;">⬇️ Export CSV</button>
+        </div>
+      </div>
+
+      <!-- Payment Summary KPI Strip -->
+      <div class="stats-grid" style="margin-bottom:1.25rem;">
+        <div class="stat-card" onclick="setAdminPayFilter('upi_app')" style="cursor:pointer;" title="Direct App UPI + Wallet UPI Top-ups">
+          <div class="stat-num" id="paySumCashIn" style="color:#15803d;">₹0</div>
+          <div class="stat-label">Total UPI Cash Received</div>
+          <div id="paySumCashSub" style="font-size:0.72rem;color:var(--text-secondary);margin-top:2px;">App UPI + Wallet Top-ups</div>
+        </div>
+        <div class="stat-card" onclick="setAdminPayFilter('wallet_topup')" style="cursor:pointer;" title="Click to filter Wallet Top-Ups">
+          <div class="stat-num" id="paySumWalletIn" style="color:var(--accent-blue);">₹0</div>
+          <div class="stat-label">Wallet Top-Ups & Credits</div>
+          <div id="paySumWalletSub" style="font-size:0.72rem;color:var(--text-secondary);margin-top:2px;">0 transactions</div>
+        </div>
+        <div class="stat-card" onclick="setAdminPayFilter('unpaid_slot')" style="cursor:pointer;" title="Click to view unpaid pending batch slots">
+          <div class="stat-num" id="paySumPendingDues" style="color:var(--accent-orange);">₹0</div>
+          <div class="stat-label">Pending Batch Dues (1–4)</div>
+          <div id="paySumPendingSub" style="font-size:0.72rem;color:var(--text-secondary);margin-top:2px;">0 unpaid slots</div>
+        </div>
+        <div class="stat-card" onclick="setAdminPayFilter('bank_events')" style="cursor:pointer;" title="Click to inspect raw Android bank UTR feed">
+          <div class="stat-num" id="paySumBankEvents" style="color:#5856d6;">0</div>
+          <div class="stat-label">Android Bank UTR Feed ↗</div>
+          <div id="paySumBankSub" style="font-size:0.72rem;color:var(--text-secondary);margin-top:2px;">0 unclaimed</div>
+        </div>
+      </div>
+
+      <!-- Search & Category Filter Toolbar -->
+      <div class="toolbar-bar">
+        <div class="search-input-wrapper">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="paymentSearchInput" placeholder="Search by Candidate, Email, UTR, Ref #, or App #..." oninput="renderAdminPayments()">
+        </div>
+
+        <div class="filter-pills" id="adminPayFilterPills">
+          <button class="filter-pill active" data-filter="all" onclick="setAdminPayFilter('all')">All Records</button>
+          <button class="filter-pill" data-filter="wallet_topup" onclick="setAdminPayFilter('wallet_topup')">💳 Wallet Top-Ups</button>
+          <button class="filter-pill" data-filter="upi_app" onclick="setAdminPayFilter('upi_app')">📦 App & Batch UPI</button>
+          <button class="filter-pill" data-filter="wallet_usage" onclick="setAdminPayFilter('wallet_usage')">⚡ Wallet Usage & Adjust</button>
+          <button class="filter-pill" data-filter="unpaid_slot" onclick="setAdminPayFilter('unpaid_slot')">⏳ Unpaid Batch Slots</button>
+          <button class="filter-pill" data-filter="bank_events" onclick="setAdminPayFilter('bank_events')">🏦 Bank UTR Feed</button>
         </div>
       </div>
 
       <div class="users-table-wrapper">
+        <div class="table-header" style="display:flex;justify-content:space-between;align-items:center;padding:0.85rem 1.25rem;border-bottom:1px solid var(--glass-border-subtle);">
+          <strong id="paymentLedgerTitle" style="font-size:0.95rem;">Unified Payment Ledger</strong>
+          <span id="paymentLedgerCount" style="font-size:0.82rem;color:var(--text-secondary);">0 records</span>
+        </div>
         <div class="table-scroll-container">
           <table>
-            <thead>
+            <thead id="adminPaymentsHead">
               <tr>
                 <th>#</th>
                 <th>Candidate</th>
                 <th>Payment Type / Details</th>
-                <th>Amount Settled</th>
+                <th>Amount</th>
                 <th>Bank UTR / Ref Number</th>
-                <th>Date Settled</th>
-                <th>Payment Receipt</th>
+                <th>Date & Time</th>
+                <th>Receipt / Info</th>
                 <th>Status</th>
               </tr>
             </thead>
@@ -510,7 +557,17 @@
     let cachedUsers = [];
     let cachedAllApplications = [];
     let cachedWalletTransactions = [];
+    let cachedBankEvents = [];
     let currentAdminAppFilter = 'all';
+    let currentAdminPayFilter = 'all';
+
+    function escapeHtml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
 
     function escapeQuotes(str) {
       return (str || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
@@ -695,6 +752,7 @@
       }
       if (sectionId === 'payments') {
         loadWalletTransactions();
+        loadBankEvents();
       }
     }
 
@@ -713,7 +771,7 @@
         window.location.href = '/admin/login';
         return;
       }
-      Promise.all([loadStats(), loadUsers(), loadAllApplications(), loadWalletTransactions()]);
+      Promise.all([loadStats(), loadUsers(), loadAllApplications(), loadWalletTransactions(), loadBankEvents()]);
     });
 
     function updateCreateBatchPreview(val) {
@@ -817,6 +875,32 @@
         }
       } catch (e) {
         console.error('Failed to load wallet transactions:', e);
+      }
+    }
+
+    async function loadBankEvents() {
+      try {
+        const res = await fetch('/api/admin/bank-events');
+        const data = await res.json();
+        if (res.ok && data.success) {
+          cachedBankEvents = data.events || [];
+          renderAdminPayments();
+        }
+      } catch (e) {
+        console.error('Failed to load bank events:', e);
+      }
+    }
+
+    async function refreshAllPaymentRecords() {
+      const btn = document.getElementById('refreshPaymentsBtn');
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Refreshing...';
+      }
+      await Promise.all([loadStats(), loadUsers(), loadAllApplications(), loadWalletTransactions(), loadBankEvents()]);
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = '🔄 Refresh';
       }
     }
 
@@ -1026,30 +1110,56 @@
       return new Date(s);
     }
 
-    function renderAdminPayments() {
-      const tbody = document.getElementById('adminPaymentsBody');
-      const paidApps = cachedAllApplications.filter(a => a.payment_status === 'paid');
-      const walletCredits = (cachedWalletTransactions || []).filter(t => t.type === 'credit');
+    function setAdminPayFilter(filter) {
+      currentAdminPayFilter = filter;
+      document.querySelectorAll('#adminPayFilterPills .filter-pill').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.filter === filter);
+      });
+      renderAdminPayments();
+    }
+
+    function buildPaymentLedgerData() {
+      const apps = cachedAllApplications || [];
+      const paidApps = apps.filter(a => a.payment_status === 'paid');
+      const unpaidApps = apps.filter(a => a.payment_status !== 'paid');
+      const walletTrx = cachedWalletTransactions || [];
+      const bankEvents = cachedBankEvents || [];
 
       const entries = [];
+      let totalWalletCredit = 0;
+      let totalWalletUpiTopup = 0;
+      let totalAppUpiCash = 0;
 
-      // 1. Prepaid Wallet Top-ups & Admin Credits
-      walletCredits.forEach(t => {
+      // 1. Wallet Transactions (Credits & Manual Adjustments; wallet app debits shown under wallet_usage)
+      walletTrx.forEach(t => {
+        const amt = Number(t.amount || 0);
+        const isCredit = t.type === 'credit';
+        const isManualAdjust = t.reference_id === 'ADMIN-ADJUST';
+
+        if (isCredit) {
+          totalWalletCredit += amt;
+          if (!isManualAdjust) {
+            totalWalletUpiTopup += amt;
+          }
+        }
+
         entries.push({
-          kind: 'wallet_topup',
+          kind: isCredit ? 'wallet_topup' : 'wallet_usage',
           userName: t.user_name || 'Candidate',
           userEmail: t.user_email || '',
-          title: '💳 Prepaid Wallet Top-Up',
-          subtitle: t.description || 'Prepaid Wallet Top-up (UPI)',
-          totalAmount: Number(t.amount || 0),
-          utr: t.reference_id || 'ADMIN-CREDIT',
+          title: isCredit
+            ? (isManualAdjust ? '🛠️ Admin Wallet Credit' : '💳 Prepaid Wallet Top-Up')
+            : (isManualAdjust ? '🛠️ Admin Wallet Debit' : '⚡ Wallet Auto-Deduct'),
+          subtitle: t.description || (isCredit ? 'Wallet Credit' : 'Wallet Debit') + (t.balance_after !== undefined ? ` • Bal: ₹${Number(t.balance_after).toFixed(2)}` : ''),
+          totalAmount: amt,
+          utr: t.reference_id || 'ADMIN-ADJUST',
           date: t.created_at,
           receiptUrl: t.receipt_url || '',
-          statusLabel: t.status === 'approved' ? 'Wallet Credited' : (t.status || 'Approved')
+          statusLabel: isCredit ? 'Wallet Credited' : 'Wallet Debited'
         });
       });
 
-      // 2. Group Application Payments by UTR & candidate (keep wallet-paid apps separate by id if needed)
+      // 2. Group Paid Application Records
       const batches = {};
       paidApps.forEach(a => {
         const isWalletPay = a.payment_id === 'WALLET-PAID' || a.payment_method === 'WALLET_BALANCE';
@@ -1058,14 +1168,15 @@
           : (a.payment_id || 'Ref') + '-' + a.user_id;
         if (!batches[key]) {
           batches[key] = {
-            kind: isWalletPay ? 'wallet_debit_app' : 'upi_app',
+            kind: isWalletPay ? 'wallet_usage' : 'upi_app',
             utr: a.payment_id || 'Unknown',
             userName: a.user_name || 'Candidate',
             userEmail: a.user_email || '',
             apps: [],
             totalAmount: 0,
             date: a.paid_at || a.submitted_at,
-            receiptUrl: a.payment_screenshot_url
+            receiptUrl: a.payment_screenshot_url,
+            method: a.payment_method || ''
           };
         }
         batches[key].apps.push(a.application_number);
@@ -1076,52 +1187,303 @@
       });
 
       Object.values(batches).forEach(b => {
+        if (b.kind === 'upi_app') {
+          totalAppUpiCash += b.totalAmount;
+        }
+        // Wallet app debits already appear in wallet_transactions (if logged); skip duplicate only when matching wallet debit exists
+        if (b.kind === 'wallet_usage') {
+          const hasMatchingTrx = walletTrx.some(t => t.type === 'debit' && b.apps.includes(t.reference_id));
+          if (hasMatchingTrx) return;
+        }
         entries.push({
           kind: b.kind,
           userName: b.userName,
           userEmail: b.userEmail,
-          title: b.kind === 'wallet_debit_app'
-            ? `⚡ Wallet Paid: ${b.apps.join(', ')}`
-            : b.apps.join(', '),
-          subtitle: b.kind === 'wallet_debit_app'
-            ? 'Deducted from prepaid wallet'
-            : `${b.apps.length} ${b.apps.length === 1 ? 'application' : 'applications batch'}`,
+          title: b.kind === 'wallet_usage'
+            ? `⚡ Paid via Wallet: ${b.apps.join(', ')}`
+            : (b.method === 'UPI_ONETIME_PAYMENT' ? `⚡ One-Time App: ${b.apps.join(', ')}` : `📦 Batch (${b.apps.length}): ${b.apps.join(', ')}`),
+          subtitle: b.kind === 'wallet_usage'
+            ? 'Application paid from wallet balance'
+            : `${b.apps.length} ${b.apps.length === 1 ? 'application' : 'applications batch'} via UPI`,
           totalAmount: b.totalAmount,
           utr: b.utr,
           date: b.date,
           receiptUrl: b.receiptUrl,
-          statusLabel: b.kind === 'wallet_debit_app' ? 'Paid via Wallet' : 'Settled'
+          statusLabel: b.kind === 'wallet_usage' ? 'Paid via Wallet' : 'Settled'
         });
       });
 
-      if (entries.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2.5rem;color:var(--text-secondary)">No payments or wallet top-ups recorded yet.</td></tr>';
+      // 3. Unpaid Pending Batch Slots
+      let totalPendingDues = 0;
+      unpaidApps.forEach(a => {
+        const amt = Number(a.payment_amount || a.application_fee || 50);
+        totalPendingDues += amt;
+        entries.push({
+          kind: 'unpaid_slot',
+          userName: a.user_name || 'Candidate',
+          userEmail: a.user_email || '',
+          title: `⏳ Unpaid App: ${a.application_number}`,
+          subtitle: 'Pending 5-App Batch Settlement',
+          totalAmount: amt,
+          utr: a.payment_id || 'PENDING_BATCH_OF_5',
+          date: a.submitted_at,
+          receiptUrl: '',
+          statusLabel: 'Unpaid Due'
+        });
+      });
+
+      return {
+        entries,
+        bankEvents,
+        summary: {
+          totalUpiCash: totalAppUpiCash + totalWalletUpiTopup,
+          totalAppUpiCash,
+          totalWalletUpiTopup,
+          totalWalletCredit,
+          walletCreditCount: walletTrx.filter(t => t.type === 'credit').length,
+          totalPendingDues,
+          unpaidCount: unpaidApps.length,
+          bankEventsCount: bankEvents.length,
+          unclaimedBankCount: bankEvents.filter(be => !be.used_by_user_id).length
+        }
+      };
+    }
+
+    function renderAdminPayments() {
+      const thead = document.getElementById('adminPaymentsHead');
+      const tbody = document.getElementById('adminPaymentsBody');
+      const titleEl = document.getElementById('paymentLedgerTitle');
+      const countEl = document.getElementById('paymentLedgerCount');
+      const searchQ = (document.getElementById('paymentSearchInput') ? document.getElementById('paymentSearchInput').value : '').toLowerCase().trim();
+
+      const { entries, bankEvents, summary } = buildPaymentLedgerData();
+
+      // Update summary KPI strip
+      const setEl = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+      setEl('paySumCashIn', `₹${summary.totalUpiCash.toFixed(2)}`);
+      setEl('paySumCashSub', `Apps ₹${summary.totalAppUpiCash.toFixed(0)} + Top-ups ₹${summary.totalWalletUpiTopup.toFixed(0)}`);
+      setEl('paySumWalletIn', `₹${summary.totalWalletCredit.toFixed(2)}`);
+      setEl('paySumWalletSub', `${summary.walletCreditCount} wallet credit${summary.walletCreditCount === 1 ? '' : 's'}`);
+      setEl('paySumPendingDues', `₹${summary.totalPendingDues.toFixed(2)}`);
+      setEl('paySumPendingSub', `${summary.unpaidCount} pending slot${summary.unpaidCount === 1 ? '' : 's'}`);
+      setEl('paySumBankEvents', `${summary.bankEventsCount}`);
+      setEl('paySumBankSub', `${summary.unclaimedBankCount} unclaimed UTR${summary.unclaimedBankCount === 1 ? '' : 's'}`);
+
+      // Special View: Live Android Bank UTR Feed
+      if (currentAdminPayFilter === 'bank_events') {
+        if (titleEl) titleEl.textContent = '🏦 Live Android Bank & UPI UTR Feed';
+        if (thead) {
+          thead.innerHTML = `
+            <tr>
+              <th>#</th>
+              <th>12-Digit Bank UTR</th>
+              <th>Amount Received</th>
+              <th>Claimed By</th>
+              <th>Used For</th>
+              <th>Date & Time</th>
+              <th>Raw SMS / Notification</th>
+              <th>Status</th>
+            </tr>
+          `;
+        }
+
+        let filteredEvents = bankEvents;
+        if (searchQ) {
+          filteredEvents = filteredEvents.filter(ev =>
+            (ev.utr || '').toLowerCase().includes(searchQ) ||
+            (ev.claimed_user_name || '').toLowerCase().includes(searchQ) ||
+            (ev.claimed_user_email || '').toLowerCase().includes(searchQ) ||
+            (ev.raw_text || '').toLowerCase().includes(searchQ) ||
+            (ev.used_for || '').toLowerCase().includes(searchQ)
+          );
+        }
+
+        if (countEl) countEl.textContent = `${filteredEvents.length} bank event${filteredEvents.length === 1 ? '' : 's'}`;
+
+        if (filteredEvents.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2.5rem;color:var(--text-secondary)">No bank SMS / UPI notifications recorded yet.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = filteredEvents.map((ev, i) => {
+          const isClaimed = !!ev.used_by_user_id;
+          const rawSnippet = (ev.raw_text || '').slice(0, 90) + ((ev.raw_text || '').length > 90 ? '…' : '');
+          return `
+            <tr>
+              <td>${i + 1}</td>
+              <td><code style="font-weight:700;background:rgba(255,255,255,0.75);padding:2px 8px;border-radius:4px;">${escapeHtml(ev.utr)}</code></td>
+              <td><strong style="color:#15803d;">₹${Number(ev.amount || 0).toFixed(2)}</strong></td>
+              <td>
+                ${isClaimed
+                  ? `<strong>${escapeHtml(ev.claimed_user_name || 'User #' + ev.used_by_user_id)}</strong><div style="font-size:0.75rem;color:var(--text-secondary);">${escapeHtml(ev.claimed_user_email || '')}</div>`
+                  : '<span style="color:var(--text-tertiary);font-size:0.82rem;">Not claimed yet</span>'}
+              </td>
+              <td><span style="font-size:0.82rem;font-weight:600;">${escapeHtml(ev.used_for || '—')}</span></td>
+              <td>${ev.created_at ? parseUtcDate(ev.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' }) : '-'}</td>
+              <td style="max-width:240px;font-size:0.75rem;color:var(--text-secondary);word-break:break-word;">${escapeHtml(rawSnippet || '—')}</td>
+              <td>
+                <span class="badge ${isClaimed ? 'badge-approved' : 'badge-pending'}" style="${isClaimed ? 'background:rgba(52,199,89,0.18);color:#15803d;' : 'background:rgba(255,149,0,0.18);color:#b45309;'}">
+                  ${isClaimed ? '✅ Claimed' : '🕒 Unclaimed'}
+                </span>
+              </td>
+            </tr>
+          `;
+        }).join('');
         return;
       }
 
-      // Sort newest first
-      entries.sort((a, b) => parseUtcDate(b.date) - parseUtcDate(a.date));
+      // Unified Payment Ledger View
+      const titleMap = {
+        all: 'All Payment & Wallet Records',
+        wallet_topup: '💳 Wallet Top-Ups & Credits',
+        upi_app: '📦 Application & Batch UPI Payments',
+        wallet_usage: '⚡ Wallet Deductions & Adjustments',
+        unpaid_slot: '⏳ Unpaid Pending Batch Slots'
+      };
+      if (titleEl) titleEl.textContent = titleMap[currentAdminPayFilter] || 'Unified Payment Ledger';
 
-      tbody.innerHTML = entries.map((e, i) => `
-        <tr>
-          <td>${i + 1}</td>
-          <td>
-            <strong>${e.userName}</strong>
-            <div style="font-size:0.75rem;color:var(--text-secondary);">${e.userEmail}</div>
-          </td>
-          <td>
-            <div style="font-weight:600;font-size:0.85rem;">${e.title}</div>
-            <small style="color:var(--text-secondary);">${e.subtitle}</small>
-          </td>
-          <td><strong style="color:${e.kind === 'wallet_topup' ? '#15803d' : 'var(--accent-blue)'};">₹${e.totalAmount.toFixed(2)}</strong></td>
-          <td><code style="font-weight:700;background:rgba(255,255,255,0.7);padding:2px 8px;border-radius:4px;">${e.utr}</code></td>
-          <td>${e.date ? parseUtcDate(e.date).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' }) : '-'}</td>
-          <td>
-            ${e.receiptUrl ? `<a href="${e.receiptUrl}" target="_blank" class="view-btn" style="padding:0.25rem 0.6rem;font-size:0.75rem;text-decoration:none;">🧾 Receipt ↗</a>` : '<span style="color:var(--text-tertiary);font-size:0.8rem;">No file</span>'}
-          </td>
-          <td><span class="badge ${e.kind === 'wallet_topup' ? 'badge-approved' : 'badge-approved'}" style="${e.kind === 'wallet_topup' ? 'background:rgba(52,199,89,0.18);color:#15803d;' : ''}">${e.statusLabel}</span></td>
-        </tr>
-      `).join('');
+      if (thead) {
+        thead.innerHTML = `
+          <tr>
+            <th>#</th>
+            <th>Candidate</th>
+            <th>Payment Type / Details</th>
+            <th>Amount</th>
+            <th>Bank UTR / Ref Number</th>
+            <th>Date & Time</th>
+            <th>Payment Receipt</th>
+            <th>Status</th>
+          </tr>
+        `;
+      }
+
+      let filtered = entries;
+      if (currentAdminPayFilter !== 'all') {
+        filtered = filtered.filter(e => e.kind === currentAdminPayFilter);
+      } else {
+        // Default "All Records" hides unpaid pending slots unless searched, or keeps completed money transactions clean?
+        // Actually show ALL completed payments + wallet top-ups/debits; keep unpaid slots under their pill or include them?
+        // User asked: "TRACK ALL PAYMENT RECORD IN ADMIN" -> include paid + wallet topups + wallet usage + unpaid if desired, or keep unpaid clearly badged!
+        // Let's include everything in "All Records" except sort newest first so recent top-ups/payments stay on top!
+      }
+
+      if (searchQ) {
+        filtered = filtered.filter(e =>
+          (e.userName || '').toLowerCase().includes(searchQ) ||
+          (e.userEmail || '').toLowerCase().includes(searchQ) ||
+          (e.utr || '').toLowerCase().includes(searchQ) ||
+          (e.title || '').toLowerCase().includes(searchQ) ||
+          (e.subtitle || '').toLowerCase().includes(searchQ)
+        );
+      }
+
+      // Sort newest first
+      filtered.sort((a, b) => parseUtcDate(b.date) - parseUtcDate(a.date));
+
+      if (countEl) countEl.textContent = `${filtered.length} record${filtered.length === 1 ? '' : 's'}`;
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2.5rem;color:var(--text-secondary)">No matching payment records found.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = filtered.map((e, i) => {
+        let amtColor = 'var(--accent-blue)';
+        let badgeStyle = '';
+        let badgeClass = 'badge-approved';
+        if (e.kind === 'wallet_topup') {
+          amtColor = '#15803d';
+          badgeStyle = 'background:rgba(52,199,89,0.18);color:#15803d;';
+        } else if (e.kind === 'wallet_usage') {
+          amtColor = '#5856d6';
+          badgeStyle = 'background:rgba(88,86,214,0.15);color:#5856d6;';
+        } else if (e.kind === 'unpaid_slot') {
+          amtColor = '#b45309';
+          badgeClass = 'badge-pending';
+          badgeStyle = 'background:rgba(255,149,0,0.18);color:#b45309;';
+        }
+        return `
+          <tr>
+            <td>${i + 1}</td>
+            <td>
+              <strong>${escapeHtml(e.userName)}</strong>
+              <div style="font-size:0.75rem;color:var(--text-secondary);">${escapeHtml(e.userEmail)}</div>
+            </td>
+            <td>
+              <div style="font-weight:600;font-size:0.85rem;">${escapeHtml(e.title)}</div>
+              <small style="color:var(--text-secondary);">${escapeHtml(e.subtitle)}</small>
+            </td>
+            <td><strong style="color:${amtColor};">₹${e.totalAmount.toFixed(2)}</strong></td>
+            <td><code style="font-weight:700;background:rgba(255,255,255,0.7);padding:2px 8px;border-radius:4px;">${escapeHtml(e.utr)}</code></td>
+            <td>${e.date ? parseUtcDate(e.date).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' }) : '-'}</td>
+            <td>
+              ${e.receiptUrl ? `<a href="${escapeHtml(e.receiptUrl)}" target="_blank" class="view-btn" style="padding:0.25rem 0.6rem;font-size:0.75rem;text-decoration:none;">🧾 Receipt ↗</a>` : '<span style="color:var(--text-tertiary);font-size:0.8rem;">No file</span>'}
+            </td>
+            <td><span class="badge ${badgeClass}" style="${badgeStyle}">${escapeHtml(e.statusLabel)}</span></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function exportPaymentsCsv() {
+      const searchQ = (document.getElementById('paymentSearchInput') ? document.getElementById('paymentSearchInput').value : '').toLowerCase().trim();
+      const { entries, bankEvents } = buildPaymentLedgerData();
+      const csvEsc = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+
+      let rows = [];
+      if (currentAdminPayFilter === 'bank_events') {
+        rows.push(['#', 'UTR', 'Amount', 'Claimed By', 'Email', 'Used For', 'Date (IST)', 'Status', 'Raw Text']);
+        bankEvents.forEach((ev, idx) => {
+          rows.push([
+            idx + 1,
+            ev.utr,
+            Number(ev.amount || 0).toFixed(2),
+            ev.claimed_user_name || '',
+            ev.claimed_user_email || '',
+            ev.used_for || '',
+            ev.created_at ? parseUtcDate(ev.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : '',
+            ev.used_by_user_id ? 'Claimed' : 'Unclaimed',
+            ev.raw_text || ''
+          ]);
+        });
+      } else {
+        let filtered = entries;
+        if (currentAdminPayFilter !== 'all') filtered = filtered.filter(e => e.kind === currentAdminPayFilter);
+        if (searchQ) {
+          filtered = filtered.filter(e =>
+            (e.userName || '').toLowerCase().includes(searchQ) ||
+            (e.userEmail || '').toLowerCase().includes(searchQ) ||
+            (e.utr || '').toLowerCase().includes(searchQ) ||
+            (e.title || '').toLowerCase().includes(searchQ)
+          );
+        }
+        filtered.sort((a, b) => parseUtcDate(b.date) - parseUtcDate(a.date));
+        rows.push(['#', 'Candidate', 'Email', 'Type / Details', 'Description', 'Amount', 'UTR / Reference', 'Date (IST)', 'Status']);
+        filtered.forEach((e, idx) => {
+          rows.push([
+            idx + 1,
+            e.userName,
+            e.userEmail,
+            e.title,
+            e.subtitle,
+            e.totalAmount.toFixed(2),
+            e.utr,
+            e.date ? parseUtcDate(e.date).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : '',
+            e.statusLabel
+          ]);
+        });
+      }
+
+      const csvContent = rows.map(r => r.map(csvEsc).join(',')).join('\n');
+      const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `kp-cyber-payments-${currentAdminPayFilter}-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     }
 
     function openSingleAppReview(appId) {
