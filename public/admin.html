@@ -229,7 +229,7 @@
       <div class="section-header-card">
         <div>
           <h3><span>💳</span> UPI Payment & Bank UTR Ledger</h3>
-          <p>Reconcile settled 5-application batches, verified UTR numbers, and uploaded payment receipts.</p>
+          <p>Reconcile prepaid wallet top-ups, settled batches, one-time payments, verified UTR numbers, and receipts.</p>
         </div>
         <div>
           <span class="badge badge-approved" style="font-size:0.85rem;">Pratik Karthiya (pratikkarthiya6@oksbi)</span>
@@ -243,7 +243,7 @@
               <tr>
                 <th>#</th>
                 <th>Candidate</th>
-                <th>Batch Applications</th>
+                <th>Payment Type / Details</th>
                 <th>Amount Settled</th>
                 <th>Bank UTR / Ref Number</th>
                 <th>Date Settled</th>
@@ -509,6 +509,7 @@
   <script>
     let cachedUsers = [];
     let cachedAllApplications = [];
+    let cachedWalletTransactions = [];
     let currentAdminAppFilter = 'all';
 
     function escapeQuotes(str) {
@@ -666,6 +667,7 @@
           closeAdminWalletModal();
           alert(data.message || 'Wallet updated successfully!');
           loadUsers();
+          loadWalletTransactions();
         } else {
           alert(data.error || 'Failed to update wallet.');
         }
@@ -691,6 +693,9 @@
       if (sectionId === 'applications' && cachedAllApplications.length === 0) {
         loadAllApplications();
       }
+      if (sectionId === 'payments') {
+        loadWalletTransactions();
+      }
     }
 
     function goToPendingApps() {
@@ -708,7 +713,7 @@
         window.location.href = '/admin/login';
         return;
       }
-      Promise.all([loadStats(), loadUsers(), loadAllApplications()]);
+      Promise.all([loadStats(), loadUsers(), loadAllApplications(), loadWalletTransactions()]);
     });
 
     function updateCreateBatchPreview(val) {
@@ -799,6 +804,19 @@
         renderAdminPayments();
       } catch (e) {
         console.error('Failed to load all applications:', e);
+      }
+    }
+
+    async function loadWalletTransactions() {
+      try {
+        const res = await fetch('/api/admin/wallet-transactions');
+        const data = await res.json();
+        if (res.ok && data.success) {
+          cachedWalletTransactions = data.transactions || [];
+          renderAdminPayments();
+        }
+      } catch (e) {
+        console.error('Failed to load wallet transactions:', e);
       }
     }
 
@@ -999,21 +1017,48 @@
       }
     }
 
+    function parseUtcDate(d) {
+      if (!d) return new Date(0);
+      const s = String(d).trim();
+      if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(s)) {
+        return new Date(s.replace(' ', 'T') + 'Z');
+      }
+      return new Date(s);
+    }
+
     function renderAdminPayments() {
       const tbody = document.getElementById('adminPaymentsBody');
       const paidApps = cachedAllApplications.filter(a => a.payment_status === 'paid');
+      const walletCredits = (cachedWalletTransactions || []).filter(t => t.type === 'credit');
 
-      if (paidApps.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2.5rem;color:var(--text-secondary)">No batch payments recorded yet.</td></tr>';
-        return;
-      }
+      const entries = [];
 
-      // Group payments by UTR & candidate
+      // 1. Prepaid Wallet Top-ups & Admin Credits
+      walletCredits.forEach(t => {
+        entries.push({
+          kind: 'wallet_topup',
+          userName: t.user_name || 'Candidate',
+          userEmail: t.user_email || '',
+          title: '💳 Prepaid Wallet Top-Up',
+          subtitle: t.description || 'Prepaid Wallet Top-up (UPI)',
+          totalAmount: Number(t.amount || 0),
+          utr: t.reference_id || 'ADMIN-CREDIT',
+          date: t.created_at,
+          receiptUrl: t.receipt_url || '',
+          statusLabel: t.status === 'approved' ? 'Wallet Credited' : (t.status || 'Approved')
+        });
+      });
+
+      // 2. Group Application Payments by UTR & candidate (keep wallet-paid apps separate by id if needed)
       const batches = {};
       paidApps.forEach(a => {
-        const key = (a.payment_id || 'Ref') + '-' + a.user_id;
+        const isWalletPay = a.payment_id === 'WALLET-PAID' || a.payment_method === 'WALLET_BALANCE';
+        const key = isWalletPay
+          ? `WALLET-${a.id}`
+          : (a.payment_id || 'Ref') + '-' + a.user_id;
         if (!batches[key]) {
           batches[key] = {
+            kind: isWalletPay ? 'wallet_debit_app' : 'upi_app',
             utr: a.payment_id || 'Unknown',
             userName: a.user_name || 'Candidate',
             userEmail: a.user_email || '',
@@ -1024,30 +1069,57 @@
           };
         }
         batches[key].apps.push(a.application_number);
-        batches[key].totalAmount += (a.payment_amount || 0);
+        batches[key].totalAmount += Number(a.payment_amount || 0);
         if (!batches[key].receiptUrl && a.payment_screenshot_url) {
           batches[key].receiptUrl = a.payment_screenshot_url;
         }
       });
 
-      tbody.innerHTML = Object.values(batches).map((b, i) => `
+      Object.values(batches).forEach(b => {
+        entries.push({
+          kind: b.kind,
+          userName: b.userName,
+          userEmail: b.userEmail,
+          title: b.kind === 'wallet_debit_app'
+            ? `⚡ Wallet Paid: ${b.apps.join(', ')}`
+            : b.apps.join(', '),
+          subtitle: b.kind === 'wallet_debit_app'
+            ? 'Deducted from prepaid wallet'
+            : `${b.apps.length} ${b.apps.length === 1 ? 'application' : 'applications batch'}`,
+          totalAmount: b.totalAmount,
+          utr: b.utr,
+          date: b.date,
+          receiptUrl: b.receiptUrl,
+          statusLabel: b.kind === 'wallet_debit_app' ? 'Paid via Wallet' : 'Settled'
+        });
+      });
+
+      if (entries.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2.5rem;color:var(--text-secondary)">No payments or wallet top-ups recorded yet.</td></tr>';
+        return;
+      }
+
+      // Sort newest first
+      entries.sort((a, b) => parseUtcDate(b.date) - parseUtcDate(a.date));
+
+      tbody.innerHTML = entries.map((e, i) => `
         <tr>
           <td>${i + 1}</td>
           <td>
-            <strong>${b.userName}</strong>
-            <div style="font-size:0.75rem;color:var(--text-secondary);">${b.userEmail}</div>
+            <strong>${e.userName}</strong>
+            <div style="font-size:0.75rem;color:var(--text-secondary);">${e.userEmail}</div>
           </td>
           <td>
-            <div style="font-weight:600;font-size:0.85rem;">${b.apps.join(', ')}</div>
-            <small style="color:var(--text-secondary);">${b.apps.length} applications batch</small>
+            <div style="font-weight:600;font-size:0.85rem;">${e.title}</div>
+            <small style="color:var(--text-secondary);">${e.subtitle}</small>
           </td>
-          <td><strong style="color:var(--accent-blue);">₹${b.totalAmount.toFixed(2)}</strong></td>
-          <td><code style="font-weight:700;background:rgba(255,255,255,0.7);padding:2px 8px;border-radius:4px;">${b.utr}</code></td>
-          <td>${new Date(b.date).toLocaleDateString()}</td>
+          <td><strong style="color:${e.kind === 'wallet_topup' ? '#15803d' : 'var(--accent-blue)'};">₹${e.totalAmount.toFixed(2)}</strong></td>
+          <td><code style="font-weight:700;background:rgba(255,255,255,0.7);padding:2px 8px;border-radius:4px;">${e.utr}</code></td>
+          <td>${e.date ? parseUtcDate(e.date).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' }) : '-'}</td>
           <td>
-            ${b.receiptUrl ? `<a href="${b.receiptUrl}" target="_blank" class="view-btn" style="padding:0.25rem 0.6rem;font-size:0.75rem;text-decoration:none;">🧾 Receipt ↗</a>` : '<span style="color:var(--text-tertiary);font-size:0.8rem;">No file</span>'}
+            ${e.receiptUrl ? `<a href="${e.receiptUrl}" target="_blank" class="view-btn" style="padding:0.25rem 0.6rem;font-size:0.75rem;text-decoration:none;">🧾 Receipt ↗</a>` : '<span style="color:var(--text-tertiary);font-size:0.8rem;">No file</span>'}
           </td>
-          <td><span class="badge badge-approved">Settled</span></td>
+          <td><span class="badge ${e.kind === 'wallet_topup' ? 'badge-approved' : 'badge-approved'}" style="${e.kind === 'wallet_topup' ? 'background:rgba(52,199,89,0.18);color:#15803d;' : ''}">${e.statusLabel}</span></td>
         </tr>
       `).join('');
     }
