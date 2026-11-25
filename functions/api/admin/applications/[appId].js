@@ -8,7 +8,7 @@ export async function onRequestPut({ request, params, env }) {
 
   const appId = params.appId;
   const existing = await env.DB.prepare(
-    'SELECT id, status, admin_remarks, application_number, date_of_birth, app_password, payment_id, result_photo_url FROM applications WHERE id = ?'
+    'SELECT id, user_id, status, admin_remarks, application_number, date_of_birth, app_password, payment_status, payment_id, payment_amount, payment_method, paid_at, result_photo_url FROM applications WHERE id = ?'
   ).bind(appId).first();
 
   if (!existing) {
@@ -22,8 +22,40 @@ export async function onRequestPut({ request, params, env }) {
   const newAppNum = body.applicationNumber !== undefined ? String(body.applicationNumber).trim() : existing.application_number;
   const newDob = body.dateOfBirth !== undefined ? String(body.dateOfBirth).trim() : existing.date_of_birth;
   const newPass = body.appPassword !== undefined ? String(body.appPassword).trim() : existing.app_password;
-  const newPaymentId = body.paymentId !== undefined ? String(body.paymentId).trim() : existing.payment_id;
   const newResultPhotoUrl = body.resultPhotoUrl !== undefined ? body.resultPhotoUrl : existing.result_photo_url;
+
+  const newPaymentStatus = body.paymentStatus === 'paid' || body.paymentStatus === 'unpaid'
+    ? body.paymentStatus
+    : existing.payment_status;
+
+  let newPaymentId = body.paymentId !== undefined ? String(body.paymentId).trim() : (existing.payment_id || '');
+  let newPaymentAmount = body.paymentAmount !== undefined ? Number(body.paymentAmount) : Number(existing.payment_amount || 0);
+  let newPaymentMethod = body.paymentMethod !== undefined ? String(body.paymentMethod).trim() : (existing.payment_method || 'NONE');
+  let newPaidAt = existing.paid_at || null;
+
+  if (body.paymentStatus === 'paid') {
+    if (!newPaymentId || newPaymentId === 'PENDING_BATCH_OF_5') {
+      newPaymentId = 'ADMIN-PAID';
+    }
+    if (!newPaymentAmount || newPaymentAmount <= 0 || Number.isNaN(newPaymentAmount)) {
+      const owner = await env.DB.prepare('SELECT application_fee FROM users WHERE id = ?').bind(existing.user_id).first();
+      newPaymentAmount = owner && owner.application_fee ? Number(owner.application_fee) : 50.00;
+    }
+    if (!body.paymentMethod && (!newPaymentMethod || newPaymentMethod === 'NONE')) {
+      newPaymentMethod = 'ADMIN_MARKED_PAID';
+    }
+    if (!newPaidAt) {
+      newPaidAt = new Date().toISOString().replace('T', ' ').slice(0, 19);
+    }
+  } else if (body.paymentStatus === 'unpaid') {
+    if (body.paymentId === undefined && (newPaymentId === 'ADMIN-PAID' || !newPaymentId)) {
+      newPaymentId = 'PENDING_BATCH_OF_5';
+    }
+    if (!body.paymentMethod) {
+      newPaymentMethod = 'NONE';
+    }
+    newPaidAt = null;
+  }
 
   await env.DB.prepare(`
     UPDATE applications 
@@ -32,14 +64,26 @@ export async function onRequestPut({ request, params, env }) {
         application_number = ?, 
         date_of_birth = ?, 
         app_password = ?, 
+        payment_status = ?,
         payment_id = ?, 
+        payment_amount = ?,
+        payment_method = ?,
+        paid_at = ?,
         result_photo_url = ?, 
         reviewed_at = datetime("now") 
     WHERE id = ?
-  `).bind(newStatus, newRemarks, newAppNum, newDob, newPass, newPaymentId, newResultPhotoUrl, appId).run();
+  `).bind(
+    newStatus, newRemarks, newAppNum, newDob, newPass,
+    newPaymentStatus, newPaymentId, newPaymentAmount, newPaymentMethod, newPaidAt,
+    newResultPhotoUrl, appId
+  ).run();
 
   let message = `Application #${newAppNum} updated successfully`;
-  if (body.status === 'correction') {
+  if (body.paymentStatus === 'paid' && body.status === undefined) {
+    message = `Application #${newAppNum} marked as PAID (₹${Number(newPaymentAmount).toFixed(2)}, Ref: ${newPaymentId})`;
+  } else if (body.paymentStatus === 'unpaid' && body.status === undefined) {
+    message = `Application #${newAppNum} marked as UNPAID`;
+  } else if (body.status === 'correction') {
     message = `Application #${newAppNum} sent for Candidate Correction`;
   } else if (body.status === 'approved') {
     message = `Application #${newAppNum} approved successfully`;

@@ -221,15 +221,44 @@ router.put('/applications/:appId', requireAdmin, (req, res) => {
     return res.status(404).json({ error: 'Application not found' });
   }
 
-  const { status, remarks, resultPhotoUrl, applicationNumber, dateOfBirth, appPassword, paymentId } = req.body;
+  const { status, remarks, resultPhotoUrl, applicationNumber, dateOfBirth, appPassword, paymentId, paymentStatus, paymentAmount, paymentMethod } = req.body;
 
   const newStatus = status !== undefined ? status : existing.status;
   const newRemarks = remarks !== undefined ? remarks : (existing.admin_remarks || '');
   const newAppNum = applicationNumber !== undefined ? String(applicationNumber).trim() : existing.application_number;
   const newDob = dateOfBirth !== undefined ? String(dateOfBirth).trim() : existing.date_of_birth;
   const newPass = appPassword !== undefined ? String(appPassword).trim() : existing.app_password;
-  const newPaymentId = paymentId !== undefined ? String(paymentId).trim() : existing.payment_id;
   const newResultPhotoUrl = resultPhotoUrl !== undefined ? resultPhotoUrl : (existing.result_photo_url || '');
+
+  const newPaymentStatus = (paymentStatus === 'paid' || paymentStatus === 'unpaid') ? paymentStatus : existing.payment_status;
+  let newPaymentId = paymentId !== undefined ? String(paymentId).trim() : (existing.payment_id || '');
+  let newPaymentAmount = paymentAmount !== undefined ? Number(paymentAmount) : Number(existing.payment_amount || 0);
+  let newPaymentMethod = paymentMethod !== undefined ? String(paymentMethod).trim() : (existing.payment_method || 'NONE');
+  let newPaidAt = existing.paid_at || null;
+
+  if (paymentStatus === 'paid') {
+    if (!newPaymentId || newPaymentId === 'PENDING_BATCH_OF_5') {
+      newPaymentId = 'ADMIN-PAID';
+    }
+    if (!newPaymentAmount || newPaymentAmount <= 0 || Number.isNaN(newPaymentAmount)) {
+      const owner = queryOne('SELECT application_fee FROM users WHERE id = ?', [existing.user_id]);
+      newPaymentAmount = owner && owner.application_fee ? Number(owner.application_fee) : 50.00;
+    }
+    if (!paymentMethod && (!newPaymentMethod || newPaymentMethod === 'NONE')) {
+      newPaymentMethod = 'ADMIN_MARKED_PAID';
+    }
+    if (!newPaidAt) {
+      newPaidAt = new Date().toISOString().replace('T', ' ').slice(0, 19);
+    }
+  } else if (paymentStatus === 'unpaid') {
+    if (paymentId === undefined && (newPaymentId === 'ADMIN-PAID' || !newPaymentId)) {
+      newPaymentId = 'PENDING_BATCH_OF_5';
+    }
+    if (!paymentMethod) {
+      newPaymentMethod = 'NONE';
+    }
+    newPaidAt = null;
+  }
 
   runSql(
     `UPDATE applications 
@@ -238,15 +267,21 @@ router.put('/applications/:appId', requireAdmin, (req, res) => {
          application_number = ?, 
          date_of_birth = ?, 
          app_password = ?, 
+         payment_status = ?,
          payment_id = ?, 
+         payment_amount = ?,
+         payment_method = ?,
+         paid_at = ?,
          result_photo_url = ?, 
          reviewed_at = CURRENT_TIMESTAMP 
      WHERE id = ?`,
-    [newStatus, newRemarks, newAppNum, newDob, newPass, newPaymentId, newResultPhotoUrl, appId]
+    [newStatus, newRemarks, newAppNum, newDob, newPass, newPaymentStatus, newPaymentId, newPaymentAmount, newPaymentMethod, newPaidAt, newResultPhotoUrl, appId]
   );
 
   let message = `Application #${newAppNum} updated successfully`;
-  if (status === 'correction') message = `Application #${newAppNum} sent for Candidate Correction`;
+  if (paymentStatus === 'paid' && status === undefined) message = `Application #${newAppNum} marked as PAID (₹${Number(newPaymentAmount).toFixed(2)}, Ref: ${newPaymentId})`;
+  else if (paymentStatus === 'unpaid' && status === undefined) message = `Application #${newAppNum} marked as UNPAID`;
+  else if (status === 'correction') message = `Application #${newAppNum} sent for Candidate Correction`;
   else if (status === 'approved') message = `Application #${newAppNum} approved successfully`;
   else if (status === 'rejected') message = `Application #${newAppNum} rejected`;
 

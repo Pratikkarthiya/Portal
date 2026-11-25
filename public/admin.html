@@ -986,16 +986,22 @@
           <td>
             <div style="white-space:nowrap;">
               ${app.payment_status === 'paid' ? `
-                <span class="badge badge-approved" style="font-size:0.72rem;padding:2px 8px;">⚡ Paid (Batch)</span>
+                <span class="badge badge-approved" style="font-size:0.72rem;padding:2px 8px;">⚡ Paid</span>
                 <div style="font-size:0.78rem;color:#334155;margin-top:3px;display:flex;align-items:center;gap:4px;">
                   <span>UTR:</span>
-                  <code style="font-weight:700;color:#d97706;background:#fef3c7;padding:1px 5px;border-radius:4px;">${app.payment_id}</code>
-                  <button class="copy-badge" style="margin:0;padding:1px 5px;font-size:0.65rem;" onclick="copyItem('${app.payment_id}', this, 'UTR')" title="Copy UTR">📋</button>
+                  <code style="font-weight:700;color:#d97706;background:#fef3c7;padding:1px 5px;border-radius:4px;">${app.payment_id || 'ADMIN-PAID'}</code>
+                  <button class="copy-badge" style="margin:0;padding:1px 5px;font-size:0.65rem;" onclick="copyItem('${app.payment_id || 'ADMIN-PAID'}', this, 'UTR')" title="Copy UTR">📋</button>
                 </div>
                 ${app.payment_screenshot_url ? `<div style="margin-top:3px;"><a href="${app.payment_screenshot_url}" target="_blank" style="font-size:0.74rem;color:var(--accent-blue);font-weight:700;text-decoration:none;">🧾 Receipt ↗</a></div>` : ''}
+                <div style="margin-top:4px;">
+                  <button class="copy-badge" style="margin:0;padding:2px 7px;font-size:0.68rem;background:rgba(255,149,0,0.12);color:#b45309;border-color:rgba(255,149,0,0.3);" onclick="markAppPayment(${app.id}, 'unpaid', this)">↩️ Mark Unpaid</button>
+                </div>
               ` : `
                 <span class="badge badge-pending" style="font-size:0.72rem;padding:2px 8px;">⏳ Unpaid</span>
                 <div style="font-size:0.72rem;color:#64748b;margin-top:2px;">Due on 5th App</div>
+                <div style="margin-top:4px;">
+                  <button class="copy-badge" style="margin:0;padding:2px 8px;font-size:0.7rem;background:rgba(52,199,89,0.16);color:#15803d;border-color:rgba(52,199,89,0.35);font-weight:700;" onclick="markAppPayment(${app.id}, 'paid', this)">💳 Mark Paid</button>
+                </div>
               `}
             </div>
           </td>
@@ -1076,6 +1082,11 @@
                     ${app.payment_screenshot_url ? `<a href="${app.payment_screenshot_url}" target="_blank" style="font-size:0.72rem;color:var(--accent-blue);font-weight:700;text-decoration:none;">🧾 Receipt ↗</a>` : ''}
                   </div>
                 ` : ''}
+                <div class="mac-row" style="margin-top:3px;">
+                  ${app.payment_status === 'paid'
+                    ? `<button class="copy-badge" style="margin:0;padding:2px 8px;font-size:0.72rem;background:rgba(255,149,0,0.12);color:#b45309;border-color:rgba(255,149,0,0.3);" onclick="markAppPayment(${app.id}, 'unpaid', this)">↩️ Mark Unpaid</button>`
+                    : `<button class="copy-badge" style="margin:0;padding:2px 8px;font-size:0.72rem;background:rgba(52,199,89,0.16);color:#15803d;border-color:rgba(52,199,89,0.35);font-weight:700;" onclick="markAppPayment(${app.id}, 'paid', this)">💳 Mark Paid</button>`}
+                </div>
 
                 ${app.result_photo_url ? `
                   <div style="margin-top:3px;">
@@ -1653,6 +1664,9 @@
             <button class="btn btn-success btn-sm" onclick="reviewApp(${app.id}, 'approved')">✅ Verify & Approve</button>
             <button class="btn btn-warning btn-sm" onclick="reviewApp(${app.id}, 'correction')">⚠️ Request Correction</button>
             <button class="btn btn-danger btn-sm" onclick="reviewApp(${app.id}, 'rejected')">❌ Reject</button>
+            ${app.payment_status === 'paid'
+              ? `<button class="btn btn-sm" onclick="markAppPayment(${app.id}, 'unpaid', this)" style="background:rgba(255,149,0,0.14);color:#b45309;border:1px solid rgba(255,149,0,0.3);font-weight:700;">↩️ Mark Unpaid</button>`
+              : `<button class="btn btn-sm" onclick="markAppPayment(${app.id}, 'paid', this)" style="background:rgba(52,199,89,0.16);color:#15803d;border:1px solid rgba(52,199,89,0.35);font-weight:700;">💳 Mark Paid</button>`}
             <button class="btn btn-sm" onclick="deleteApp(${app.id}, '${escapeQuotes(app.application_number || app.id)}')" style="background:rgba(255,59,48,0.12);color:#dc2626;border:1px solid rgba(255,59,48,0.25);font-weight:700;">🗑️ Delete</button>
           </div>
         </div>
@@ -1950,6 +1964,9 @@
             <button class="btn btn-success btn-sm" onclick="reviewApp(${app.id}, 'approved')">✅ Verify & Approve</button>
             <button class="btn btn-warning btn-sm" onclick="reviewApp(${app.id}, 'correction')">⚠️ Request Correction</button>
             <button class="btn btn-danger btn-sm" onclick="reviewApp(${app.id}, 'rejected')">❌ Reject</button>
+            ${app.payment_status === 'paid'
+              ? `<button class="btn btn-sm" onclick="markAppPayment(${app.id}, 'unpaid', this)" style="background:rgba(255,149,0,0.14);color:#b45309;border:1px solid rgba(255,149,0,0.3);font-weight:700;">↩️ Mark Unpaid</button>`
+              : `<button class="btn btn-sm" onclick="markAppPayment(${app.id}, 'paid', this)" style="background:rgba(52,199,89,0.16);color:#15803d;border:1px solid rgba(52,199,89,0.35);font-weight:700;">💳 Mark Paid</button>`}
             <button class="btn btn-sm" onclick="deleteApp(${app.id}, '${escapeQuotes(app.application_number || app.id)}')" style="background:rgba(255,59,48,0.12);color:#dc2626;border:1px solid rgba(255,59,48,0.25);font-weight:700;">🗑️ Delete</button>
           </div>
         </div>
@@ -2075,6 +2092,50 @@
         if (btnElement) {
           btnElement.disabled = false;
           btnElement.textContent = '💾 Save Edits';
+        }
+      }
+    }
+
+    async function markAppPayment(appId, targetStatus, btnElement) {
+      if (window.event) window.event.stopPropagation();
+      const app = (cachedAllApplications || []).find(a => a.id === appId);
+      const appLabel = app ? app.application_number : appId;
+
+      let payload = { paymentStatus: targetStatus };
+      if (targetStatus === 'paid') {
+        const defaultUtr = (app && app.payment_id && app.payment_id !== 'PENDING_BATCH_OF_5') ? app.payment_id : 'ADMIN-PAID';
+        const utr = prompt(`Mark Application #${appLabel} as PAID.\nEnter Bank UTR / Reference (leave as-is for ${defaultUtr}):`, defaultUtr);
+        if (utr === null) return;
+        payload.paymentId = utr.trim() || 'ADMIN-PAID';
+      } else {
+        if (!confirm(`Mark Application #${appLabel} payment as UNPAID?`)) return;
+      }
+
+      const origHtml = btnElement ? btnElement.innerHTML : '';
+      if (btnElement) {
+        btnElement.disabled = true;
+        btnElement.textContent = 'Updating...';
+      }
+
+      try {
+        const res = await fetch(`/api/admin/applications/${appId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          alert(data.message || `Payment status updated to ${targetStatus.toUpperCase()}.`);
+          await Promise.all([loadStats(), loadUsers(), loadAllApplications()]);
+        } else {
+          alert(data.error || 'Failed to update payment status.');
+        }
+      } catch (err) {
+        alert('Error updating payment status: ' + err.message);
+      } finally {
+        if (btnElement) {
+          btnElement.disabled = false;
+          btnElement.innerHTML = origHtml;
         }
       }
     }
