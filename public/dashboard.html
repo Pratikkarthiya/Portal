@@ -241,6 +241,7 @@
     <div class="ios-segmented-tabs" id="userTabs" style="margin-bottom:1.25rem;">
       <button class="ios-tab-btn active" data-tab="home" onclick="switchSection('home')">🏠 Home &amp; Apply</button>
       <button class="ios-tab-btn" data-tab="apps" onclick="switchSection('apps')">📑 My Applications <span id="tabAppBadge" style="font-size:0.75rem;opacity:0.8;"></span></button>
+      <button class="ios-tab-btn" data-tab="llpdf" onclick="switchSection('llpdf')">📄 LL PDF <span id="tabLlPdfBadge" style="font-size:0.75rem;opacity:0.8;"></span></button>
       <button class="ios-tab-btn" data-tab="wallet" onclick="switchSection('wallet')">💳 Wallet &amp; Payments</button>
     </div>
 
@@ -414,6 +415,71 @@
         <div class="empty-state">
           <div class="icon">📭</div>
           <p>Loading applications...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================
+         SECTION 2B: LL PDF REQUEST & DOWNLOAD
+         ======================================================== -->
+    <div class="dashboard-section" id="section-llpdf">
+      <div class="kp-profile-strip">
+        <div class="kp-profile-pill">
+          <span class="k">LL PDF Rate</span>
+          <span class="v" style="color:var(--accent-blue);font-size:1.05rem;" id="llPdfFeeDisplay">₹20.00 / PDF</span>
+        </div>
+        <div class="kp-profile-pill">
+          <span class="k">Wallet Balance</span>
+          <span class="v" style="color:#15803d;font-size:1.05rem;" id="llPdfWalletDisplay">₹0.00</span>
+        </div>
+        <div style="font-size:0.8rem;color:var(--text-secondary);">
+          Fee is automatically deducted from your wallet when you request an LL PDF.
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="openAddMoneyModal()" style="background:linear-gradient(135deg,#34c759 0%,#248a3d 100%);border:none;font-weight:700;">
+          ➕ Add Money
+        </button>
+      </div>
+
+      <div class="submit-card" style="padding:1.35rem 1.5rem;margin-bottom:1.25rem;">
+        <h3 style="margin-bottom:0.25rem;"><span>📄</span> Request LL PDF</h3>
+        <p style="font-size:0.84rem;color:var(--text-secondary);margin-bottom:1rem;">
+          Enter your Application Number to request the LL PDF. Once uploaded by Admin, you can download it here and on Telegram.
+        </p>
+        <div class="alert alert-error" id="llPdfError"></div>
+        <div class="alert alert-success" id="llPdfSuccess"></div>
+
+        <form id="llPdfForm" onsubmit="submitLlPdfRequest(event)" style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:flex-end;">
+          <div class="form-group" style="flex:1;min-width:220px;margin-bottom:0;">
+            <label>Application Number *</label>
+            <input type="text" id="llPdfAppNumberInput" required placeholder="e.g. 1234567890" autocomplete="off">
+          </div>
+          <button type="submit" class="btn btn-primary" id="llPdfSubmitBtn" style="padding:0.78rem 1.35rem;font-weight:700;">
+            🚀 Request LL PDF (₹20.00)
+          </button>
+        </form>
+      </div>
+
+      <div class="users-table-wrapper">
+        <div class="table-header" style="padding:0.9rem 1.25rem;">
+          <h3>My LL PDF Requests</h3>
+        </div>
+        <div class="table-scroll-container">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Application Number</th>
+                <th>Fee Deducted</th>
+                <th>Requested On</th>
+                <th>Remarks</th>
+                <th>Status</th>
+                <th>LL PDF File</th>
+              </tr>
+            </thead>
+            <tbody id="llPdfListBody">
+              <tr><td colspan="7" style="text-align:center;padding:2.2rem;color:var(--text-secondary);">No LL PDF requests yet.</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -914,6 +980,9 @@
       if (sectionId === 'wallet') {
         loadWalletData();
       }
+      if (sectionId === 'llpdf') {
+        loadLlPdfRequests();
+      }
     }
 
     function showPortalShutdownOverlay(msg) {
@@ -948,7 +1017,127 @@
       loadBatchStatus();
       loadApplications();
       loadUserTelegramSettings();
+      loadLlPdfRequests();
     });
+
+    let userLlPdfFee = 20.00;
+    let userLlPdfRequests = [];
+
+    async function loadLlPdfRequests() {
+      try {
+        const res = await fetch('/api/user/ll-pdf');
+        const data = await res.json();
+        if (res.ok && data.success) {
+          userLlPdfFee = Number(data.llPdfFee ?? 20);
+          if (data.walletBalance !== undefined) {
+            userWalletBalance = Number(data.walletBalance);
+            updateWalletUI();
+          }
+          userLlPdfRequests = data.requests || [];
+          renderLlPdfRequests();
+        }
+      } catch (e) {}
+    }
+
+    function renderLlPdfRequests() {
+      const feeEl = document.getElementById('llPdfFeeDisplay');
+      const walEl = document.getElementById('llPdfWalletDisplay');
+      const btnEl = document.getElementById('llPdfSubmitBtn');
+      const badgeEl = document.getElementById('tabLlPdfBadge');
+      const tbody = document.getElementById('llPdfListBody');
+
+      if (feeEl) feeEl.textContent = `₹${userLlPdfFee.toFixed(2)} / PDF`;
+      if (walEl) walEl.textContent = `₹${userWalletBalance.toFixed(2)}`;
+      if (btnEl && !btnEl.disabled) btnEl.textContent = `🚀 Request LL PDF (₹${userLlPdfFee.toFixed(2)})`;
+      if (badgeEl) badgeEl.textContent = userLlPdfRequests.length > 0 ? `(${userLlPdfRequests.length})` : '';
+
+      if (!tbody) return;
+      if (userLlPdfRequests.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2.2rem;color:var(--text-secondary);">No LL PDF requests yet. Enter an Application Number above!</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = userLlPdfRequests.map((r, idx) => `
+        <tr>
+          <td>${idx + 1}</td>
+          <td><strong style="font-family:monospace;font-size:0.92rem;">${r.application_number}</strong></td>
+          <td><strong style="color:var(--accent-blue);">₹${Number(r.fee_amount || 0).toFixed(2)}</strong></td>
+          <td><span style="font-size:0.8rem;color:var(--text-secondary);">${parseUtcDate(r.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' })}</span></td>
+          <td><span style="font-size:0.8rem;color:var(--text-secondary);">${r.admin_remarks || '—'}</span></td>
+          <td>
+            <span class="badge ${r.status === 'completed' ? 'badge-approved' : (r.status === 'rejected' ? 'badge-rejected' : 'badge-pending')}">
+              ${r.status === 'completed' ? '✅ Ready' : (r.status === 'rejected' ? '↩️ Refunded' : '⏳ Pending')}
+            </span>
+          </td>
+          <td>
+            ${r.pdf_url ? `<a href="${r.pdf_url}" download="LL_${r.application_number}.pdf" target="_blank" class="btn btn-sm btn-primary" style="text-decoration:none;padding:0.35rem 0.8rem;font-size:0.78rem;background:#15803d;border:none;">📥 Download PDF</a>` : '<span style="font-size:0.78rem;color:var(--text-tertiary);">Waiting for Admin</span>'}
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    async function submitLlPdfRequest(e) {
+      e.preventDefault();
+      const inp = document.getElementById('llPdfAppNumberInput');
+      const btn = document.getElementById('llPdfSubmitBtn');
+      const errEl = document.getElementById('llPdfError');
+      const okEl = document.getElementById('llPdfSuccess');
+      const appNum = inp ? inp.value.trim() : '';
+
+      if (errEl) errEl.classList.remove('show');
+      if (okEl) okEl.classList.remove('show');
+
+      if (!appNum) return;
+
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Submitting...';
+      }
+
+      try {
+        const res = await fetch('/api/user/ll-pdf', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ applicationNumber: appNum })
+        });
+        const data = await res.json().catch(() => ({}));
+
+        if (res.status === 503 || data.portalShutdown) {
+          showPortalShutdownOverlay(data.error);
+          return;
+        }
+
+        if (res.ok && data.success) {
+          if (inp) inp.value = '';
+          if (data.walletBalance !== undefined) {
+            userWalletBalance = Number(data.walletBalance);
+            updateWalletUI();
+            loadWalletData();
+          }
+          if (okEl) {
+            okEl.textContent = data.message || 'LL PDF requested!';
+            okEl.classList.add('show');
+            setTimeout(() => okEl.classList.remove('show'), 5000);
+          }
+          await loadLlPdfRequests();
+        } else {
+          if (errEl) {
+            errEl.textContent = data.error || 'Request failed.';
+            errEl.classList.add('show');
+          }
+        }
+      } catch (err) {
+        if (errEl) {
+          errEl.textContent = 'Network error: ' + err.message;
+          errEl.classList.add('show');
+        }
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = `🚀 Request LL PDF (₹${userLlPdfFee.toFixed(2)})`;
+        }
+      }
+    }
 
     async function loadUserTelegramSettings() {
       try {

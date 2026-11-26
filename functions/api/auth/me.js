@@ -23,7 +23,7 @@ export async function onRequestGet({ request, env }) {
     });
   }
 
-  const user = await env.DB.prepare('SELECT id, name, email, application_fee, wallet_balance, telegram_chat_id, created_at FROM users WHERE id = ?').bind(session.user_id).first();
+  const user = await env.DB.prepare('SELECT id, name, email, application_fee, ll_pdf_fee, wallet_balance, telegram_chat_id, created_at FROM users WHERE id = ?').bind(session.user_id).first();
   return jsonResponse({
     loggedIn: true,
     userType: 'user',

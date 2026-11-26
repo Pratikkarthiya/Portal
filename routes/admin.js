@@ -1,8 +1,23 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const { queryAll, queryOne, runSql } = require('../db');
 
 const router = express.Router();
+
+const pdfUploadDir = path.join(__dirname, '..', 'public', 'uploads');
+if (!fs.existsSync(pdfUploadDir)) {
+  fs.mkdirSync(pdfUploadDir, { recursive: true });
+}
+const pdfUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, pdfUploadDir),
+    filename: (req, file, cb) => cb(null, `llpdf-${Date.now()}-${Math.round(Math.random() * 1e9)}.pdf`)
+  }),
+  limits: { fileSize: 15 * 1024 * 1024 }
+});
 
 function requireAdmin(req, res, next) {
   if (!req.session.adminId) {
@@ -13,7 +28,7 @@ function requireAdmin(req, res, next) {
 
 // Admin creates new user account with customized Application Fee
 router.post('/users', requireAdmin, (req, res) => {
-  const { name, email, password, applicationFee, paymentMode, telegramChatId } = req.body;
+  const { name, email, password, applicationFee, llPdfFee, paymentMode, telegramChatId } = req.body;
   if (!name || !email || !password) {
     return res.status(400).json({ error: 'Name, email, and password are required' });
   }
@@ -24,12 +39,13 @@ router.post('/users', requireAdmin, (req, res) => {
   }
 
   const fee = parseFloat(applicationFee) > 0 ? parseFloat(applicationFee) : 50.00;
+  const pdfFee = parseFloat(llPdfFee) >= 0 ? parseFloat(llPdfFee) : 20.00;
   const mode = paymentMode === 'one_time' ? 'one_time' : 'batch';
   const tgChatId = telegramChatId ? String(telegramChatId).trim() : '';
   const hash = bcrypt.hashSync(password, 10);
   const newUserId = runSql(
-    'INSERT INTO users (name, email, password, application_fee, payment_mode, telegram_chat_id) VALUES (?, ?, ?, ?, ?, ?)',
-    [name, email, hash, fee, mode, tgChatId]
+    'INSERT INTO users (name, email, password, application_fee, ll_pdf_fee, payment_mode, telegram_chat_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    [name, email, hash, fee, pdfFee, mode, tgChatId]
   );
 
   res.json({
@@ -49,7 +65,7 @@ router.put('/users/:userId', requireAdmin, (req, res) => {
     return res.status(404).json({ error: 'User not found' });
   }
 
-  const { name, email, applicationFee, paymentMode, telegramChatId, newPassword } = req.body;
+  const { name, email, applicationFee, llPdfFee, paymentMode, telegramChatId, newPassword } = req.body;
   if (!name || !email) {
     return res.status(400).json({ error: 'Name and email are required' });
   }
@@ -63,19 +79,20 @@ router.put('/users/:userId', requireAdmin, (req, res) => {
   }
 
   const fee = parseFloat(applicationFee) > 0 ? parseFloat(applicationFee) : user.application_fee;
+  const pdfFee = parseFloat(llPdfFee) >= 0 ? parseFloat(llPdfFee) : (user.ll_pdf_fee ?? 20.00);
   const mode = paymentMode === 'one_time' ? 'one_time' : 'batch';
   const tgChatId = telegramChatId !== undefined ? String(telegramChatId).trim() : (user.telegram_chat_id || '');
 
   if (newPassword && newPassword.trim().length >= 6) {
     const hash = bcrypt.hashSync(newPassword.trim(), 10);
     runSql(
-      'UPDATE users SET name = ?, email = ?, application_fee = ?, payment_mode = ?, telegram_chat_id = ?, password = ? WHERE id = ?',
-      [name, email, fee, mode, tgChatId, hash, userId]
+      'UPDATE users SET name = ?, email = ?, application_fee = ?, ll_pdf_fee = ?, payment_mode = ?, telegram_chat_id = ?, password = ? WHERE id = ?',
+      [name, email, fee, pdfFee, mode, tgChatId, hash, userId]
     );
   } else {
     runSql(
-      'UPDATE users SET name = ?, email = ?, application_fee = ?, payment_mode = ?, telegram_chat_id = ? WHERE id = ?',
-      [name, email, fee, mode, tgChatId, userId]
+      'UPDATE users SET name = ?, email = ?, application_fee = ?, ll_pdf_fee = ?, payment_mode = ?, telegram_chat_id = ? WHERE id = ?',
+      [name, email, fee, pdfFee, mode, tgChatId, userId]
     );
   }
 
@@ -88,7 +105,7 @@ router.put('/users/:userId', requireAdmin, (req, res) => {
 // Get all users with application counts & payment stats
 router.get('/users', requireAdmin, (req, res) => {
   const users = queryAll(`
-    SELECT u.id, u.name, u.email, u.application_fee, u.wallet_balance, u.payment_mode, u.telegram_chat_id, u.created_at,
+    SELECT u.id, u.name, u.email, u.application_fee, u.ll_pdf_fee, u.wallet_balance, u.payment_mode, u.telegram_chat_id, u.created_at,
            COUNT(a.id) as total_applications,
            SUM(CASE WHEN a.status = 'pending' THEN 1 ELSE 0 END) as pending,
            SUM(CASE WHEN a.status = 'approved' THEN 1 ELSE 0 END) as approved,
@@ -442,6 +459,72 @@ router.post('/settings/shutdown', requireAdmin, (req, res) => {
       ? '🔴 Portal is now SHUT DOWN. All user logins, submissions, and top-ups are stopped.'
       : '🟢 Portal is now ONLINE. Users can work normally.'
   });
+});
+
+// Admin LL PDF Requests management
+router.get('/ll-pdf', requireAdmin, (req, res) => {
+  const requests = queryAll(`
+    SELECT r.id, r.user_id, r.application_number, r.fee_amount, r.status, r.pdf_url, r.admin_remarks,
+           r.created_at, r.completed_at,
+           u.name as user_name, u.email as user_email, u.telegram_chat_id
+    FROM ll_pdf_requests r
+    JOIN users u ON r.user_id = u.id
+    ORDER BY r.id DESC
+  `);
+  res.json({ success: true, requests: requests || [] });
+});
+
+router.put('/ll-pdf/:id', requireAdmin, pdfUpload.single('pdf'), (req, res) => {
+  const reqId = Number(req.params.id);
+  const existing = queryOne('SELECT * FROM ll_pdf_requests WHERE id = ?', [reqId]);
+  if (!existing) return res.status(404).json({ error: 'LL PDF request not found' });
+
+  let status = req.body.status || existing.status;
+  const remarks = req.body.remarks !== undefined ? String(req.body.remarks).trim() : (existing.admin_remarks || '');
+  let pdfUrl = req.body.pdfUrl || existing.pdf_url || '';
+
+  if (req.file) {
+    pdfUrl = '/uploads/' + req.file.filename;
+    status = 'completed';
+  }
+
+  let refundedAmount = 0;
+  if (status === 'rejected' && existing.status === 'pending' && Number(existing.fee_amount) > 0) {
+    const userRow = queryOne('SELECT wallet_balance FROM users WHERE id = ?', [existing.user_id]);
+    const curBal = userRow ? Number(userRow.wallet_balance || 0) : 0;
+    refundedAmount = Number(existing.fee_amount);
+    const newBal = curBal + refundedAmount;
+    runSql('UPDATE users SET wallet_balance = ? WHERE id = ?', [newBal, existing.user_id]);
+    runSql(
+      `INSERT INTO wallet_transactions (user_id, type, amount, balance_after, reference_id, description, status)
+       VALUES (?, 'credit', ?, ?, ?, ?, 'approved')`,
+      [existing.user_id, refundedAmount, newBal, existing.application_number, `Refund: LL PDF #${existing.application_number} Rejected`]
+    );
+  }
+
+  runSql(
+    'UPDATE ll_pdf_requests SET status = ?, pdf_url = ?, admin_remarks = ?, completed_at = CURRENT_TIMESTAMP WHERE id = ?',
+    [status, pdfUrl, remarks, reqId]
+  );
+
+  res.json({
+    success: true,
+    status,
+    pdfUrl,
+    message: status === 'completed'
+      ? `📄 LL PDF uploaded & sent for #${existing.application_number}!`
+      : (status === 'rejected'
+        ? `❌ Request #${existing.application_number} rejected and ₹${refundedAmount.toFixed(2)} refunded to wallet.`
+        : `Request #${existing.application_number} updated.`)
+  });
+});
+
+router.delete('/ll-pdf/:id', requireAdmin, (req, res) => {
+  const reqId = Number(req.params.id);
+  const existing = queryOne('SELECT id, application_number FROM ll_pdf_requests WHERE id = ?', [reqId]);
+  if (!existing) return res.status(404).json({ error: 'LL PDF request not found' });
+  runSql('DELETE FROM ll_pdf_requests WHERE id = ?', [reqId]);
+  res.json({ success: true, message: `LL PDF request #${existing.application_number} deleted.` });
 });
 
 // Dashboard stats including revenue

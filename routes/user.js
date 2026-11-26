@@ -566,6 +566,74 @@ router.post('/telegram', requireUser, async (req, res) => {
 });
 
 /**
+ * LL PDF Requests: Get User's Rate & Requests / Submit New Request (Deducts from Wallet)
+ */
+router.get('/ll-pdf', requireUser, (req, res) => {
+  const user = queryOne('SELECT ll_pdf_fee, wallet_balance FROM users WHERE id = ?', [req.session.userId]);
+  const requests = queryAll(
+    'SELECT id, application_number, fee_amount, status, pdf_url, admin_remarks, created_at, completed_at FROM ll_pdf_requests WHERE user_id = ? ORDER BY id DESC',
+    [req.session.userId]
+  );
+
+  res.json({
+    success: true,
+    llPdfFee: user && user.ll_pdf_fee !== null && user.ll_pdf_fee !== undefined ? Number(user.ll_pdf_fee) : 20.00,
+    walletBalance: user ? Number(user.wallet_balance || 0) : 0.00,
+    requests: requests || []
+  });
+});
+
+router.post('/ll-pdf', requireUser, rejectIfShutdown, (req, res) => {
+  const applicationNumber = String(req.body.applicationNumber || '').trim();
+  if (!applicationNumber || applicationNumber.length < 3) {
+    return res.status(400).json({ error: 'Please enter a valid Application Number' });
+  }
+
+  const user = queryOne('SELECT id, name, email, ll_pdf_fee, wallet_balance FROM users WHERE id = ?', [req.session.userId]);
+  if (!user) return res.status(404).json({ error: 'User account not found' });
+
+  const llPdfFee = user.ll_pdf_fee !== null && user.ll_pdf_fee !== undefined ? Number(user.ll_pdf_fee) : 20.00;
+  const currentBalance = Number(user.wallet_balance || 0);
+
+  if (currentBalance < llPdfFee) {
+    return res.status(400).json({
+      error: `Insufficient wallet balance (₹${currentBalance.toFixed(2)}). LL PDF rate is ₹${llPdfFee.toFixed(2)}—please add money to your wallet first.`,
+      insufficientWallet: true,
+      requiredFee: llPdfFee,
+      walletBalance: currentBalance
+    });
+  }
+
+  const newBalance = currentBalance - llPdfFee;
+  runSql('UPDATE users SET wallet_balance = ? WHERE id = ?', [newBalance, req.session.userId]);
+  runSql(
+    `INSERT INTO wallet_transactions (user_id, type, amount, balance_after, reference_id, description, status)
+     VALUES (?, 'debit', ?, ?, ?, ?, 'approved')`,
+    [req.session.userId, llPdfFee, newBalance, applicationNumber, `LL PDF Request #${applicationNumber}`]
+  );
+
+  const reqId = runSql(
+    `INSERT INTO ll_pdf_requests (user_id, application_number, fee_amount, status, created_at)
+     VALUES (?, ?, ?, 'pending', CURRENT_TIMESTAMP)`,
+    [req.session.userId, applicationNumber, llPdfFee]
+  );
+
+  const candidateLabel = `${escapeTgHtml(user.name)} (${escapeTgHtml(user.email)})`;
+  const timeNow = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+  sendTelegramAlertNode(
+    `📄 <b>KP CYBER — NEW LL PDF REQUEST!</b>\n━━━━━━━━━━━━━━━━━━\n👤 <b>Candidate:</b> ${candidateLabel}\n📝 <b>App Number:</b> <code>${escapeTgHtml(applicationNumber)}</code>\n💳 <b>Fee Deducted:</b> ₹${llPdfFee.toFixed(2)} (Wallet)\n🏦 <b>New Wallet Balance:</b> ₹${newBalance.toFixed(2)}\n⏰ <b>Time:</b> ${timeNow}\n🔗 <a href="https://portal-2a3.pages.dev/admin">Upload PDF in Admin</a>`
+  ).catch(() => {});
+
+  res.json({
+    success: true,
+    requestId: reqId,
+    walletBalance: newBalance,
+    feeDeducted: llPdfFee,
+    message: `📄 LL PDF requested for #${applicationNumber}! ₹${llPdfFee.toFixed(2)} deducted from wallet.`
+  });
+});
+
+/**
  * 6. Real-time Payment Verification Checker (for automatic popup)
  */
 router.get('/check-payment', requireUser, (req, res) => {

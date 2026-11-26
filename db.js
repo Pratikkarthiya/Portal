@@ -82,7 +82,8 @@ function initialize() {
     `ALTER TABLE applications ADD COLUMN result_photo_url TEXT DEFAULT ''`,
     `ALTER TABLE users ADD COLUMN wallet_balance REAL DEFAULT 0.00`,
     `ALTER TABLE users ADD COLUMN payment_mode TEXT DEFAULT 'batch'`,
-    `ALTER TABLE users ADD COLUMN telegram_chat_id TEXT DEFAULT ''`
+    `ALTER TABLE users ADD COLUMN telegram_chat_id TEXT DEFAULT ''`,
+    `ALTER TABLE users ADD COLUMN ll_pdf_fee REAL DEFAULT 20.00`
   ];
 
   for (const query of migrationCols) {
@@ -133,6 +134,22 @@ function initialize() {
       key TEXT PRIMARY KEY,
       value TEXT,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // LL PDF Requests table
+  conn.run(`
+    CREATE TABLE IF NOT EXISTS ll_pdf_requests (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      application_number TEXT NOT NULL,
+      fee_amount REAL NOT NULL DEFAULT 20.00,
+      status TEXT DEFAULT 'pending',
+      pdf_url TEXT DEFAULT '',
+      admin_remarks TEXT DEFAULT '',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      completed_at DATETIME,
+      FOREIGN KEY (user_id) REFERENCES users(id)
     )
   `);
 

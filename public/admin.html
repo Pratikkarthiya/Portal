@@ -46,6 +46,7 @@
       <button class="ios-tab-btn" onclick="switchAdminSection('users')">👥 Users Directory</button>
       <button class="ios-tab-btn" onclick="switchAdminSection('applications')">📋 All Applications</button>
       <button class="ios-tab-btn" onclick="switchAdminSection('payments')">💳 Payments & UTRs</button>
+      <button class="ios-tab-btn" onclick="switchAdminSection('llpdf')">📄 LL PDFs <span id="llPdfAdminBadge" style="font-size:0.75rem;opacity:0.85;"></span></button>
     </div>
 
     <!-- ========================================================
@@ -306,6 +307,43 @@
         </div>
       </div>
     </div>
+
+    <!-- ========================================================
+         SECTION 5: LL PDF REQUESTS (UPLOAD PDF & AUTO-DEDUCT RATE)
+         ======================================================== -->
+    <div class="dashboard-section" id="admin-section-llpdf">
+      <div class="section-header-card">
+        <div>
+          <h3><span>📄</span> LL PDF Requests</h3>
+          <p>Users submit an Application Number (deducting their LL PDF rate from Wallet). Upload the PDF here or Reject to auto-refund.</p>
+        </div>
+        <button class="btn btn-sm" onclick="loadAdminLlPdfRequests()" style="background:rgba(0,113,227,0.14);color:var(--accent-blue);border:1px solid rgba(0,113,227,0.28);padding:0.45rem 0.9rem;border-radius:10px;font-weight:700;cursor:pointer;">
+          🔄 Refresh LL PDFs
+        </button>
+      </div>
+
+      <div class="users-table-wrapper">
+        <div class="table-scroll-container">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Candidate</th>
+                <th>Application Number</th>
+                <th>Fee Paid (Wallet)</th>
+                <th>Requested</th>
+                <th>Status</th>
+                <th>Upload &amp; Send LL PDF</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="adminLlPdfBody">
+              <tr><td colspan="8" style="text-align:center;padding:2.5rem;color:var(--text-secondary);">Loading LL PDF requests...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Glass Modal: Create User with Customized Fee -->
@@ -337,6 +375,10 @@
             <small style="color:var(--text-secondary);font-size:0.75rem;margin-top:4px;display:block;">
               5-Application batch total: <strong id="createBatchPreview" style="color:var(--accent-blue);">₹250.00</strong>
             </small>
+          </div>
+          <div class="form-group">
+            <label>LL PDF Rate (₹ INR)</label>
+            <input type="number" name="llPdfFee" id="createLlPdfFeeInput" required min="0" step="0.5" value="20.00">
           </div>
           <div class="form-group" style="background:rgba(88,86,214,0.06);padding:0.75rem;border-radius:10px;border:1px solid rgba(88,86,214,0.2);">
             <label style="color:#5856d6;font-weight:700;">Payment Settlement Plan</label>
@@ -384,6 +426,10 @@
             <small style="color:var(--text-secondary);font-size:0.75rem;margin-top:4px;display:block;">
               5-Application batch fee: <strong id="editBatchPreview" style="color:var(--accent-blue);">₹250.00</strong>
             </small>
+          </div>
+          <div class="form-group">
+            <label>LL PDF Rate (₹ INR)</label>
+            <input type="number" name="llPdfFee" id="editUserLlPdfFee" required min="0" step="0.5" value="20.00">
           </div>
           <div class="form-group" style="background:rgba(88,86,214,0.06);padding:0.75rem;border-radius:10px;border:1px solid rgba(88,86,214,0.2);">
             <label style="color:#5856d6;font-weight:700;">Payment Settlement Plan</label>
@@ -753,7 +799,7 @@
       const tabs = document.querySelectorAll('#adminTabs .ios-tab-btn');
       tabs.forEach(btn => btn.classList.remove('active'));
 
-      const map = { 'overview': 0, 'users': 1, 'applications': 2, 'payments': 3 };
+      const map = { 'overview': 0, 'users': 1, 'applications': 2, 'payments': 3, 'llpdf': 4 };
       if (tabs[map[sectionId]]) tabs[map[sectionId]].classList.add('active');
 
       if (sectionId === 'applications' && cachedAllApplications.length === 0) {
@@ -762,6 +808,9 @@
       if (sectionId === 'payments') {
         loadWalletTransactions();
         loadBankEvents();
+      }
+      if (sectionId === 'llpdf') {
+        loadAdminLlPdfRequests();
       }
     }
 
@@ -780,8 +829,142 @@
         window.location.href = '/admin/login';
         return;
       }
-      Promise.all([loadStats(), loadUsers(), loadAllApplications(), loadWalletTransactions(), loadBankEvents(), loadShutdownStatus()]);
+      Promise.all([loadStats(), loadUsers(), loadAllApplications(), loadWalletTransactions(), loadBankEvents(), loadShutdownStatus(), loadAdminLlPdfRequests()]);
     });
+
+    let cachedLlPdfRequests = [];
+
+    async function loadAdminLlPdfRequests() {
+      try {
+        const res = await fetch('/api/admin/ll-pdf');
+        const data = await res.json();
+        if (res.ok && data.success) {
+          cachedLlPdfRequests = data.requests || [];
+          renderAdminLlPdfRequests();
+        }
+      } catch (e) {}
+    }
+
+    function renderAdminLlPdfRequests() {
+      const tbody = document.getElementById('adminLlPdfBody');
+      const badge = document.getElementById('llPdfAdminBadge');
+      const pendingCount = cachedLlPdfRequests.filter(r => r.status === 'pending').length;
+      if (badge) badge.textContent = pendingCount > 0 ? `(${pendingCount} pending)` : '';
+
+      if (!tbody) return;
+      if (cachedLlPdfRequests.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2.5rem;color:var(--text-secondary);">No LL PDF requests yet.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = cachedLlPdfRequests.map((r, i) => `
+        <tr>
+          <td>${i + 1}</td>
+          <td>
+            <strong>${escapeHtml(r.user_name || 'Candidate')}</strong>
+            <div style="font-size:0.75rem;color:var(--text-secondary);">${escapeHtml(r.user_email || '')}</div>
+          </td>
+          <td>
+            <code style="font-weight:700;font-size:0.92rem;background:#f1f5f9;padding:2px 8px;border-radius:5px;">${escapeHtml(r.application_number)}</code>
+            <button class="copy-badge" onclick="copyItem('${escapeQuotes(r.application_number)}', this, 'App #')">📋</button>
+          </td>
+          <td><strong style="color:#15803d;">₹${Number(r.fee_amount || 0).toFixed(2)}</strong></td>
+          <td><span style="font-size:0.8rem;color:var(--text-secondary);">${r.created_at ? parseUtcDate(r.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' }) : '-'}</span></td>
+          <td>
+            <span class="badge ${r.status === 'completed' ? 'badge-approved' : (r.status === 'rejected' ? 'badge-rejected' : 'badge-pending')}">
+              ${r.status === 'completed' ? '✅ Sent' : (r.status === 'rejected' ? '↩️ Refunded' : '⏳ Pending')}
+            </span>
+          </td>
+          <td>
+            <div style="display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap;">
+              <input type="file" id="llPdfFile-${r.id}" accept="application/pdf,.pdf" style="font-size:0.75rem;max-width:170px;">
+              <button class="btn btn-primary btn-sm" style="padding:0.3rem 0.65rem;font-size:0.75rem;" onclick="uploadAdminLlPdf(${r.id}, this)">📤 Send PDF</button>
+              ${r.pdf_url ? `<a href="${escapeHtml(r.pdf_url)}" target="_blank" class="view-btn" style="padding:0.25rem 0.55rem;font-size:0.74rem;text-decoration:none;">📄 View ↗</a>` : ''}
+            </div>
+          </td>
+          <td>
+            <div style="display:flex;gap:0.35rem;flex-wrap:wrap;">
+              ${r.status === 'pending' ? `<button class="btn btn-sm" onclick="rejectAdminLlPdf(${r.id}, '${escapeQuotes(r.application_number)}', this)" style="background:rgba(255,149,0,0.14);color:#b45309;border:1px solid rgba(255,149,0,0.3);font-weight:700;padding:0.28rem 0.6rem;font-size:0.74rem;">↩️ Reject & Refund</button>` : ''}
+              <button class="btn btn-sm" onclick="deleteAdminLlPdf(${r.id}, '${escapeQuotes(r.application_number)}')" style="background:rgba(255,59,48,0.12);color:#dc2626;border:1px solid rgba(255,59,48,0.25);font-weight:700;padding:0.28rem 0.6rem;font-size:0.74rem;">🗑️</button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    async function uploadAdminLlPdf(reqId, btnEl) {
+      const fileInp = document.getElementById(`llPdfFile-${reqId}`);
+      if (!fileInp || !fileInp.files || !fileInp.files[0]) {
+        alert('Please choose a PDF file first.');
+        return;
+      }
+      const file = fileInp.files[0];
+      const origText = btnEl.textContent;
+      btnEl.disabled = true;
+      btnEl.textContent = 'Uploading...';
+
+      try {
+        const fd = new FormData();
+        fd.append('pdf', file, file.name);
+        const res = await fetch(`/api/admin/ll-pdf/${reqId}`, {
+          method: 'PUT',
+          body: fd
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.success) {
+          alert(data.message || 'LL PDF sent!');
+          loadAdminLlPdfRequests();
+        } else {
+          alert(data.error || 'Upload failed.');
+        }
+      } catch (err) {
+        alert('Error: ' + err.message);
+      } finally {
+        btnEl.disabled = false;
+        btnEl.textContent = origText;
+      }
+    }
+
+    async function rejectAdminLlPdf(reqId, appNum, btnEl) {
+      const reason = prompt(`Reject LL PDF #${appNum} and refund fee to user wallet?\nOptional reason:`, 'Application not found / invalid');
+      if (reason === null) return;
+      btnEl.disabled = true;
+      try {
+        const res = await fetch(`/api/admin/ll-pdf/${reqId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'rejected', remarks: reason })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.success) {
+          alert(data.message || 'Rejected & refunded.');
+          loadUsers();
+          loadWalletTransactions();
+          loadAdminLlPdfRequests();
+        } else {
+          alert(data.error || 'Failed to reject.');
+        }
+      } catch (err) {
+        alert('Error: ' + err.message);
+      } finally {
+        btnEl.disabled = false;
+      }
+    }
+
+    async function deleteAdminLlPdf(reqId, appNum) {
+      if (!confirm(`Delete LL PDF request #${appNum}?`)) return;
+      try {
+        const res = await fetch(`/api/admin/ll-pdf/${reqId}`, { method: 'DELETE' });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.success) {
+          loadAdminLlPdfRequests();
+        } else {
+          alert(data.error || 'Delete failed.');
+        }
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
 
     let currentPortalShutdown = false;
     let currentShutdownMessage = 'Portal is temporarily closed by Admin. Work is paused—please check back later.';
@@ -1775,6 +1958,7 @@
           email: form.get('email'),
           password: form.get('password'),
           applicationFee: form.get('applicationFee'),
+          llPdfFee: form.get('llPdfFee'),
           paymentMode: form.get('paymentMode') || 'batch',
           telegramChatId: form.get('telegramChatId') || ''
         })
@@ -1803,6 +1987,8 @@
       const fee = user.application_fee || 50;
       document.getElementById('editUserFee').value = fee.toFixed(2);
       updateEditBatchPreview(fee);
+      const pdfFeeEl = document.getElementById('editUserLlPdfFee');
+      if (pdfFeeEl) pdfFeeEl.value = (user.ll_pdf_fee !== null && user.ll_pdf_fee !== undefined ? Number(user.ll_pdf_fee) : 20).toFixed(2);
       const modeSelect = document.getElementById('editPaymentMode');
       if (modeSelect) modeSelect.value = user.payment_mode || 'batch';
       const tgInput = document.getElementById('editUserTelegramChatId');
@@ -1827,6 +2013,7 @@
         name: form.get('name'),
         email: form.get('email'),
         applicationFee: form.get('applicationFee'),
+        llPdfFee: form.get('llPdfFee'),
         paymentMode: form.get('paymentMode') || 'batch',
         telegramChatId: form.get('telegramChatId') || ''
       };

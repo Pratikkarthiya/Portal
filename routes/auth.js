@@ -73,7 +73,7 @@ router.post('/logout', (req, res) => {
 router.get('/me', (req, res) => {
   const shutdown = getPortalShutdownStateNode();
   if (req.session.userId) {
-    const user = queryOne('SELECT id, name, email, application_fee, wallet_balance, telegram_chat_id, created_at FROM users WHERE id = ?', [req.session.userId]);
+    const user = queryOne('SELECT id, name, email, application_fee, ll_pdf_fee, wallet_balance, telegram_chat_id, created_at FROM users WHERE id = ?', [req.session.userId]);
     return res.json({ loggedIn: true, userType: 'user', user, portalShutdown: shutdown.isShutdown, shutdownMessage: shutdown.message });
   }
   if (req.session.adminId) {

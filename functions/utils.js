@@ -94,32 +94,34 @@ export async function sendTelegramToChat(env, targetChatId, messageHtml, photoDa
       return { ok: false, error: 'Telegram bot is not configured or disabled' };
     }
 
-    // If a base64 data URI image is provided, send via sendPhoto first
-    if (photoDataUrl && String(photoDataUrl).startsWith('data:image/')) {
+    // If a base64 data URI image or PDF is provided, send via sendPhoto or sendDocument first
+    if (photoDataUrl && (String(photoDataUrl).startsWith('data:image/') || String(photoDataUrl).startsWith('data:application/pdf'))) {
       try {
+        const isPdf = String(photoDataUrl).startsWith('data:application/pdf');
         const parts = String(photoDataUrl).split(',');
         const mimeMatch = parts[0].match(/:(.*?);/);
-        const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+        const mime = mimeMatch ? mimeMatch[1] : (isPdf ? 'application/pdf' : 'image/jpeg');
         const binStr = atob(parts[1]);
         const bytes = new Uint8Array(binStr.length);
         for (let i = 0; i < binStr.length; i++) bytes[i] = binStr.charCodeAt(i);
         const blob = new Blob([bytes], { type: mime });
         const form = new FormData();
         form.append('chat_id', cleanChatId);
-        form.append('photo', blob, 'result.jpg');
+        form.append(isPdf ? 'document' : 'photo', blob, isPdf ? 'LL_Document.pdf' : 'result.jpg');
         form.append('caption', messageHtml.slice(0, 1000));
         form.append('parse_mode', 'HTML');
 
-        const photoResp = await fetch(`https://api.telegram.org/bot${cfg.token}/sendPhoto`, {
+        const endpoint = isPdf ? 'sendDocument' : 'sendPhoto';
+        const mediaResp = await fetch(`https://api.telegram.org/bot${cfg.token}/${endpoint}`, {
           method: 'POST',
           body: form
         });
-        const photoData = await photoResp.json().catch(() => ({}));
-        if (photoResp.ok && photoData.ok) {
+        const mediaData = await mediaResp.json().catch(() => ({}));
+        if (mediaResp.ok && mediaData.ok) {
           return { ok: true };
         }
       } catch (e) {
-        console.warn('Telegram sendPhoto fallback to sendMessage:', e);
+        console.warn('Telegram media send fallback to sendMessage:', e);
       }
     }
 

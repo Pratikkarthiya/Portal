@@ -7,7 +7,7 @@ export async function onRequestGet({ request, params, env }) {
   }
 
   const userId = params.userId;
-  const user = await env.DB.prepare('SELECT id, name, email, application_fee, wallet_balance, payment_mode, telegram_chat_id, created_at FROM users WHERE id = ?').bind(userId).first();
+  const user = await env.DB.prepare('SELECT id, name, email, application_fee, ll_pdf_fee, wallet_balance, payment_mode, telegram_chat_id, created_at FROM users WHERE id = ?').bind(userId).first();
   if (!user) {
     return jsonResponse({ error: 'User not found' }, 404);
   }
@@ -39,20 +39,21 @@ export async function onRequestPut({ request, params, env }) {
   }
 
   const userId = params.userId;
-  const { name, email, applicationFee, paymentMode, telegramChatId, newPassword } = await request.json();
+  const { name, email, applicationFee, llPdfFee, paymentMode, telegramChatId, newPassword } = await request.json();
 
   const fee = parseFloat(applicationFee) > 0 ? parseFloat(applicationFee) : 50.00;
+  const pdfFee = parseFloat(llPdfFee) >= 0 ? parseFloat(llPdfFee) : 20.00;
   const mode = paymentMode === 'one_time' ? 'one_time' : 'batch';
   const tgChatId = telegramChatId !== undefined ? String(telegramChatId).trim() : '';
 
   if (newPassword && newPassword.trim()) {
     await env.DB.prepare(
-      'UPDATE users SET name = ?, email = ?, application_fee = ?, payment_mode = ?, telegram_chat_id = ?, password = ? WHERE id = ?'
-    ).bind(name, email, fee, mode, tgChatId, newPassword.trim(), userId).run();
+      'UPDATE users SET name = ?, email = ?, application_fee = ?, ll_pdf_fee = ?, payment_mode = ?, telegram_chat_id = ?, password = ? WHERE id = ?'
+    ).bind(name, email, fee, pdfFee, mode, tgChatId, newPassword.trim(), userId).run();
   } else {
     await env.DB.prepare(
-      'UPDATE users SET name = ?, email = ?, application_fee = ?, payment_mode = ?, telegram_chat_id = ? WHERE id = ?'
-    ).bind(name, email, fee, mode, tgChatId, userId).run();
+      'UPDATE users SET name = ?, email = ?, application_fee = ?, ll_pdf_fee = ?, payment_mode = ?, telegram_chat_id = ? WHERE id = ?'
+    ).bind(name, email, fee, pdfFee, mode, tgChatId, userId).run();
   }
 
   return jsonResponse({ success: true, message: `User updated successfully (Plan: ${mode === 'one_time' ? 'One-Time' : '5-Batch'}, Fee: ₹${fee.toFixed(2)})` });
