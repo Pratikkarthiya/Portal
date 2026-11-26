@@ -226,6 +226,7 @@
       <span>KP Cyber</span>
     </a>
     <div class="nav-links">
+      <button class="btn btn-sm" id="userLiveSyncPill" onclick="runUserAutoSync(true)" style="background:rgba(52,199,89,0.12);color:#15803d;border:1px solid rgba(52,199,89,0.28);font-weight:700;font-size:0.75rem;border-radius:20px;padding:0.32rem 0.65rem;cursor:pointer;" title="Auto-syncing every 8s (click to sync now)">🟢 Live</button>
       <button class="btn btn-sm" id="navNoticeBtn" onclick="openUserNoticeModal()" style="display:none;background:rgba(245,158,11,0.18);color:#b45309;border:1px solid rgba(245,158,11,0.38);font-weight:700;border-radius:20px;padding:0.35rem 0.75rem;cursor:pointer;" title="View Admin Notice">📢 Notice</button>
       <div id="walletNavPill" style="display:flex;align-items:center;gap:0.4rem;padding:0.35rem 0.75rem;background:rgba(52,199,89,0.16);border:1px solid rgba(52,199,89,0.35);border-radius:20px;cursor:pointer;" onclick="switchSection('wallet')" title="Open Wallet & Payments">
         <span style="font-size:0.95rem;">💳</span>
@@ -1068,7 +1069,145 @@
       loadApplications();
       loadUserTelegramSettings();
       loadLlPdfRequests();
+      startUserAutoSync();
     });
+
+    let userAutoSyncTimer = null;
+    let userSyncInFlight = false;
+    const userLastSigs = { apps: '', wallet: '', llpdf: '' };
+
+    function startUserAutoSync() {
+      if (userAutoSyncTimer) clearInterval(userAutoSyncTimer);
+      userAutoSyncTimer = setInterval(() => {
+        if (!document.hidden) runUserAutoSync(false);
+      }, 8000);
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) runUserAutoSync(false);
+      });
+    }
+
+    async function runUserAutoSync(manual = false) {
+      if (userSyncInFlight) return;
+      userSyncInFlight = true;
+      const pill = document.getElementById('userLiveSyncPill');
+      if (pill && manual) pill.textContent = '🔄';
+
+      try {
+        // 1. Check live shutdown & notice state
+        const meRes = await fetch('/api/auth/me');
+        if (meRes.ok) {
+          const meData = await meRes.json();
+          const shutdownOverlay = document.getElementById('portalShutdownOverlay');
+          if (meData.portalShutdown) {
+            showPortalShutdownOverlay(meData.shutdownMessage);
+            return;
+          } else if (shutdownOverlay && shutdownOverlay.classList.contains('active')) {
+            shutdownOverlay.classList.remove('active');
+          }
+
+          if (meData.portalNotice && meData.portalNotice.enabled && meData.portalNotice.message) {
+            const prevV = activePortalNotice ? String(activePortalNotice.version) : '';
+            activePortalNotice = meData.portalNotice;
+            const navBtn = document.getElementById('navNoticeBtn');
+            if (navBtn) navBtn.style.display = 'inline-flex';
+            let dismissedV = '';
+            try { dismissedV = localStorage.getItem('kp_dismissed_notice_v') || ''; } catch (e) {}
+            if (prevV !== String(meData.portalNotice.version) && dismissedV !== String(meData.portalNotice.version)) {
+              openUserNoticeModal();
+            }
+          } else {
+            activePortalNotice = null;
+            const navBtn = document.getElementById('navNoticeBtn');
+            if (navBtn) navBtn.style.display = 'none';
+          }
+        }
+
+        // 2. Sync applications, wallet, batch status, and LL PDFs only if changed
+        await Promise.all([
+          loadBatchStatus(),
+          syncUserAppsIfChanged(),
+          syncUserWalletIfChanged(),
+          syncUserLlPdfIfChanged()
+        ]);
+
+        if (pill) {
+          const nowStr = new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          pill.textContent = '🟢 Live';
+          pill.title = `Last synced: ${nowStr} (auto-syncs every 8s)`;
+        }
+      } catch (e) {
+        if (pill) pill.textContent = '🟡';
+      } finally {
+        userSyncInFlight = false;
+      }
+    }
+
+    async function syncUserAppsIfChanged() {
+      const res = await fetch('/api/user/applications');
+      if (!res.ok) return;
+      const data = await res.json();
+      const next = data.applications || [];
+      const sig = JSON.stringify(next);
+      if (sig !== userLastSigs.apps) {
+        userLastSigs.apps = sig;
+        allUserApplications = next;
+        const total = next.length;
+        const approved = next.filter(a => a.status === 'approved').length;
+        const pending = next.filter(a => a.status === 'pending').length;
+        const corrections = next.filter(a => a.status === 'correction');
+        const paid = next.filter(a => a.payment_status === 'paid');
+        const totalPaidAmount = paid.reduce((sum, a) => sum + (a.payment_amount || 0), 0);
+
+        document.getElementById('quickAppCount').textContent = total;
+        document.getElementById('profTotalApps').textContent = total;
+        document.getElementById('profApproved').textContent = approved;
+        document.getElementById('profPending').textContent = pending;
+        document.getElementById('profTotalPaid').textContent = `₹${totalPaidAmount.toFixed(2)}`;
+        const tabBadge = document.getElementById('tabAppBadge');
+        if (tabBadge) tabBadge.textContent = total > 0 ? `(${total})` : '';
+
+        const corrBanner = document.getElementById('correctionAlertBanner');
+        if (corrBanner) {
+          if (corrections.length > 0) {
+            corrBanner.style.display = 'flex';
+            document.getElementById('correctionAlertSub').textContent =
+              `${corrections.length} application${corrections.length === 1 ? '' : 's'} need your attention (e.g. #${corrections[0].application_number}).`;
+          } else {
+            corrBanner.style.display = 'none';
+          }
+        }
+        renderApplicationsList();
+        renderPaymentLedger();
+      }
+    }
+
+    async function syncUserWalletIfChanged() {
+      const res = await fetch('/api/user/wallet');
+      if (!res.ok) return;
+      const data = await res.json();
+      const sig = JSON.stringify({ b: data.walletBalance, t: data.transactions || [] });
+      if (sig !== userLastSigs.wallet) {
+        userLastSigs.wallet = sig;
+        userWalletBalance = Number(data.walletBalance || 0);
+        walletTransactions = data.transactions || [];
+        updateWalletUI();
+        renderWalletLedger();
+      }
+    }
+
+    async function syncUserLlPdfIfChanged() {
+      const res = await fetch('/api/user/ll-pdf');
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!data.success) return;
+      const sig = JSON.stringify({ f: data.llPdfFee, r: data.requests || [] });
+      if (sig !== userLastSigs.llpdf) {
+        userLastSigs.llpdf = sig;
+        userLlPdfFee = Number(data.llPdfFee ?? 20);
+        userLlPdfRequests = data.requests || [];
+        renderLlPdfRequests();
+      }
+    }
 
     let userLlPdfFee = 20.00;
     let userLlPdfRequests = [];

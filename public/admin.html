@@ -15,6 +15,7 @@
       <span>Admin Console</span>
     </a>
     <div class="nav-links">
+      <button class="btn btn-sm" id="adminLiveSyncPill" onclick="runAdminAutoSync(true)" style="background:rgba(52,199,89,0.12);color:#15803d;border:1px solid rgba(52,199,89,0.28);font-weight:700;font-size:0.78rem;" title="Auto-syncing every 8s (click to sync now)">🟢 Live Sync</button>
       <button class="btn btn-sm" id="portalNoticeNavBtn" onclick="openNoticeSettingsModal()" style="background:rgba(0,113,227,0.12);color:var(--accent-blue);border:1px solid rgba(0,113,227,0.28);font-weight:700;" title="Publish an announcement popup to all users">📢 Notice</button>
       <button class="btn btn-sm" id="portalShutdownBtn" onclick="togglePortalShutdown()" style="background:rgba(52,199,89,0.16);color:#15803d;border:1px solid rgba(52,199,89,0.35);font-weight:700;" title="Stop or resume all user work">🟢 Portal Online (Shutdown)</button>
       <button class="btn btn-primary btn-sm" onclick="openCreateUserModal()">➕ Provision User ID</button>
@@ -877,7 +878,125 @@
         return;
       }
       Promise.all([loadStats(), loadUsers(), loadAllApplications(), loadWalletTransactions(), loadBankEvents(), loadShutdownStatus(), loadAdminLlPdfRequests(), loadNoticeStatus()]);
+      startAdminAutoSync();
     });
+
+    let adminAutoSyncTimer = null;
+    let adminSyncInFlight = false;
+    const adminLastSigs = { users: '', apps: '', wallet: '', bank: '', llpdf: '' };
+
+    function startAdminAutoSync() {
+      if (adminAutoSyncTimer) clearInterval(adminAutoSyncTimer);
+      adminAutoSyncTimer = setInterval(() => {
+        if (!document.hidden) runAdminAutoSync(false);
+      }, 8000);
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) runAdminAutoSync(false);
+      });
+    }
+
+    async function runAdminAutoSync(manual = false) {
+      if (adminSyncInFlight) return;
+      adminSyncInFlight = true;
+      const pill = document.getElementById('adminLiveSyncPill');
+      if (pill && manual) pill.textContent = '🔄 Syncing...';
+
+      try {
+        await Promise.all([
+          loadStats(),
+          syncAdminUsersIfChanged(),
+          syncAdminAppsIfChanged(),
+          syncAdminWalletIfChanged(),
+          syncAdminBankIfChanged(),
+          syncAdminLlPdfIfChanged(),
+          loadShutdownStatus(),
+          loadNoticeStatus()
+        ]);
+        if (pill) {
+          const nowStr = new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          pill.textContent = '🟢 Live';
+          pill.title = `Last synced: ${nowStr} (auto-syncs every 8s)`;
+        }
+      } catch (e) {
+        if (pill) pill.textContent = '🟡 Sync';
+      } finally {
+        adminSyncInFlight = false;
+      }
+    }
+
+    async function syncAdminUsersIfChanged() {
+      const res = await fetch('/api/admin/users');
+      if (!res.ok) return;
+      const data = await res.json();
+      const next = data.users || [];
+      const sig = JSON.stringify(next);
+      if (sig !== adminLastSigs.users) {
+        adminLastSigs.users = sig;
+        cachedUsers = next;
+        renderUsersTable();
+      }
+    }
+
+    async function syncAdminAppsIfChanged() {
+      const res = await fetch('/api/admin/applications');
+      if (!res.ok) return;
+      const data = await res.json();
+      const next = data.applications || [];
+      const sig = JSON.stringify(next);
+      if (sig !== adminLastSigs.apps) {
+        adminLastSigs.apps = sig;
+        cachedAllApplications = next;
+        renderAllApplications();
+        renderAdminPayments();
+      }
+    }
+
+    async function syncAdminWalletIfChanged() {
+      const res = await fetch('/api/admin/wallet-transactions');
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!data.success) return;
+      const next = data.transactions || [];
+      const sig = JSON.stringify(next);
+      if (sig !== adminLastSigs.wallet) {
+        adminLastSigs.wallet = sig;
+        cachedWalletTransactions = next;
+        renderAdminPayments();
+      }
+    }
+
+    async function syncAdminBankIfChanged() {
+      const res = await fetch('/api/admin/bank-events');
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!data.success) return;
+      const next = data.events || [];
+      const sig = JSON.stringify(next);
+      if (sig !== adminLastSigs.bank) {
+        adminLastSigs.bank = sig;
+        cachedBankEvents = next;
+        renderAdminPayments();
+      }
+    }
+
+    async function syncAdminLlPdfIfChanged() {
+      // Do not wipe a file input if Admin currently has a PDF chosen
+      const hasSelectedFile = Array.from(document.querySelectorAll('input[id^="llPdfFile-"]'))
+        .some(inp => inp.files && inp.files.length > 0);
+      if (hasSelectedFile) return;
+
+      const res = await fetch('/api/admin/ll-pdf');
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!data.success) return;
+      const next = data.requests || [];
+      const sig = JSON.stringify(next);
+      if (sig !== adminLastSigs.llpdf) {
+        adminLastSigs.llpdf = sig;
+        cachedLlPdfRequests = next;
+        renderAdminLlPdfRequests();
+      }
+    }
 
     async function loadNoticeStatus() {
       try {
