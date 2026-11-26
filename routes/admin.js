@@ -38,7 +38,7 @@ router.post('/users', requireAdmin, (req, res) => {
     return res.status(409).json({ error: 'User with this email already exists' });
   }
 
-  const fee = parseFloat(applicationFee) > 0 ? parseFloat(applicationFee) : 50.00;
+  const fee = parseFloat(applicationFee) > 0 ? parseFloat(applicationFee) : 200.00;
   const pdfFee = parseFloat(llPdfFee) >= 0 ? parseFloat(llPdfFee) : 20.00;
   const mode = paymentMode === 'one_time' ? 'one_time' : 'batch';
   const tgChatId = telegramChatId ? String(telegramChatId).trim() : '';
@@ -306,7 +306,7 @@ router.put('/applications/:appId', requireAdmin, (req, res) => {
     }
     if (!newPaymentAmount || newPaymentAmount <= 0 || Number.isNaN(newPaymentAmount)) {
       const owner = queryOne('SELECT application_fee FROM users WHERE id = ?', [existing.user_id]);
-      newPaymentAmount = owner && owner.application_fee ? Number(owner.application_fee) : 50.00;
+      newPaymentAmount = owner && owner.application_fee ? Number(owner.application_fee) : 200.00;
     }
     if (!paymentMethod && (!newPaymentMethod || newPaymentMethod === 'NONE')) {
       newPaymentMethod = 'ADMIN_MARKED_PAID';

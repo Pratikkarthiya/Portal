@@ -31,7 +31,7 @@ export async function onRequestPost({ request, env }) {
 
     const insertRes = await env.DB.prepare(
       `INSERT INTO users (name, email, password, application_fee, ll_pdf_fee, payment_mode, telegram_chat_id)
-       VALUES (?, ?, ?, 50.00, 20.00, 'batch', ?)`
+       VALUES (?, ?, ?, 200.00, 20.00, 'batch', ?)`
     ).bind(name, email, password, telegramChatId).run();
 
     const userId = insertRes.meta ? insertRes.meta.last_row_id : null;

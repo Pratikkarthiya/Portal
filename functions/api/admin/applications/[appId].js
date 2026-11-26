@@ -39,7 +39,7 @@ export async function onRequestPut({ request, params, env }) {
     }
     if (!newPaymentAmount || newPaymentAmount <= 0 || Number.isNaN(newPaymentAmount)) {
       const owner = await env.DB.prepare('SELECT application_fee FROM users WHERE id = ?').bind(existing.user_id).first();
-      newPaymentAmount = owner && owner.application_fee ? Number(owner.application_fee) : 50.00;
+      newPaymentAmount = owner && owner.application_fee ? Number(owner.application_fee) : 200.00;
     }
     if (!body.paymentMethod && (!newPaymentMethod || newPaymentMethod === 'NONE')) {
       newPaymentMethod = 'ADMIN_MARKED_PAID';

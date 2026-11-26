@@ -115,7 +115,7 @@ async function sendTelegramAlertNode(messageHtml) {
  */
 router.get('/batch-status', requireUser, (req, res) => {
   const user = queryOne('SELECT id, name, application_fee FROM users WHERE id = ?', [req.session.userId]);
-  const feePerApp = user && user.application_fee ? user.application_fee : 50.00;
+  const feePerApp = user && user.application_fee ? user.application_fee : 200.00;
 
   const unpaidApps = queryAll(
     'SELECT id, application_number, submitted_at FROM applications WHERE user_id = ? AND payment_status = "unpaid" ORDER BY id ASC',
@@ -158,7 +158,7 @@ router.post('/applications', requireUser, rejectIfShutdown, (req, res) => {
     }
 
     const user = queryOne('SELECT id, name, email, application_fee, wallet_balance, payment_mode FROM users WHERE id = ?', [req.session.userId]);
-    const feePerApp = user && user.application_fee ? user.application_fee : 50.00;
+    const feePerApp = user && user.application_fee ? user.application_fee : 200.00;
     const walletBalance = user && user.wallet_balance ? Number(user.wallet_balance) : 0.00;
     const paymentMode = user && user.payment_mode ? user.payment_mode : 'batch';
     const candidateLabel = user ? `${escapeTgHtml(user.name)} (${escapeTgHtml(user.email)})` : `User #${req.session.userId}`;
@@ -420,7 +420,7 @@ router.get('/wallet', requireUser, (req, res) => {
   res.json({
     success: true,
     walletBalance: user && user.wallet_balance ? user.wallet_balance : 0.00,
-    applicationFee: user && user.application_fee ? user.application_fee : 50.00,
+    applicationFee: user && user.application_fee ? user.application_fee : 200.00,
     transactions: transactions || []
   });
 });

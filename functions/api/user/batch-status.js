@@ -7,7 +7,7 @@ export async function onRequestGet({ request, env }) {
   }
 
   const user = await env.DB.prepare('SELECT application_fee, payment_mode FROM users WHERE id = ?').bind(session.user_id).first();
-  const feePerApp = user && user.application_fee ? user.application_fee : 50.00;
+  const feePerApp = user && user.application_fee ? user.application_fee : 200.00;
   const paymentMode = user && user.payment_mode ? user.payment_mode : 'batch';
 
   const { results: unpaidApps } = await env.DB.prepare(

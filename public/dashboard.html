@@ -827,8 +827,8 @@
 
   <script>
     let is5thApplication = false;
-    let batchTotal = 250.00;
-    let singleFee = 50.00;
+    let batchTotal = 1000.00;
+    let singleFee = 200.00;
     let userPaymentMode = 'batch';
     let pendingFormData = null;
     let allUserApplications = [];
@@ -1492,7 +1492,7 @@
         const res = await fetch('/api/user/batch-status');
         if (res.ok) {
           const b = await res.json();
-          singleFee = b.feePerApp || 50.00;
+          singleFee = b.feePerApp || 200.00;
           batchTotal = b.batchTotal || (singleFee * 5);
           userPaymentMode = b.paymentMode || 'batch';
           const unpaidCount = b.unpaidCount || 0;

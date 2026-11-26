@@ -38,7 +38,7 @@ export async function onRequestPost({ request, env }) {
     return jsonResponse({ error: 'User with this email already exists' }, 409);
   }
 
-  const fee = parseFloat(applicationFee) > 0 ? parseFloat(applicationFee) : 50.00;
+  const fee = parseFloat(applicationFee) > 0 ? parseFloat(applicationFee) : 200.00;
   const pdfFee = parseFloat(llPdfFee) >= 0 ? parseFloat(llPdfFee) : 20.00;
   const mode = paymentMode === 'one_time' ? 'one_time' : 'batch';
   const tgChatId = telegramChatId ? String(telegramChatId).trim() : '';

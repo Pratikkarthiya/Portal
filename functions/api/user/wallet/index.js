@@ -17,7 +17,7 @@ export async function onRequestGet({ request, env }) {
   return jsonResponse({
     success: true,
     walletBalance: user ? (user.wallet_balance || 0.00) : 0.00,
-    applicationFee: user ? (user.application_fee || 50.00) : 50.00,
+    applicationFee: user ? (user.application_fee || 200.00) : 200.00,
     transactions: transactions || []
   });
 }

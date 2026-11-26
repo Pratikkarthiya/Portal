@@ -8,7 +8,7 @@ export async function onRequestPost({ request, env }) {
 
   const { applicationNumber } = await request.json();
   const user = await env.DB.prepare('SELECT application_fee FROM users WHERE id = ?').bind(session.user_id).first();
-  const fee = user && user.application_fee ? user.application_fee : 50.00;
+  const fee = user && user.application_fee ? user.application_fee : 200.00;
   const orderId = 'ORD-' + (applicationNumber || 'APP').replace(/[^a-zA-Z0-9_-]/g, '') + '-' + Date.now().toString(36);
 
   return jsonResponse({

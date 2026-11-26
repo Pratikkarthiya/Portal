@@ -41,7 +41,7 @@ function initialize() {
       name TEXT NOT NULL,
       email TEXT UNIQUE NOT NULL,
       password TEXT NOT NULL,
-      application_fee REAL DEFAULT 50.00,
+      application_fee REAL DEFAULT 200.00,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
@@ -58,7 +58,7 @@ function initialize() {
       payment_status TEXT DEFAULT 'unpaid',
       payment_id TEXT DEFAULT '',
       payment_screenshot_url TEXT DEFAULT '',
-      payment_amount REAL DEFAULT 50.00,
+      payment_amount REAL DEFAULT 200.00,
       payment_method TEXT DEFAULT 'UPI_MANUAL_UTR',
       paid_at DATETIME,
       status TEXT DEFAULT 'pending',
@@ -71,12 +71,12 @@ function initialize() {
 
   // Migrations for existing database columns
   const migrationCols = [
-    `ALTER TABLE users ADD COLUMN application_fee REAL DEFAULT 50.00`,
+    `ALTER TABLE users ADD COLUMN application_fee REAL DEFAULT 200.00`,
     `ALTER TABLE applications ADD COLUMN photo_url TEXT DEFAULT ''`,
     `ALTER TABLE applications ADD COLUMN payment_status TEXT DEFAULT 'unpaid'`,
     `ALTER TABLE applications ADD COLUMN payment_id TEXT DEFAULT ''`,
     `ALTER TABLE applications ADD COLUMN payment_screenshot_url TEXT DEFAULT ''`,
-    `ALTER TABLE applications ADD COLUMN payment_amount REAL DEFAULT 50.00`,
+    `ALTER TABLE applications ADD COLUMN payment_amount REAL DEFAULT 200.00`,
     `ALTER TABLE applications ADD COLUMN payment_method TEXT DEFAULT 'UPI_MANUAL_UTR'`,
     `ALTER TABLE applications ADD COLUMN paid_at DATETIME`,
     `ALTER TABLE applications ADD COLUMN result_photo_url TEXT DEFAULT ''`,

@@ -21,7 +21,7 @@ function requireUser(req, res, next) {
  */
 router.get('/config', requireUser, (req, res) => {
   const user = queryOne('SELECT id, name, application_fee, payment_mode FROM users WHERE id = ?', [req.session.userId]);
-  const feePerApp = user && user.application_fee ? user.application_fee : 50.00;
+  const feePerApp = user && user.application_fee ? user.application_fee : 200.00;
   const paymentMode = user && user.payment_mode ? user.payment_mode : 'batch';
 
   const unpaidCount = queryOne(
@@ -52,7 +52,7 @@ router.get('/config', requireUser, (req, res) => {
 router.post('/create-session', requireUser, (req, res) => {
   const { applicationNumber } = req.body;
   const user = queryOne('SELECT id, name, application_fee FROM users WHERE id = ?', [req.session.userId]);
-  const feePerApp = user && user.application_fee ? user.application_fee : 50.00;
+  const feePerApp = user && user.application_fee ? user.application_fee : 200.00;
   const batchFee = feePerApp * 5;
 
   const orderId = 'BATCH5-' + Date.now().toString(36).toUpperCase();

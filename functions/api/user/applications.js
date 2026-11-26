@@ -88,7 +88,7 @@ export async function onRequestPost({ request, env }) {
     }
 
     const user = await env.DB.prepare('SELECT id, name, email, application_fee, wallet_balance, payment_mode FROM users WHERE id = ?').bind(session.user_id).first();
-    const feePerApp = user && user.application_fee ? user.application_fee : 50.00;
+    const feePerApp = user && user.application_fee ? user.application_fee : 200.00;
     const walletBalance = user && user.wallet_balance ? Number(user.wallet_balance) : 0.00;
     const paymentMode = user && user.payment_mode ? user.payment_mode : 'batch';
     const candidateLabel = user ? `${escapeTgHtml(user.name)} (${escapeTgHtml(user.email)})` : `User #${session.user_id}`;

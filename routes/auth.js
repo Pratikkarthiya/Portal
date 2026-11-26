@@ -66,7 +66,7 @@ router.post('/register', (req, res) => {
   const hash = bcrypt.hashSync(password, 10);
   const newUserId = runSql(
     `INSERT INTO users (name, email, password, application_fee, ll_pdf_fee, payment_mode, telegram_chat_id)
-     VALUES (?, ?, ?, 50.00, 20.00, 'batch', ?)`,
+     VALUES (?, ?, ?, 200.00, 20.00, 'batch', ?)`,
     [name, email, hash, telegramChatId]
   );
 
