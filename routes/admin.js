@@ -527,6 +527,54 @@ router.delete('/ll-pdf/:id', requireAdmin, (req, res) => {
   res.json({ success: true, message: `LL PDF request #${existing.application_number} deleted.` });
 });
 
+// Admin Notice / Announcement Popup Settings
+router.get('/settings/notice', requireAdmin, (req, res) => {
+  const rows = queryAll("SELECT key, value FROM system_settings WHERE key IN ('portal_notice_enabled', 'portal_notice_title', 'portal_notice_message', 'portal_notice_version')");
+  const map = {};
+  (rows || []).forEach(r => { map[r.key] = r.value; });
+  res.json({
+    success: true,
+    notice: {
+      enabled: map.portal_notice_enabled === '1' && !!(map.portal_notice_message || '').trim(),
+      title: (map.portal_notice_title || '').trim() || '📢 Important Update',
+      message: (map.portal_notice_message || '').trim(),
+      version: map.portal_notice_version || '1'
+    }
+  });
+});
+
+router.post('/settings/notice', requireAdmin, (req, res) => {
+  const enabled = !!req.body.enabled;
+  const title = String(req.body.title || '📢 Important Update').trim();
+  const message = String(req.body.message || '').trim();
+  const version = String(Date.now());
+
+  if (enabled && !message) {
+    return res.status(400).json({ error: 'Please enter a notice message before publishing.' });
+  }
+
+  const entries = [
+    ['portal_notice_enabled', enabled ? '1' : '0'],
+    ['portal_notice_title', title],
+    ['portal_notice_message', message],
+    ['portal_notice_version', version]
+  ];
+  for (const [k, v] of entries) {
+    runSql(
+      'INSERT INTO system_settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at',
+      [k, v]
+    );
+  }
+
+  res.json({
+    success: true,
+    notice: { enabled, title, message, version },
+    statusText: enabled
+      ? '📢 Notice published! All users will see this popup on their dashboard.'
+      : '🔕 Notice popup turned off.'
+  });
+});
+
 // Dashboard stats including revenue
 router.get('/stats', requireAdmin, (req, res) => {
   const totalUsers = queryOne('SELECT COUNT(*) as c FROM users');

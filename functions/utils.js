@@ -60,6 +60,25 @@ export async function getPortalShutdownState(env) {
   }
 }
 
+export async function getPortalNoticeState(env) {
+  try {
+    if (!env?.DB) return { enabled: false, title: '', message: '', version: '' };
+    const rows = await env.DB.prepare(
+      "SELECT key, value FROM system_settings WHERE key IN ('portal_notice_enabled', 'portal_notice_title', 'portal_notice_message', 'portal_notice_version')"
+    ).all();
+    const map = {};
+    (rows?.results || []).forEach(r => { map[r.key] = r.value; });
+    return {
+      enabled: map.portal_notice_enabled === '1' && !!(map.portal_notice_message || '').trim(),
+      title: (map.portal_notice_title || '').trim() || '📢 Important Update',
+      message: (map.portal_notice_message || '').trim(),
+      version: map.portal_notice_version || '1'
+    };
+  } catch (e) {
+    return { enabled: false, title: '', message: '', version: '' };
+  }
+}
+
 export async function getTelegramConfig(env) {
   let token = env?.TELEGRAM_BOT_TOKEN || '';
   let adminChatId = env?.TELEGRAM_CHAT_ID || '';

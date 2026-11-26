@@ -17,6 +17,22 @@ function getPortalShutdownStateNode() {
   }
 }
 
+function getPortalNoticeStateNode() {
+  try {
+    const rows = queryAll("SELECT key, value FROM system_settings WHERE key IN ('portal_notice_enabled', 'portal_notice_title', 'portal_notice_message', 'portal_notice_version')");
+    const map = {};
+    (rows || []).forEach(r => { map[r.key] = r.value; });
+    return {
+      enabled: map.portal_notice_enabled === '1' && !!(map.portal_notice_message || '').trim(),
+      title: (map.portal_notice_title || '').trim() || '📢 Important Update',
+      message: (map.portal_notice_message || '').trim(),
+      version: map.portal_notice_version || '1'
+    };
+  } catch (e) {
+    return { enabled: false, title: '', message: '', version: '' };
+  }
+}
+
 const router = express.Router();
 
 // Public user registration is disabled as only admins can create user IDs.
@@ -72,14 +88,15 @@ router.post('/logout', (req, res) => {
 // Check session
 router.get('/me', (req, res) => {
   const shutdown = getPortalShutdownStateNode();
+  const notice = getPortalNoticeStateNode();
   if (req.session.userId) {
     const user = queryOne('SELECT id, name, email, application_fee, ll_pdf_fee, wallet_balance, telegram_chat_id, created_at FROM users WHERE id = ?', [req.session.userId]);
-    return res.json({ loggedIn: true, userType: 'user', user, portalShutdown: shutdown.isShutdown, shutdownMessage: shutdown.message });
+    return res.json({ loggedIn: true, userType: 'user', user, portalShutdown: shutdown.isShutdown, shutdownMessage: shutdown.message, portalNotice: notice });
   }
   if (req.session.adminId) {
-    return res.json({ loggedIn: true, userType: 'admin', portalShutdown: shutdown.isShutdown, shutdownMessage: shutdown.message });
+    return res.json({ loggedIn: true, userType: 'admin', portalShutdown: shutdown.isShutdown, shutdownMessage: shutdown.message, portalNotice: notice });
   }
-  res.json({ loggedIn: false, portalShutdown: shutdown.isShutdown, shutdownMessage: shutdown.message });
+  res.json({ loggedIn: false, portalShutdown: shutdown.isShutdown, shutdownMessage: shutdown.message, portalNotice: notice });
 });
 
 module.exports = router;
