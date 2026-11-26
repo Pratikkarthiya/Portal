@@ -60,60 +60,109 @@ export async function getPortalShutdownState(env) {
   }
 }
 
-// Dispatches formatted HTML alert to Admin Telegram Bot
-export async function sendTelegramAlert(env, messageHtml) {
-  try {
-    let token = env?.TELEGRAM_BOT_TOKEN;
-    let chatId = env?.TELEGRAM_CHAT_ID;
+export async function getTelegramConfig(env) {
+  let token = env?.TELEGRAM_BOT_TOKEN || '';
+  let adminChatId = env?.TELEGRAM_CHAT_ID || '';
+  let enabled = true;
 
-    if (!token || !chatId) {
-      if (env?.DB) {
-        const rows = await env.DB.prepare(
-          "SELECT key, value FROM system_settings WHERE key IN ('telegram_bot_token', 'telegram_chat_id', 'telegram_alerts_enabled')"
-        ).all();
-        if (rows && rows.results) {
-          const map = {};
-          rows.results.forEach(r => { map[r.key] = r.value; });
-          if (map.telegram_alerts_enabled === '0') return;
-          token = token || map.telegram_bot_token;
-          chatId = chatId || map.telegram_chat_id;
+  if (env?.DB) {
+    try {
+      const rows = await env.DB.prepare(
+        "SELECT key, value FROM system_settings WHERE key IN ('telegram_bot_token', 'telegram_chat_id', 'telegram_alerts_enabled')"
+      ).all();
+      if (rows && rows.results) {
+        const map = {};
+        rows.results.forEach(r => { map[r.key] = r.value; });
+        if (map.telegram_alerts_enabled === '0') enabled = false;
+        token = token || map.telegram_bot_token || '';
+        adminChatId = adminChatId || map.telegram_chat_id || '';
+      }
+    } catch (e) {}
+  }
+
+  return { token: String(token).trim(), adminChatId: String(adminChatId).trim(), enabled };
+}
+
+// Dispatches formatted HTML message (and optional base64 photo) to any Telegram chat ID
+export async function sendTelegramToChat(env, targetChatId, messageHtml, photoDataUrl = '') {
+  try {
+    const cleanChatId = String(targetChatId || '').trim();
+    if (!cleanChatId) return { ok: false, error: 'Missing Telegram Chat ID' };
+
+    const cfg = await getTelegramConfig(env);
+    if (!cfg.enabled || !cfg.token) {
+      return { ok: false, error: 'Telegram bot is not configured or disabled' };
+    }
+
+    // If a base64 data URI image is provided, send via sendPhoto first
+    if (photoDataUrl && String(photoDataUrl).startsWith('data:image/')) {
+      try {
+        const parts = String(photoDataUrl).split(',');
+        const mimeMatch = parts[0].match(/:(.*?);/);
+        const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+        const binStr = atob(parts[1]);
+        const bytes = new Uint8Array(binStr.length);
+        for (let i = 0; i < binStr.length; i++) bytes[i] = binStr.charCodeAt(i);
+        const blob = new Blob([bytes], { type: mime });
+        const form = new FormData();
+        form.append('chat_id', cleanChatId);
+        form.append('photo', blob, 'result.jpg');
+        form.append('caption', messageHtml.slice(0, 1000));
+        form.append('parse_mode', 'HTML');
+
+        const photoResp = await fetch(`https://api.telegram.org/bot${cfg.token}/sendPhoto`, {
+          method: 'POST',
+          body: form
+        });
+        const photoData = await photoResp.json().catch(() => ({}));
+        if (photoResp.ok && photoData.ok) {
+          return { ok: true };
         }
+      } catch (e) {
+        console.warn('Telegram sendPhoto fallback to sendMessage:', e);
       }
     }
 
-    if (!token || !chatId) {
-      console.warn('Telegram alert skipped: token or chatId missing');
-      return;
-    }
-
-    let resp = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+    let resp = await fetch(`https://api.telegram.org/bot${cfg.token}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        chat_id: chatId,
+        chat_id: cleanChatId,
         text: messageHtml,
         parse_mode: 'HTML',
         disable_web_page_preview: true
       })
     });
 
-    if (!resp.ok) {
-      const errJson = await resp.json().catch(() => ({}));
-      // Fallback: If Telegram couldn't parse HTML entities, send as clean plain text
-      if (errJson?.description && errJson.description.toLowerCase().includes('entities')) {
+    const respData = await resp.json().catch(() => ({}));
+    if (!resp.ok || !respData.ok) {
+      if (respData?.description && respData.description.toLowerCase().includes('entities')) {
         const plainText = messageHtml.replace(/<[^>]+>/g, '');
-        resp = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        const fallbackResp = await fetch(`https://api.telegram.org/bot${cfg.token}/sendMessage`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            chat_id: chatId,
+            chat_id: cleanChatId,
             text: plainText,
             disable_web_page_preview: true
           })
         });
+        const fallbackData = await fallbackResp.json().catch(() => ({}));
+        return { ok: fallbackResp.ok && fallbackData.ok, error: fallbackData.description };
       }
+      return { ok: false, error: respData.description || 'Telegram sendMessage failed' };
     }
+
+    return { ok: true };
   } catch (err) {
     console.error('Telegram notification error:', err);
+    return { ok: false, error: err.message };
   }
+}
+
+// Dispatches formatted HTML alert to Admin Telegram Bot
+export async function sendTelegramAlert(env, messageHtml) {
+  const cfg = await getTelegramConfig(env);
+  if (!cfg.enabled || !cfg.token || !cfg.adminChatId) return;
+  return sendTelegramToChat(env, cfg.adminChatId, messageHtml);
 }

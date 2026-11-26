@@ -81,7 +81,8 @@ function initialize() {
     `ALTER TABLE applications ADD COLUMN paid_at DATETIME`,
     `ALTER TABLE applications ADD COLUMN result_photo_url TEXT DEFAULT ''`,
     `ALTER TABLE users ADD COLUMN wallet_balance REAL DEFAULT 0.00`,
-    `ALTER TABLE users ADD COLUMN payment_mode TEXT DEFAULT 'batch'`
+    `ALTER TABLE users ADD COLUMN payment_mode TEXT DEFAULT 'batch'`,
+    `ALTER TABLE users ADD COLUMN telegram_chat_id TEXT DEFAULT ''`
   ];
 
   for (const query of migrationCols) {

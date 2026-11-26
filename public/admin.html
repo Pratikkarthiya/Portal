@@ -348,6 +348,10 @@
               Choose whether user pays per 5 applications or on each individual submission.
             </small>
           </div>
+          <div class="form-group">
+            <label>Customer Telegram Chat ID (Optional)</label>
+            <input type="text" name="telegramChatId" placeholder="e.g. 987654321 (for auto-approval alerts)">
+          </div>
           <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; margin-top: 0.5rem;">Create User Account</button>
         </form>
       </div>
@@ -387,6 +391,10 @@
               <option value="batch">📦 5-Application Batch (Settle every 5 apps)</option>
               <option value="one_time">⚡ One-Time Payment (Pay each app individually)</option>
             </select>
+          </div>
+          <div class="form-group">
+            <label>Customer Telegram Chat ID (Optional)</label>
+            <input type="text" name="telegramChatId" id="editUserTelegramChatId" placeholder="e.g. 987654321 (for auto-approval alerts)">
           </div>
           <div class="form-group">
             <label>Reset Password (Leave blank to keep current)</label>
@@ -1767,7 +1775,8 @@
           email: form.get('email'),
           password: form.get('password'),
           applicationFee: form.get('applicationFee'),
-          paymentMode: form.get('paymentMode') || 'batch'
+          paymentMode: form.get('paymentMode') || 'batch',
+          telegramChatId: form.get('telegramChatId') || ''
         })
       });
       const data = await res.json();
@@ -1796,6 +1805,8 @@
       updateEditBatchPreview(fee);
       const modeSelect = document.getElementById('editPaymentMode');
       if (modeSelect) modeSelect.value = user.payment_mode || 'batch';
+      const tgInput = document.getElementById('editUserTelegramChatId');
+      if (tgInput) tgInput.value = user.telegram_chat_id || '';
       document.getElementById('editUserNewPassword').value = '';
 
       document.getElementById('editUserError').classList.remove('show');
@@ -1816,7 +1827,8 @@
         name: form.get('name'),
         email: form.get('email'),
         applicationFee: form.get('applicationFee'),
-        paymentMode: form.get('paymentMode') || 'batch'
+        paymentMode: form.get('paymentMode') || 'batch',
+        telegramChatId: form.get('telegramChatId') || ''
       };
       const newPassword = form.get('newPassword');
       if (newPassword && newPassword.trim()) {

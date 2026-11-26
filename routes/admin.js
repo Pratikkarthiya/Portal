@@ -13,7 +13,7 @@ function requireAdmin(req, res, next) {
 
 // Admin creates new user account with customized Application Fee
 router.post('/users', requireAdmin, (req, res) => {
-  const { name, email, password, applicationFee, paymentMode } = req.body;
+  const { name, email, password, applicationFee, paymentMode, telegramChatId } = req.body;
   if (!name || !email || !password) {
     return res.status(400).json({ error: 'Name, email, and password are required' });
   }
@@ -25,10 +25,11 @@ router.post('/users', requireAdmin, (req, res) => {
 
   const fee = parseFloat(applicationFee) > 0 ? parseFloat(applicationFee) : 50.00;
   const mode = paymentMode === 'one_time' ? 'one_time' : 'batch';
+  const tgChatId = telegramChatId ? String(telegramChatId).trim() : '';
   const hash = bcrypt.hashSync(password, 10);
   const newUserId = runSql(
-    'INSERT INTO users (name, email, password, application_fee, payment_mode) VALUES (?, ?, ?, ?, ?)',
-    [name, email, hash, fee, mode]
+    'INSERT INTO users (name, email, password, application_fee, payment_mode, telegram_chat_id) VALUES (?, ?, ?, ?, ?, ?)',
+    [name, email, hash, fee, mode, tgChatId]
   );
 
   res.json({
@@ -48,7 +49,7 @@ router.put('/users/:userId', requireAdmin, (req, res) => {
     return res.status(404).json({ error: 'User not found' });
   }
 
-  const { name, email, applicationFee, paymentMode, newPassword } = req.body;
+  const { name, email, applicationFee, paymentMode, telegramChatId, newPassword } = req.body;
   if (!name || !email) {
     return res.status(400).json({ error: 'Name and email are required' });
   }
@@ -63,17 +64,18 @@ router.put('/users/:userId', requireAdmin, (req, res) => {
 
   const fee = parseFloat(applicationFee) > 0 ? parseFloat(applicationFee) : user.application_fee;
   const mode = paymentMode === 'one_time' ? 'one_time' : 'batch';
+  const tgChatId = telegramChatId !== undefined ? String(telegramChatId).trim() : (user.telegram_chat_id || '');
 
   if (newPassword && newPassword.trim().length >= 6) {
     const hash = bcrypt.hashSync(newPassword.trim(), 10);
     runSql(
-      'UPDATE users SET name = ?, email = ?, application_fee = ?, payment_mode = ?, password = ? WHERE id = ?',
-      [name, email, fee, mode, hash, userId]
+      'UPDATE users SET name = ?, email = ?, application_fee = ?, payment_mode = ?, telegram_chat_id = ?, password = ? WHERE id = ?',
+      [name, email, fee, mode, tgChatId, hash, userId]
     );
   } else {
     runSql(
-      'UPDATE users SET name = ?, email = ?, application_fee = ?, payment_mode = ? WHERE id = ?',
-      [name, email, fee, mode, userId]
+      'UPDATE users SET name = ?, email = ?, application_fee = ?, payment_mode = ?, telegram_chat_id = ? WHERE id = ?',
+      [name, email, fee, mode, tgChatId, userId]
     );
   }
 
@@ -86,7 +88,7 @@ router.put('/users/:userId', requireAdmin, (req, res) => {
 // Get all users with application counts & payment stats
 router.get('/users', requireAdmin, (req, res) => {
   const users = queryAll(`
-    SELECT u.id, u.name, u.email, u.application_fee, u.wallet_balance, u.payment_mode, u.created_at,
+    SELECT u.id, u.name, u.email, u.application_fee, u.wallet_balance, u.payment_mode, u.telegram_chat_id, u.created_at,
            COUNT(a.id) as total_applications,
            SUM(CASE WHEN a.status = 'pending' THEN 1 ELSE 0 END) as pending,
            SUM(CASE WHEN a.status = 'approved' THEN 1 ELSE 0 END) as approved,
@@ -284,6 +286,46 @@ router.put('/applications/:appId', requireAdmin, (req, res) => {
   else if (status === 'correction') message = `Application #${newAppNum} sent for Candidate Correction`;
   else if (status === 'approved') message = `Application #${newAppNum} approved successfully`;
   else if (status === 'rejected') message = `Application #${newAppNum} rejected`;
+
+  // Send automatic Telegram update to the customer if their Chat ID is linked
+  const shouldNotifyCustomer =
+    status !== undefined &&
+    (status !== existing.status || (status === 'approved' && resultPhotoUrl !== undefined));
+
+  if (shouldNotifyCustomer && ['approved', 'correction', 'rejected'].includes(newStatus)) {
+    try {
+      const customer = queryOne('SELECT name, telegram_chat_id FROM users WHERE id = ?', [existing.user_id]);
+      if (customer && customer.telegram_chat_id) {
+        const rows = queryAll("SELECT key, value FROM system_settings WHERE key IN ('telegram_bot_token', 'telegram_alerts_enabled')");
+        const map = {};
+        (rows || []).forEach(r => { map[r.key] = r.value; });
+        if (map.telegram_alerts_enabled !== '0' && map.telegram_bot_token) {
+          const esc = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          const escRem = newRemarks ? `\n📝 <b>Remarks:</b> ${esc(newRemarks)}` : '';
+          let custMsg = '';
+          if (newStatus === 'approved') {
+            custMsg = `✅ <b>KP CYBER — APPLICATION APPROVED!</b>\n━━━━━━━━━━━━━━━━━━\n👤 <b>Candidate:</b> ${esc(customer.name)}\n📝 <b>App Number:</b> <code>${esc(newAppNum)}</code>${escRem}\n📄 Check your dashboard to view/download your result!\n🔗 <a href="https://portal-2a3.pages.dev">Open Portal</a>`;
+          } else if (newStatus === 'correction') {
+            custMsg = `⚠️ <b>KP CYBER — CORRECTION NEEDED</b>\n━━━━━━━━━━━━━━━━━━\n👤 <b>Candidate:</b> ${esc(customer.name)}\n📝 <b>App Number:</b> <code>${esc(newAppNum)}</code>${escRem}\n✏️ Please log in to edit and resubmit.`;
+          } else if (newStatus === 'rejected') {
+            custMsg = `❌ <b>KP CYBER — APPLICATION REJECTED</b>\n━━━━━━━━━━━━━━━━━━\n👤 <b>Candidate:</b> ${esc(customer.name)}\n📝 <b>App Number:</b> <code>${esc(newAppNum)}</code>${escRem}`;
+          }
+          if (custMsg) {
+            fetch(`https://api.telegram.org/bot${map.telegram_bot_token}/sendMessage`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                chat_id: String(customer.telegram_chat_id).trim(),
+                text: custMsg,
+                parse_mode: 'HTML',
+                disable_web_page_preview: true
+              })
+            }).catch(() => {});
+          }
+        }
+      }
+    } catch (e) {}
+  }
 
   res.json({ success: true, message });
 });

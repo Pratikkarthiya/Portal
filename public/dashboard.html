@@ -449,6 +449,28 @@
         </button>
       </div>
 
+      <!-- Customer Telegram Notification Setup Card -->
+      <div class="kp-card" style="margin-bottom:1.25rem;background:linear-gradient(135deg,rgba(255,255,255,0.72) 0%,rgba(224,242,254,0.68) 100%);border-color:rgba(34,158,217,0.35);">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem;margin-bottom:0.75rem;">
+          <div>
+            <div style="font-weight:800;font-size:0.98rem;color:var(--text-main);">🔔 Telegram Approval &amp; Result Alerts</div>
+            <div style="font-size:0.8rem;color:var(--text-secondary);">Get an instant Telegram message (with your result photo!) when your application is Approved or needs Correction.</div>
+          </div>
+          <span class="badge" id="userTgStatusBadge" style="background:rgba(100,116,139,0.14);color:#475569;">Not Connected</span>
+        </div>
+
+        <div style="display:flex;gap:0.6rem;flex-wrap:wrap;align-items:center;">
+          <a id="userTgOpenBotLink" href="https://t.me/" target="_blank" class="btn btn-sm" style="display:none;background:#0088cc;color:white;text-decoration:none;font-weight:700;padding:0.5rem 0.9rem;border-radius:10px;">
+            1. Open Bot &amp; Tap START ↗
+          </a>
+          <input type="text" id="userTgChatIdInput" placeholder="Enter your Telegram ID (from @userinfobot)" style="flex:1;min-width:210px;padding:0.52rem 0.85rem;border-radius:10px;border:1px solid var(--glass-border);font-family:monospace;font-size:0.88rem;background:rgba(255,255,255,0.85);">
+          <button type="button" class="btn btn-primary btn-sm" id="userTgSaveBtn" onclick="saveUserTelegram()" style="padding:0.55rem 1rem;font-weight:700;">
+            🔔 Save &amp; Test Alert
+          </button>
+        </div>
+        <div id="userTgFeedback" style="display:none;margin-top:0.6rem;font-size:0.82rem;font-weight:600;padding:0.5rem 0.75rem;border-radius:8px;"></div>
+      </div>
+
       <!-- Unified Ledger Card with Sub-Tabs -->
       <div class="users-table-wrapper">
         <div class="table-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem;padding:0.95rem 1.25rem;">
@@ -925,7 +947,89 @@
       loadWalletData();
       loadBatchStatus();
       loadApplications();
+      loadUserTelegramSettings();
     });
+
+    async function loadUserTelegramSettings() {
+      try {
+        const res = await fetch('/api/user/telegram');
+        const data = await res.json();
+        if (!res.ok || !data.success) return;
+
+        const inp = document.getElementById('userTgChatIdInput');
+        const badge = document.getElementById('userTgStatusBadge');
+        const botLink = document.getElementById('userTgOpenBotLink');
+
+        if (inp) inp.value = data.telegramChatId || '';
+        if (badge) {
+          if (data.telegramChatId) {
+            badge.textContent = '✅ Connected';
+            badge.style.background = 'rgba(52,199,89,0.18)';
+            badge.style.color = '#15803d';
+          } else {
+            badge.textContent = 'Not Connected';
+            badge.style.background = 'rgba(100,116,139,0.14)';
+            badge.style.color = '#475569';
+          }
+        }
+        if (botLink && data.botUsername) {
+          botLink.href = `https://t.me/${data.botUsername}`;
+          botLink.style.display = 'inline-flex';
+        }
+      } catch (e) {}
+    }
+
+    async function saveUserTelegram() {
+      const inp = document.getElementById('userTgChatIdInput');
+      const btn = document.getElementById('userTgSaveBtn');
+      const fb = document.getElementById('userTgFeedback');
+      const badge = document.getElementById('userTgStatusBadge');
+      const chatId = inp ? inp.value.trim() : '';
+
+      if (fb) fb.style.display = 'none';
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Testing...';
+      }
+
+      try {
+        const res = await fetch('/api/user/telegram', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ telegramChatId: chatId })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (fb) {
+          fb.style.display = 'block';
+          if (res.ok && data.success) {
+            fb.style.background = 'rgba(52,199,89,0.16)';
+            fb.style.color = '#15803d';
+            fb.textContent = data.message || 'Saved!';
+            if (badge) {
+              badge.textContent = chatId ? '✅ Connected' : 'Not Connected';
+              badge.style.background = chatId ? 'rgba(52,199,89,0.18)' : 'rgba(100,116,139,0.14)';
+              badge.style.color = chatId ? '#15803d' : '#475569';
+            }
+          } else {
+            fb.style.background = 'rgba(255,59,48,0.12)';
+            fb.style.color = '#dc2626';
+            fb.textContent = data.error || 'Could not verify Telegram ID.';
+          }
+        }
+      } catch (e) {
+        if (fb) {
+          fb.style.display = 'block';
+          fb.style.background = 'rgba(255,59,48,0.12)';
+          fb.style.color = '#dc2626';
+          fb.textContent = 'Error: ' + e.message;
+        }
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = '🔔 Save & Test Alert';
+        }
+      }
+    }
 
     function previewPhoto(input) {
       const box = document.getElementById('photoPreviewBox');

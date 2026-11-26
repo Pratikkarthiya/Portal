@@ -1,4 +1,4 @@
-import { getSession, jsonResponse } from '../../../utils.js';
+import { getSession, jsonResponse, sendTelegramToChat, escapeTgHtml } from '../../../utils.js';
 
 export async function onRequestPut({ request, params, env }) {
   const session = await getSession(request, env);
@@ -89,6 +89,40 @@ export async function onRequestPut({ request, params, env }) {
     message = `Application #${newAppNum} approved successfully`;
   } else if (body.status === 'rejected') {
     message = `Application #${newAppNum} rejected`;
+  }
+
+  // Send automatic Telegram update to the customer if their Chat ID is linked
+  const shouldNotifyCustomer =
+    body.status !== undefined &&
+    (body.status !== existing.status || (body.status === 'approved' && body.resultPhotoUrl !== undefined));
+
+  if (shouldNotifyCustomer && ['approved', 'correction', 'rejected'].includes(newStatus)) {
+    try {
+      const customer = await env.DB.prepare('SELECT name, telegram_chat_id FROM users WHERE id = ?')
+        .bind(existing.user_id).first();
+      if (customer && customer.telegram_chat_id) {
+        const custName = escapeTgHtml(customer.name || 'Candidate');
+        const escApp = escapeTgHtml(newAppNum);
+        const escRem = newRemarks ? `\n📝 <b>Remarks:</b> ${escapeTgHtml(newRemarks)}` : '';
+        let custMsg = '';
+        let photoToSend = '';
+
+        if (newStatus === 'approved') {
+          custMsg = `✅ <b>KP CYBER — APPLICATION APPROVED!</b>\n━━━━━━━━━━━━━━━━━━\n👤 <b>Candidate:</b> ${custName}\n📝 <b>App Number:</b> <code>${escApp}</code>${escRem}\n📄 Check your dashboard to view/download your result!\n🔗 <a href="https://portal-2a3.pages.dev">Open Portal</a>`;
+          photoToSend = newResultPhotoUrl || '';
+        } else if (newStatus === 'correction') {
+          custMsg = `⚠️ <b>KP CYBER — CORRECTION NEEDED</b>\n━━━━━━━━━━━━━━━━━━\n👤 <b>Candidate:</b> ${custName}\n📝 <b>App Number:</b> <code>${escApp}</code>${escRem}\n✏️ Please log in to edit and resubmit.\n🔗 <a href="https://portal-2a3.pages.dev">Open Portal</a>`;
+        } else if (newStatus === 'rejected') {
+          custMsg = `❌ <b>KP CYBER — APPLICATION REJECTED</b>\n━━━━━━━━━━━━━━━━━━\n👤 <b>Candidate:</b> ${custName}\n📝 <b>App Number:</b> <code>${escApp}</code>${escRem}\n🔗 <a href="https://portal-2a3.pages.dev">Open Portal</a>`;
+        }
+
+        if (custMsg) {
+          await sendTelegramToChat(env, customer.telegram_chat_id, custMsg, photoToSend);
+        }
+      }
+    } catch (e) {
+      console.error('Customer Telegram notify error:', e);
+    }
   }
 
   return jsonResponse({ success: true, message });

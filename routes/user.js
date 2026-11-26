@@ -497,6 +497,75 @@ router.post('/wallet/topup', requireUser, rejectIfShutdown, upload.single('recei
 router.post('/wallet', requireUser, rejectIfShutdown, upload.single('receipt'), handleWalletTopup);
 
 /**
+ * Customer Telegram Alert Settings (Connect / Test)
+ */
+router.get('/telegram', requireUser, async (req, res) => {
+  const user = queryOne('SELECT telegram_chat_id FROM users WHERE id = ?', [req.session.userId]);
+  const rows = queryAll("SELECT key, value FROM system_settings WHERE key IN ('telegram_bot_token', 'telegram_alerts_enabled')");
+  const map = {};
+  (rows || []).forEach(r => { map[r.key] = r.value; });
+
+  let botUsername = '';
+  if (map.telegram_bot_token) {
+    try {
+      const meRes = await fetch(`https://api.telegram.org/bot${map.telegram_bot_token}/getMe`);
+      const meData = await meRes.json().catch(() => ({}));
+      if (meRes.ok && meData.ok && meData.result?.username) {
+        botUsername = meData.result.username;
+      }
+    } catch (e) {}
+  }
+
+  res.json({
+    success: true,
+    telegramChatId: user ? (user.telegram_chat_id || '') : '',
+    botUsername,
+    botConfigured: !!map.telegram_bot_token && map.telegram_alerts_enabled !== '0'
+  });
+});
+
+router.post('/telegram', requireUser, async (req, res) => {
+  const chatId = String(req.body.telegramChatId || '').trim();
+  runSql('UPDATE users SET telegram_chat_id = ? WHERE id = ?', [chatId, req.session.userId]);
+
+  if (!chatId) {
+    return res.json({ success: true, telegramChatId: '', message: 'Telegram alerts disconnected.' });
+  }
+
+  const user = queryOne('SELECT name FROM users WHERE id = ?', [req.session.userId]);
+  const rows = queryAll("SELECT key, value FROM system_settings WHERE key IN ('telegram_bot_token', 'telegram_alerts_enabled')");
+  const map = {};
+  (rows || []).forEach(r => { map[r.key] = r.value; });
+  if (!map.telegram_bot_token || map.telegram_alerts_enabled === '0') {
+    return res.status(400).json({ error: 'Telegram bot is not enabled by admin yet.', telegramChatId: chatId });
+  }
+
+  try {
+    const resp = await fetch(`https://api.telegram.org/bot${map.telegram_bot_token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: `🔔 <b>KP CYBER — ALERTS CONNECTED!</b>\n━━━━━━━━━━━━━━━━━━\n👋 Hello <b>${escapeTgHtml(user?.name || 'Candidate')}</b>!\n✅ You will now receive instant Telegram notifications here whenever your application is <b>Approved</b>, needs <b>Correction</b>, or your result is ready!`,
+        parse_mode: 'HTML',
+        disable_web_page_preview: true
+      })
+    });
+    const respData = await resp.json().catch(() => ({}));
+    if (!resp.ok || !respData.ok) {
+      let errMsg = respData.description || 'Could not send test message.';
+      if (errMsg.toLowerCase().includes('chat not found')) {
+        errMsg = 'Saved your ID, but Telegram says "chat not found": please open the bot on Telegram and tap START first, then click Save & Test again!';
+      }
+      return res.status(400).json({ error: errMsg, telegramChatId: chatId });
+    }
+    return res.json({ success: true, telegramChatId: chatId, message: '🎉 Telegram connected! Check your Telegram—we just sent you a test confirmation.' });
+  } catch (e) {
+    return res.status(500).json({ error: e.message });
+  }
+});
+
+/**
  * 6. Real-time Payment Verification Checker (for automatic popup)
  */
 router.get('/check-payment', requireUser, (req, res) => {
