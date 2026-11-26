@@ -180,6 +180,51 @@ router.get('/bank-events', requireAdmin, (req, res) => {
   res.json({ success: true, events: events || [] });
 });
 
+// Admin deletes a bank_events UTR record
+router.delete('/bank-events/:id', requireAdmin, (req, res) => {
+  const id = Number(req.params.id);
+  const existing = queryOne('SELECT id, utr FROM bank_events WHERE id = ?', [id]);
+  if (!existing) return res.status(404).json({ error: 'Bank UTR event not found' });
+  runSql('DELETE FROM bank_events WHERE id = ?', [id]);
+  res.json({ success: true, message: `Bank UTR "${existing.utr}" deleted.` });
+});
+
+// Admin deletes a wallet transaction (and reverses credit balance if applicable)
+router.delete('/wallet-transactions/:id', requireAdmin, (req, res) => {
+  const id = Number(req.params.id);
+  const tx = queryOne('SELECT id, user_id, type, amount, reference_id FROM wallet_transactions WHERE id = ?', [id]);
+  if (!tx) return res.status(404).json({ error: 'Wallet transaction not found' });
+
+  if (tx.type === 'credit' && Number(tx.amount) > 0) {
+    const user = queryOne('SELECT wallet_balance FROM users WHERE id = ?', [tx.user_id]);
+    const curBal = user ? Number(user.wallet_balance || 0) : 0;
+    const newBal = Math.max(0, curBal - Number(tx.amount));
+    runSql('UPDATE users SET wallet_balance = ? WHERE id = ?', [newBal, tx.user_id]);
+  }
+
+  if (tx.reference_id && tx.reference_id !== 'ADMIN-ADJUST') {
+    runSql('UPDATE bank_events SET used_by_user_id = NULL, used_for = NULL WHERE utr = ? AND used_by_user_id = ?', [tx.reference_id, tx.user_id]);
+  }
+
+  runSql('DELETE FROM wallet_transactions WHERE id = ?', [id]);
+  res.json({ success: true, message: `Transaction (Ref: ${tx.reference_id || id}) deleted.` });
+});
+
+// Admin clears a UTR from paid applications
+router.post('/applications/clear-utr', requireAdmin, (req, res) => {
+  const userId = Number(req.body.userId);
+  const utr = String(req.body.utr || '').trim();
+  if (!userId || !utr) return res.status(400).json({ error: 'userId and utr are required' });
+
+  runSql(
+    `UPDATE applications SET payment_status = 'unpaid', payment_id = 'PENDING_BATCH_OF_5', payment_method = 'NONE', paid_at = NULL WHERE user_id = ? AND payment_id = ?`,
+    [userId, utr]
+  );
+  runSql('UPDATE bank_events SET used_by_user_id = NULL, used_for = NULL WHERE utr = ? AND used_by_user_id = ?', [utr, userId]);
+
+  res.json({ success: true, message: `UTR "${utr}" cleared and application(s) marked unpaid.` });
+});
+
 // Get all applications across all users with user name and email (lightweight URLs)
 router.get('/applications', requireAdmin, (req, res) => {
   const rawApps = queryAll(`

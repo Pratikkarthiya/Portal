@@ -1697,6 +1697,8 @@
 
         entries.push({
           kind: isCredit ? 'wallet_topup' : 'wallet_usage',
+          walletTxId: t.id,
+          userId: t.user_id,
           userName: t.user_name || 'Candidate',
           userEmail: t.user_email || '',
           title: isCredit
@@ -1721,6 +1723,7 @@
         if (!batches[key]) {
           batches[key] = {
             kind: isWalletPay ? 'wallet_usage' : 'upi_app',
+            userId: a.user_id,
             utr: a.payment_id || 'Unknown',
             userName: a.user_name || 'Candidate',
             userEmail: a.user_email || '',
@@ -1749,6 +1752,7 @@
         }
         entries.push({
           kind: b.kind,
+          userId: b.userId,
           userName: b.userName,
           userEmail: b.userEmail,
           title: b.kind === 'wallet_usage'
@@ -1835,6 +1839,7 @@
               <th>Date & Time</th>
               <th>Raw SMS / Notification</th>
               <th>Status</th>
+              <th>Action</th>
             </tr>
           `;
         }
@@ -1853,7 +1858,7 @@
         if (countEl) countEl.textContent = `${filteredEvents.length} bank event${filteredEvents.length === 1 ? '' : 's'}`;
 
         if (filteredEvents.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2.5rem;color:var(--text-secondary)">No bank SMS / UPI notifications recorded yet.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:2.5rem;color:var(--text-secondary)">No bank SMS / UPI notifications recorded yet.</td></tr>';
           return;
         }
 
@@ -1877,6 +1882,9 @@
                 <span class="badge ${isClaimed ? 'badge-approved' : 'badge-pending'}" style="${isClaimed ? 'background:rgba(52,199,89,0.18);color:#15803d;' : 'background:rgba(255,149,0,0.18);color:#b45309;'}">
                   ${isClaimed ? '✅ Claimed' : '🕒 Unclaimed'}
                 </span>
+              </td>
+              <td>
+                <button class="btn btn-sm" onclick="deleteBankEvent(${ev.id}, '${escapeQuotes(ev.utr)}')" style="background:rgba(255,59,48,0.12);color:#dc2626;border:1px solid rgba(255,59,48,0.25);font-weight:700;padding:0.28rem 0.6rem;font-size:0.74rem;">🗑️ Delete</button>
               </td>
             </tr>
           `;
@@ -1905,6 +1913,7 @@
             <th>Date & Time</th>
             <th>Payment Receipt</th>
             <th>Status</th>
+            <th>Action</th>
           </tr>
         `;
       }
@@ -1935,7 +1944,7 @@
       if (countEl) countEl.textContent = `${filtered.length} record${filtered.length === 1 ? '' : 's'}`;
 
       if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2.5rem;color:var(--text-secondary)">No matching payment records found.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:2.5rem;color:var(--text-secondary)">No matching payment records found.</td></tr>';
         return;
       }
 
@@ -1953,6 +1962,12 @@
           amtColor = '#b45309';
           badgeClass = 'badge-pending';
           badgeStyle = 'background:rgba(255,149,0,0.18);color:#b45309;';
+        }
+        let actionHtml = '<span style="color:var(--text-tertiary);font-size:0.75rem;">—</span>';
+        if (e.walletTxId) {
+          actionHtml = `<button class="btn btn-sm" onclick="deleteWalletTransaction(${e.walletTxId}, '${escapeQuotes(e.utr)}', ${e.kind === 'wallet_topup' ? e.totalAmount : 0})" style="background:rgba(255,59,48,0.12);color:#dc2626;border:1px solid rgba(255,59,48,0.25);font-weight:700;padding:0.25rem 0.55rem;font-size:0.72rem;">🗑️ Delete</button>`;
+        } else if (e.kind === 'upi_app' && e.userId && e.utr) {
+          actionHtml = `<button class="btn btn-sm" onclick="clearAppUtr(${e.userId}, '${escapeQuotes(e.utr)}')" style="background:rgba(255,59,48,0.12);color:#dc2626;border:1px solid rgba(255,59,48,0.25);font-weight:700;padding:0.25rem 0.55rem;font-size:0.72rem;">🗑️ Clear UTR</button>`;
         }
         return `
           <tr>
@@ -1972,9 +1987,62 @@
               ${e.receiptUrl ? `<a href="${escapeHtml(e.receiptUrl)}" target="_blank" class="view-btn" style="padding:0.25rem 0.6rem;font-size:0.75rem;text-decoration:none;">🧾 Receipt ↗</a>` : '<span style="color:var(--text-tertiary);font-size:0.8rem;">No file</span>'}
             </td>
             <td><span class="badge ${badgeClass}" style="${badgeStyle}">${escapeHtml(e.statusLabel)}</span></td>
+            <td>${actionHtml}</td>
           </tr>
         `;
       }).join('');
+    }
+
+    async function deleteBankEvent(id, utr) {
+      if (!confirm(`Delete Bank UTR "${utr}" from the Android Bank UTR Feed?`)) return;
+      try {
+        const res = await fetch(`/api/admin/bank-events/${id}`, { method: 'DELETE' });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.success) {
+          await loadBankEvents();
+        } else {
+          alert(data.error || 'Failed to delete Bank UTR.');
+        }
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+
+    async function deleteWalletTransaction(id, utr, reverseAmt) {
+      const warn = reverseAmt > 0
+        ? `\n\nNote: ₹${Number(reverseAmt).toFixed(2)} will also be deducted back from the candidate's wallet balance.`
+        : '';
+      if (!confirm(`Delete Wallet Transaction (Ref: ${utr})?${warn}`)) return;
+      try {
+        const res = await fetch(`/api/admin/wallet-transactions/${id}`, { method: 'DELETE' });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.success) {
+          await Promise.all([loadUsers(), loadWalletTransactions(), loadBankEvents()]);
+        } else {
+          alert(data.error || 'Failed to delete transaction.');
+        }
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+
+    async function clearAppUtr(userId, utr) {
+      if (!confirm(`Delete/Clear UTR "${utr}" and mark those application(s) as UNPAID?`)) return;
+      try {
+        const res = await fetch('/api/admin/applications/clear-utr', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, utr })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.success) {
+          await Promise.all([loadStats(), loadUsers(), loadAllApplications(), loadBankEvents()]);
+        } else {
+          alert(data.error || 'Failed to clear UTR.');
+        }
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
     }
 
     function exportPaymentsCsv() {
