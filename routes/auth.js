@@ -35,9 +35,44 @@ function getPortalNoticeStateNode() {
 
 const router = express.Router();
 
-// Public user registration is disabled as only admins can create user IDs.
+// User Registration with Gmail
 router.post('/register', (req, res) => {
-  return res.status(403).json({ error: 'Public registration is disabled. Please contact the administrator for account creation.' });
+  const shutdown = getPortalShutdownStateNode();
+  if (shutdown.isShutdown) {
+    return res.status(503).json({ error: shutdown.message, portalShutdown: true });
+  }
+
+  const name = String(req.body.name || '').trim();
+  const email = String(req.body.email || '').trim().toLowerCase();
+  const password = String(req.body.password || '');
+  const telegramChatId = String(req.body.telegramChatId || '').trim();
+
+  if (!name || name.length < 2) {
+    return res.status(400).json({ error: 'Please enter your full name.' });
+  }
+  if (!email || !/^[^\s@]+@gmail\.com$/i.test(email)) {
+    return res.status(400).json({ error: 'Please register using a valid @gmail.com email address.' });
+  }
+  if (!password || password.length < 6) {
+    return res.status(400).json({ error: 'Password must be at least 6 characters.' });
+  }
+
+  const existing = queryOne('SELECT id FROM users WHERE LOWER(email) = ?', [email]);
+  if (existing) {
+    return res.status(409).json({ error: 'An account with this Gmail already exists. Please sign in.' });
+  }
+
+  const { runSql } = require('../db');
+  const hash = bcrypt.hashSync(password, 10);
+  const newUserId = runSql(
+    `INSERT INTO users (name, email, password, application_fee, ll_pdf_fee, payment_mode, telegram_chat_id)
+     VALUES (?, ?, ?, 50.00, 20.00, 'batch', ?)`,
+    [name, email, hash, telegramChatId]
+  );
+
+  req.session.userId = newUserId;
+  req.session.userType = 'user';
+  res.json({ success: true, message: '🎉 Account created successfully! Redirecting to dashboard...' });
 });
 
 // User Login
@@ -52,7 +87,7 @@ router.post('/login', (req, res) => {
     return res.status(400).json({ error: 'Email and password are required' });
   }
 
-  const user = queryOne('SELECT * FROM users WHERE email = ?', [email]);
+  const user = queryOne('SELECT * FROM users WHERE LOWER(email) = LOWER(?)', [String(email).trim()]);
   if (!user || !bcrypt.compareSync(password, user.password)) {
     return res.status(401).json({ error: 'Invalid email or password' });
   }

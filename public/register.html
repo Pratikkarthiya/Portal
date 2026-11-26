@@ -3,27 +3,120 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Registration Disabled — AppReview Portal</title>
+  <title>Create Account (Gmail) — KP Cyber</title>
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
+  <div class="mesh-bg-overlay"></div>
+
   <nav class="navbar">
-    <a class="logo" href="/"><span>📋</span> AppReview Portal</a>
+    <a class="logo" href="/">
+      <div class="logo-icon">⚡</div>
+      <span>KP Cyber</span>
+    </a>
     <div class="nav-links">
-      <a href="/login" class="btn-primary">User Login</a>
+      <a href="/login">Sign In</a>
+      <a href="/admin/login">Admin Console</a>
     </div>
   </nav>
 
   <div class="auth-container">
-    <div class="auth-card" style="text-align: center;">
-      <div style="font-size: 3rem; margin-bottom: 1rem;">🔒</div>
-      <h2>Registration Closed</h2>
-      <p class="subtitle" style="margin-bottom: 1.5rem;">User accounts are created exclusively by the Administrator.</p>
-      <p style="font-size: 0.9rem; color: var(--gray-700); margin-bottom: 2rem;">
-        If you require access, please reach out to the portal administrator to generate your login credentials.
+    <div class="auth-card">
+      <div class="auth-card-icon">📧</div>
+      <h2>Create Account</h2>
+      <p class="subtitle">Register quickly with your Gmail address</p>
+
+      <div class="alert alert-error" id="alertError"></div>
+      <div class="alert alert-success" id="alertSuccess"></div>
+
+      <form id="registerForm">
+        <div class="form-group">
+          <label>Full Name *</label>
+          <input type="text" name="name" required minlength="2" placeholder="e.g. Rahul Patel">
+        </div>
+        <div class="form-group">
+          <label>Gmail Address *</label>
+          <input type="email" name="email" id="regGmailInput" required placeholder="yourname@gmail.com">
+          <small style="color:var(--text-secondary);font-size:0.74rem;display:block;margin-top:4px;">Only <strong>@gmail.com</strong> addresses are accepted.</small>
+        </div>
+        <div class="form-group">
+          <label>Password (Min 6 characters) *</label>
+          <input type="password" name="password" id="regPassInput" required minlength="6" placeholder="••••••••">
+        </div>
+        <div class="form-group">
+          <label>Telegram Chat ID (Optional)</label>
+          <input type="text" name="telegramChatId" placeholder="e.g. 987654321 (for approval alerts)">
+        </div>
+        <button type="submit" class="btn btn-primary" id="regSubmitBtn" style="width:100%;justify-content:center;">
+          ✨ Create Gmail Account
+        </button>
+      </form>
+
+      <p class="auth-footer" style="margin-top: 1.4rem; font-size: 0.85rem; color: var(--text-secondary); text-align:center;">
+        Already have an account? <a href="/login" style="color:var(--accent-blue);font-weight:700;text-decoration:none;">Sign In →</a>
       </p>
-      <a href="/login" class="btn btn-primary" style="display: block;">Go to Login</a>
     </div>
   </div>
+
+  <script>
+    fetch('/api/auth/me').then(r => r.json()).then(data => {
+      if (data && data.portalShutdown) {
+        const el = document.getElementById('alertError');
+        el.textContent = '🛑 ' + (data.shutdownMessage || 'Portal is temporarily closed by Admin.');
+        el.classList.add('show');
+        document.getElementById('regSubmitBtn').disabled = true;
+      }
+    }).catch(() => {});
+
+    document.getElementById('registerForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const errEl = document.getElementById('alertError');
+      const okEl = document.getElementById('alertSuccess');
+      const btn = document.getElementById('regSubmitBtn');
+      errEl.classList.remove('show');
+      okEl.classList.remove('show');
+
+      const form = new FormData(e.target);
+      const email = String(form.get('email') || '').trim().toLowerCase();
+      if (!/^[^\s@]+@gmail\.com$/i.test(email)) {
+        errEl.textContent = 'Please enter a valid @gmail.com address.';
+        errEl.classList.add('show');
+        document.getElementById('regGmailInput').focus();
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Creating Account...';
+
+      try {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: form.get('name'),
+            email,
+            password: form.get('password'),
+            telegramChatId: form.get('telegramChatId') || ''
+          })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.success) {
+          okEl.textContent = data.message || 'Account created! Redirecting...';
+          okEl.classList.add('show');
+          setTimeout(() => { window.location.href = '/dashboard'; }, 700);
+        } else {
+          errEl.textContent = data.error || 'Registration failed.';
+          errEl.classList.add('show');
+          btn.disabled = false;
+          btn.textContent = '✨ Create Gmail Account';
+        }
+      } catch (err) {
+        errEl.textContent = 'Network error: ' + err.message;
+        errEl.classList.add('show');
+        btn.disabled = false;
+        btn.textContent = '✨ Create Gmail Account';
+      }
+    });
+  </script>
 </body>
 </html>

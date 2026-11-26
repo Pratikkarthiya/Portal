@@ -11,7 +11,7 @@ export async function onRequestPost({ request, env }) {
     return jsonResponse({ error: 'Email and password required' }, 400);
   }
 
-  const user = await env.DB.prepare('SELECT * FROM users WHERE email = ?').bind(email).first();
+  const user = await env.DB.prepare('SELECT * FROM users WHERE LOWER(email) = LOWER(?)').bind(String(email).trim()).first();
   if (!user) {
     return jsonResponse({ error: 'Invalid email or password' }, 401);
   }
