@@ -18,6 +18,7 @@
       <button class="btn btn-sm" id="adminLiveSyncPill" onclick="runAdminAutoSync(true)" style="background:rgba(52,199,89,0.12);color:#15803d;border:1px solid rgba(52,199,89,0.28);font-weight:700;font-size:0.78rem;" title="Auto-syncing every 8s (click to sync now)">🟢 Live Sync</button>
       <button class="btn btn-sm" id="portalNoticeNavBtn" onclick="openNoticeSettingsModal()" style="background:rgba(0,113,227,0.12);color:var(--accent-blue);border:1px solid rgba(0,113,227,0.28);font-weight:700;" title="Publish an announcement popup to all users">📢 Notice</button>
       <button class="btn btn-sm" id="portalShutdownBtn" onclick="togglePortalShutdown()" style="background:rgba(52,199,89,0.16);color:#15803d;border:1px solid rgba(52,199,89,0.35);font-weight:700;" title="Stop or resume all user work">🟢 Portal Online (Shutdown)</button>
+      <button class="btn btn-sm" id="registrationToggleBtn" onclick="toggleRegistrationStatus()" style="background:rgba(52,199,89,0.16);color:#15803d;border:1px solid rgba(52,199,89,0.35);font-weight:700;" title="Open or stop new user self-registration">🟢 Registration Open</button>
       <button class="btn btn-primary btn-sm" onclick="openCreateUserModal()">➕ Provision User ID</button>
       <button class="btn-logout" onclick="logout()">Sign Out</button>
     </div>
@@ -877,7 +878,7 @@
         window.location.href = '/admin/login';
         return;
       }
-      Promise.all([loadStats(), loadUsers(), loadAllApplications(), loadWalletTransactions(), loadBankEvents(), loadShutdownStatus(), loadAdminLlPdfRequests(), loadNoticeStatus()]);
+      Promise.all([loadStats(), loadUsers(), loadAllApplications(), loadWalletTransactions(), loadBankEvents(), loadShutdownStatus(), loadRegistrationStatus(), loadAdminLlPdfRequests(), loadNoticeStatus()]);
       startAdminAutoSync();
     });
 
@@ -910,6 +911,7 @@
           syncAdminBankIfChanged(),
           syncAdminLlPdfIfChanged(),
           loadShutdownStatus(),
+          loadRegistrationStatus(),
           loadNoticeStatus()
         ]);
         if (pill) {
@@ -1303,6 +1305,76 @@
           alert(data.statusText || 'Portal status updated!');
         } else {
           alert(data.error || 'Failed to update portal shutdown status.');
+        }
+      } catch (err) {
+        alert('Error: ' + err.message);
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    let currentRegistrationStopped = false;
+    let currentRegistrationMessage = 'New user registration is temporarily closed by Admin.';
+
+    async function loadRegistrationStatus() {
+      try {
+        const res = await fetch('/api/admin/settings/registration');
+        const data = await res.json();
+        if (res.ok && data.success) {
+          currentRegistrationStopped = !!data.isStopped;
+          currentRegistrationMessage = data.message || currentRegistrationMessage;
+          renderRegistrationButton();
+        }
+      } catch (e) {}
+    }
+
+    function renderRegistrationButton() {
+      const btn = document.getElementById('registrationToggleBtn');
+      if (!btn) return;
+      if (currentRegistrationStopped) {
+        btn.style.background = 'linear-gradient(135deg, #ff9500 0%, #d97706 100%)';
+        btn.style.color = '#ffffff';
+        btn.style.border = 'none';
+        btn.textContent = '🔒 Registration Stopped (Open)';
+      } else {
+        btn.style.background = 'rgba(52,199,89,0.16)';
+        btn.style.color = '#15803d';
+        btn.style.border = '1px solid rgba(52,199,89,0.35)';
+        btn.textContent = '🟢 Registration Open (Stop)';
+      }
+    }
+
+    async function toggleRegistrationStatus() {
+      const btn = document.getElementById('registrationToggleBtn');
+      const nextState = !currentRegistrationStopped;
+      let msgToSave = currentRegistrationMessage;
+
+      if (nextState) {
+        const reason = prompt(
+          '🔒 STOP NEW USER REGISTRATION?\n\nExisting users can still log in and work, but new users will not be able to create accounts on /register.\n\nEnter message to show visitors:',
+          currentRegistrationMessage
+        );
+        if (reason === null) return;
+        msgToSave = reason.trim() || currentRegistrationMessage;
+      } else {
+        if (!confirm('🟢 OPEN USER REGISTRATION?\n\nNew users will be able to self-register with Gmail again.')) return;
+      }
+
+      if (btn) btn.disabled = true;
+      try {
+        const res = await fetch('/api/admin/settings/registration', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ isStopped: nextState, message: msgToSave })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          currentRegistrationStopped = !!data.isStopped;
+          currentRegistrationMessage = data.message || msgToSave;
+          renderRegistrationButton();
+          alert(data.statusText || 'Registration status updated!');
+        } else {
+          alert(data.error || 'Failed to update registration status.');
         }
       } catch (err) {
         alert('Error: ' + err.message);

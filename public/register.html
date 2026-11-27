@@ -65,6 +65,14 @@
         el.textContent = '🛑 ' + (data.shutdownMessage || 'Portal is temporarily closed by Admin.');
         el.classList.add('show');
         document.getElementById('regSubmitBtn').disabled = true;
+      } else if (data && data.registrationStopped) {
+        const el = document.getElementById('alertError');
+        el.textContent = '🔒 ' + (data.registrationMessage || 'New user registration is temporarily closed by Admin.');
+        el.classList.add('show');
+        const btn = document.getElementById('regSubmitBtn');
+        btn.disabled = true;
+        btn.textContent = '🔒 Registration Closed';
+        document.querySelectorAll('#registerForm input').forEach(inp => { inp.disabled = true; });
       }
     }).catch(() => {});
 

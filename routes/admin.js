@@ -506,6 +506,44 @@ router.post('/settings/shutdown', requireAdmin, (req, res) => {
   });
 });
 
+// Admin User Registration Open / Stop toggle
+router.get('/settings/registration', requireAdmin, (req, res) => {
+  const rows = queryAll("SELECT key, value FROM system_settings WHERE key IN ('registration_stopped', 'registration_stopped_message')");
+  const map = {};
+  (rows || []).forEach(r => { map[r.key] = r.value; });
+  res.json({
+    success: true,
+    isStopped: map.registration_stopped === '1',
+    message: (map.registration_stopped_message || '').trim() || 'New user registration is temporarily closed by Admin.'
+  });
+});
+
+router.post('/settings/registration', requireAdmin, (req, res) => {
+  const isStopped = !!req.body.isStopped;
+  const customMessage = req.body.message !== undefined ? String(req.body.message).trim() : undefined;
+
+  runSql(
+    'INSERT INTO system_settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at',
+    ['registration_stopped', isStopped ? '1' : '0']
+  );
+
+  if (customMessage !== undefined) {
+    runSql(
+      'INSERT INTO system_settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at',
+      ['registration_stopped_message', customMessage]
+    );
+  }
+
+  res.json({
+    success: true,
+    isStopped,
+    message: customMessage || 'New user registration is temporarily closed by Admin.',
+    statusText: isStopped
+      ? '🔒 User registration is now STOPPED. New users cannot self-register.'
+      : '🟢 User registration is now OPEN. New users can register with Gmail.'
+  });
+});
+
 // Admin LL PDF Requests management
 router.get('/ll-pdf', requireAdmin, (req, res) => {
   const requests = queryAll(`

@@ -1,10 +1,15 @@
-import { jsonResponse, getPortalShutdownState, sendTelegramAlert, escapeTgHtml } from '../../utils.js';
+import { jsonResponse, getPortalShutdownState, getRegistrationState, sendTelegramAlert, escapeTgHtml } from '../../utils.js';
 
 export async function onRequestPost({ request, env }) {
   try {
     const shutdown = await getPortalShutdownState(env);
     if (shutdown.isShutdown) {
       return jsonResponse({ error: shutdown.message, portalShutdown: true }, 503);
+    }
+
+    const regState = await getRegistrationState(env);
+    if (regState.isStopped) {
+      return jsonResponse({ error: regState.message, registrationStopped: true }, 403);
     }
 
     const body = await request.json().catch(() => ({}));

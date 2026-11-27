@@ -33,6 +33,21 @@ function getPortalNoticeStateNode() {
   }
 }
 
+function getRegistrationStateNode() {
+  const defaultMsg = 'New user registration is temporarily closed by Admin.';
+  try {
+    const rows = queryAll("SELECT key, value FROM system_settings WHERE key IN ('registration_stopped', 'registration_stopped_message')");
+    const map = {};
+    (rows || []).forEach(r => { map[r.key] = r.value; });
+    return {
+      isStopped: map.registration_stopped === '1',
+      message: (map.registration_stopped_message || '').trim() || defaultMsg
+    };
+  } catch (e) {
+    return { isStopped: false, message: defaultMsg };
+  }
+}
+
 const router = express.Router();
 
 // User Registration with Gmail
@@ -40,6 +55,11 @@ router.post('/register', (req, res) => {
   const shutdown = getPortalShutdownStateNode();
   if (shutdown.isShutdown) {
     return res.status(503).json({ error: shutdown.message, portalShutdown: true });
+  }
+
+  const regState = getRegistrationStateNode();
+  if (regState.isStopped) {
+    return res.status(403).json({ error: regState.message, registrationStopped: true });
   }
 
   const name = String(req.body.name || '').trim();
@@ -124,14 +144,15 @@ router.post('/logout', (req, res) => {
 router.get('/me', (req, res) => {
   const shutdown = getPortalShutdownStateNode();
   const notice = getPortalNoticeStateNode();
+  const regState = getRegistrationStateNode();
   if (req.session.userId) {
     const user = queryOne('SELECT id, name, email, application_fee, ll_pdf_fee, wallet_balance, telegram_chat_id, created_at FROM users WHERE id = ?', [req.session.userId]);
-    return res.json({ loggedIn: true, userType: 'user', user, portalShutdown: shutdown.isShutdown, shutdownMessage: shutdown.message, portalNotice: notice });
+    return res.json({ loggedIn: true, userType: 'user', user, portalShutdown: shutdown.isShutdown, shutdownMessage: shutdown.message, registrationStopped: regState.isStopped, registrationMessage: regState.message, portalNotice: notice });
   }
   if (req.session.adminId) {
-    return res.json({ loggedIn: true, userType: 'admin', portalShutdown: shutdown.isShutdown, shutdownMessage: shutdown.message, portalNotice: notice });
+    return res.json({ loggedIn: true, userType: 'admin', portalShutdown: shutdown.isShutdown, shutdownMessage: shutdown.message, registrationStopped: regState.isStopped, registrationMessage: regState.message, portalNotice: notice });
   }
-  res.json({ loggedIn: false, portalShutdown: shutdown.isShutdown, shutdownMessage: shutdown.message, portalNotice: notice });
+  res.json({ loggedIn: false, portalShutdown: shutdown.isShutdown, shutdownMessage: shutdown.message, registrationStopped: regState.isStopped, registrationMessage: regState.message, portalNotice: notice });
 });
 
 module.exports = router;

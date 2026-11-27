@@ -1,10 +1,11 @@
-import { getSession, jsonResponse, getPortalShutdownState, getPortalNoticeState } from '../../utils.js';
+import { getSession, jsonResponse, getPortalShutdownState, getPortalNoticeState, getRegistrationState } from '../../utils.js';
 
 export async function onRequestGet({ request, env }) {
-  const [session, shutdown, notice] = await Promise.all([
+  const [session, shutdown, notice, regState] = await Promise.all([
     getSession(request, env),
     getPortalShutdownState(env),
-    getPortalNoticeState(env)
+    getPortalNoticeState(env),
+    getRegistrationState(env)
   ]);
 
   if (!session) {
@@ -12,6 +13,8 @@ export async function onRequestGet({ request, env }) {
       loggedIn: false,
       portalShutdown: shutdown.isShutdown,
       shutdownMessage: shutdown.message,
+      registrationStopped: regState.isStopped,
+      registrationMessage: regState.message,
       portalNotice: notice
     });
   }
@@ -22,6 +25,8 @@ export async function onRequestGet({ request, env }) {
       userType: 'admin',
       portalShutdown: shutdown.isShutdown,
       shutdownMessage: shutdown.message,
+      registrationStopped: regState.isStopped,
+      registrationMessage: regState.message,
       portalNotice: notice
     });
   }
@@ -33,6 +38,8 @@ export async function onRequestGet({ request, env }) {
     user,
     portalShutdown: shutdown.isShutdown,
     shutdownMessage: shutdown.message,
+    registrationStopped: regState.isStopped,
+    registrationMessage: regState.message,
     portalNotice: notice
   });
 }

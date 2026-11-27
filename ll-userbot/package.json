@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "dotenv": "^16.4.5",
-    "telegram": "^2.26.15"
+    "telegram": "^2.26.15",
+    "teleproto": "^1.234.0"
   }
 }

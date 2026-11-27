@@ -60,6 +60,24 @@ export async function getPortalShutdownState(env) {
   }
 }
 
+export async function getRegistrationState(env) {
+  const defaultMsg = 'New user registration is temporarily closed by Admin.';
+  try {
+    if (!env?.DB) return { isStopped: false, message: defaultMsg };
+    const rows = await env.DB.prepare(
+      "SELECT key, value FROM system_settings WHERE key IN ('registration_stopped', 'registration_stopped_message')"
+    ).all();
+    const map = {};
+    (rows?.results || []).forEach(r => { map[r.key] = r.value; });
+    return {
+      isStopped: map.registration_stopped === '1',
+      message: (map.registration_stopped_message || '').trim() || defaultMsg
+    };
+  } catch (e) {
+    return { isStopped: false, message: defaultMsg };
+  }
+}
+
 export async function getPortalNoticeState(env) {
   try {
     if (!env?.DB) return { enabled: false, title: '', message: '', version: '' };

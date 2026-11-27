@@ -39,7 +39,7 @@
         <button type="submit" class="btn btn-primary">Sign In</button>
       </form>
 
-      <p class="auth-footer" style="margin-top: 1.5rem; font-size: 0.85rem; color: var(--text-secondary); text-align:center;">
+      <p class="auth-footer" id="loginRegFooter" style="margin-top: 1.5rem; font-size: 0.85rem; color: var(--text-secondary); text-align:center;">
         New user? <a href="/register" style="color:var(--accent-blue);font-weight:700;text-decoration:none;">Create Account with Gmail →</a>
       </p>
     </div>
@@ -51,6 +51,12 @@
         const el = document.getElementById('alertError');
         el.textContent = '🛑 ' + (data.shutdownMessage || 'Portal is temporarily closed by Admin.');
         el.classList.add('show');
+      }
+      if (data && data.registrationStopped) {
+        const footer = document.getElementById('loginRegFooter');
+        if (footer) {
+          footer.innerHTML = '🔒 New user registration is currently closed by Admin.';
+        }
       }
     }).catch(() => {});
 
