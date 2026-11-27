@@ -1,0 +1,13 @@
+{
+  "name": "kp-ll-userbot",
+  "version": "1.0.0",
+  "description": "Telegram MTProto userbot bridge for KP Cyber LL PDF requests",
+  "main": "bot_bridge.js",
+  "scripts": {
+    "start": "node bot_bridge.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "telegram": "^2.26.15"
+  }
+}
