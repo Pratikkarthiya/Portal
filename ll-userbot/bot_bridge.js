@@ -1,4 +1,5 @@
 const fs = require('fs');
+const http = require('http');
 const path = require('path');
 const readline = require('readline');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
@@ -124,9 +125,20 @@ async function processRequest(client, botEntity, req) {
 }
 
 async function main() {
-  const savedSession = fs.existsSync(SESSION_FILE) ? fs.readFileSync(SESSION_FILE, 'utf8').trim() : '';
+  if (process.env.PORT) {
+    http.createServer((req, res) => {
+      res.writeHead(200, { 'Content-Type': 'text/plain' });
+      res.end('KP LL Userbot Bridge Running');
+    }).listen(Number(process.env.PORT), () => {
+      console.log(`Healthcheck server listening on port ${process.env.PORT}`);
+    });
+  }
+
+  const envSession = (process.env.TG_SESSION_STRING || '').trim();
+  const savedSession = envSession || (fs.existsSync(SESSION_FILE) ? fs.readFileSync(SESSION_FILE, 'utf8').trim() : '');
   const client = new TelegramClient(new StringSession(savedSession), TG_API_ID, TG_API_HASH, {
-    connectionRetries: 5
+    connectionRetries: 5,
+    useWSS: true
   });
 
   await client.start({
