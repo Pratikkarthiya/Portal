@@ -40,7 +40,7 @@ export async function onRequestPost({ request, env }) {
 
   const fee = parseFloat(applicationFee) > 0 ? parseFloat(applicationFee) : 200.00;
   const pdfFee = parseFloat(llPdfFee) >= 0 ? parseFloat(llPdfFee) : 20.00;
-  const mode = paymentMode === 'one_time' ? 'one_time' : 'batch';
+  const mode = paymentMode === 'batch' ? 'batch' : 'one_time';
   const tgChatId = telegramChatId ? String(telegramChatId).trim() : '';
 
   const result = await env.DB.prepare(

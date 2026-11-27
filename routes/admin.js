@@ -40,7 +40,7 @@ router.post('/users', requireAdmin, (req, res) => {
 
   const fee = parseFloat(applicationFee) > 0 ? parseFloat(applicationFee) : 200.00;
   const pdfFee = parseFloat(llPdfFee) >= 0 ? parseFloat(llPdfFee) : 20.00;
-  const mode = paymentMode === 'one_time' ? 'one_time' : 'batch';
+  const mode = paymentMode === 'batch' ? 'batch' : 'one_time';
   const tgChatId = telegramChatId ? String(telegramChatId).trim() : '';
   const hash = bcrypt.hashSync(password, 10);
   const newUserId = runSql(
@@ -80,7 +80,7 @@ router.put('/users/:userId', requireAdmin, (req, res) => {
 
   const fee = parseFloat(applicationFee) > 0 ? parseFloat(applicationFee) : user.application_fee;
   const pdfFee = parseFloat(llPdfFee) >= 0 ? parseFloat(llPdfFee) : (user.ll_pdf_fee ?? 20.00);
-  const mode = paymentMode === 'one_time' ? 'one_time' : 'batch';
+  const mode = paymentMode === 'batch' ? 'batch' : 'one_time';
   const tgChatId = telegramChatId !== undefined ? String(telegramChatId).trim() : (user.telegram_chat_id || '');
 
   if (newPassword && newPassword.trim().length >= 6) {
