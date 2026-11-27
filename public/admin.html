@@ -14,13 +14,19 @@
       <div class="logo-icon" style="background: var(--accent-purple-gradient);"></div>
       <span>Admin Console</span>
     </a>
-    <div class="nav-links">
-      <button class="btn btn-sm" id="adminLiveSyncPill" onclick="runAdminAutoSync(true)" style="background:rgba(52,199,89,0.12);color:#15803d;border:1px solid rgba(52,199,89,0.28);font-weight:700;font-size:0.78rem;" title="Auto-syncing every 8s (click to sync now)">🟢 Live Sync</button>
-      <button class="btn btn-sm" id="portalNoticeNavBtn" onclick="openNoticeSettingsModal()" style="background:rgba(0,113,227,0.12);color:var(--accent-blue);border:1px solid rgba(0,113,227,0.28);font-weight:700;" title="Publish an announcement popup to all users">📢 Notice</button>
-      <button class="btn btn-sm" id="portalShutdownBtn" onclick="togglePortalShutdown()" style="background:rgba(52,199,89,0.16);color:#15803d;border:1px solid rgba(52,199,89,0.35);font-weight:700;" title="Stop or resume all user work">🟢 Portal Online (Shutdown)</button>
-      <button class="btn btn-sm" id="registrationToggleBtn" onclick="toggleRegistrationStatus()" style="background:rgba(52,199,89,0.16);color:#15803d;border:1px solid rgba(52,199,89,0.35);font-weight:700;" title="Open or stop new user self-registration">🟢 Registration Open</button>
-      <button class="btn btn-primary btn-sm" onclick="openCreateUserModal()">➕ Provision User ID</button>
-      <button class="btn-logout" onclick="logout()">Sign Out</button>
+    <div class="nav-links" style="position:relative;display:flex;align-items:center;gap:0.5rem;">
+      <button class="btn btn-sm" id="adminLiveSyncPill" onclick="runAdminAutoSync(true)" style="background:rgba(52,199,89,0.12);color:#15803d;border:1px solid rgba(52,199,89,0.28);font-weight:700;font-size:0.78rem;white-space:nowrap;" title="Auto-syncing every 8s (click to sync now)">🟢 Live</button>
+      <div style="position:relative;">
+        <button class="btn btn-sm" id="adminMenuBtn" onclick="toggleAdminMenu(event)" style="background:rgba(255,255,255,0.65);color:var(--text-main);border:1px solid var(--glass-border);font-weight:800;font-size:1.1rem;line-height:1;padding:0.45rem 0.85rem;border-radius:999px;cursor:pointer;" title="Open Admin Controls" aria-label="Open Admin Menu" aria-expanded="false">⋮</button>
+        <div id="adminMenuPanel" style="display:none;position:absolute;right:0;top:calc(100% + 10px);min-width:260px;background:rgba(255,255,255,0.92);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,0.65);border-radius:16px;box-shadow:0 18px 40px rgba(0,0,0,0.18);padding:0.65rem;z-index:1200;flex-direction:column;gap:0.45rem;">
+          <button class="btn btn-sm" id="portalNoticeNavBtn" onclick="closeAdminMenu(); openNoticeSettingsModal()" style="width:100%;justify-content:flex-start;background:rgba(0,113,227,0.12);color:var(--accent-blue);border:1px solid rgba(0,113,227,0.28);font-weight:700;border-radius:10px;" title="Publish an announcement popup to all users">📢 Notice</button>
+          <button class="btn btn-sm" id="portalShutdownBtn" onclick="closeAdminMenu(); togglePortalShutdown()" style="width:100%;justify-content:flex-start;background:rgba(52,199,89,0.16);color:#15803d;border:1px solid rgba(52,199,89,0.35);font-weight:700;border-radius:10px;" title="Stop or resume all user work">🟢 Portal Online (Shutdown)</button>
+          <button class="btn btn-sm" id="registrationToggleBtn" onclick="closeAdminMenu(); toggleRegistrationStatus()" style="width:100%;justify-content:flex-start;background:rgba(52,199,89,0.16);color:#15803d;border:1px solid rgba(52,199,89,0.35);font-weight:700;border-radius:10px;" title="Open or stop new user self-registration">🟢 Registration Open</button>
+          <button class="btn btn-primary btn-sm" onclick="closeAdminMenu(); openCreateUserModal()" style="width:100%;justify-content:flex-start;border-radius:10px;">➕ Provision User ID</button>
+          <div style="height:1px;background:rgba(0,0,0,0.08);margin:0.15rem 0;"></div>
+          <button class="btn-logout" onclick="closeAdminMenu(); logout()" style="width:100%;justify-content:center;border-radius:10px;">Sign Out</button>
+        </div>
+      </div>
     </div>
   </nav>
 
@@ -1382,6 +1388,35 @@
         if (btn) btn.disabled = false;
       }
     }
+
+    function toggleAdminMenu(e) {
+      if (e) e.stopPropagation();
+      const panel = document.getElementById('adminMenuPanel');
+      const btn = document.getElementById('adminMenuBtn');
+      if (!panel) return;
+      const isOpen = panel.style.display === 'flex';
+      panel.style.display = isOpen ? 'none' : 'flex';
+      if (btn) btn.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+    }
+
+    function closeAdminMenu() {
+      const panel = document.getElementById('adminMenuPanel');
+      const btn = document.getElementById('adminMenuBtn');
+      if (panel) panel.style.display = 'none';
+      if (btn) btn.setAttribute('aria-expanded', 'false');
+    }
+
+    document.addEventListener('click', (e) => {
+      const panel = document.getElementById('adminMenuPanel');
+      const btn = document.getElementById('adminMenuBtn');
+      if (panel && panel.style.display === 'flex' && !panel.contains(e.target) && e.target !== btn) {
+        closeAdminMenu();
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeAdminMenu();
+    });
 
     function updateCreateBatchPreview(val) {
       const f = parseFloat(val) || 0;
