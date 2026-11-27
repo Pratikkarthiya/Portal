@@ -8,3 +8,6 @@ dummy.jpg
 public/uploads/
 .DS_Store
 Thumbs.db
+*.session
+*.session-journal
+ll-userbot/.env
