@@ -342,12 +342,34 @@ router.put('/applications/:appId', requireAdmin, (req, res) => {
     [newStatus, newRemarks, newAppNum, newDob, newPass, newPaymentStatus, newPaymentId, newPaymentAmount, newPaymentMethod, newPaidAt, newResultPhotoUrl, appId]
   );
 
+  let refundedAmount = 0;
+  if (newStatus === 'rejected' && existing.status !== 'rejected' && newPaymentStatus === 'paid') {
+    const userRow = queryOne('SELECT wallet_balance, application_fee FROM users WHERE id = ?', [existing.user_id]);
+    const curBal = userRow ? Number(userRow.wallet_balance || 0) : 0;
+    refundedAmount = Number(newPaymentAmount) > 0
+      ? Number(newPaymentAmount)
+      : (userRow && userRow.application_fee ? Number(userRow.application_fee) : 200.00);
+    if (refundedAmount > 0) {
+      const newBal = curBal + refundedAmount;
+      runSql('UPDATE users SET wallet_balance = ? WHERE id = ?', [newBal, existing.user_id]);
+      runSql(
+        `INSERT INTO wallet_transactions (user_id, type, amount, balance_after, reference_id, description, status)
+         VALUES (?, 'credit', ?, ?, ?, ?, 'approved')`,
+        [existing.user_id, refundedAmount, newBal, newAppNum, `Refund: Application #${newAppNum} Rejected`]
+      );
+    }
+  }
+
   let message = `Application #${newAppNum} updated successfully`;
   if (paymentStatus === 'paid' && status === undefined) message = `Application #${newAppNum} marked as PAID (₹${Number(newPaymentAmount).toFixed(2)}, Ref: ${newPaymentId})`;
   else if (paymentStatus === 'unpaid' && status === undefined) message = `Application #${newAppNum} marked as UNPAID`;
   else if (status === 'correction') message = `Application #${newAppNum} sent for Candidate Correction`;
   else if (status === 'approved') message = `Application #${newAppNum} approved successfully`;
-  else if (status === 'rejected') message = `Application #${newAppNum} rejected`;
+  else if (status === 'rejected') {
+    message = refundedAmount > 0
+      ? `Application #${newAppNum} rejected & ₹${refundedAmount.toFixed(2)} refunded to wallet`
+      : `Application #${newAppNum} rejected`;
+  }
 
   // Send automatic Telegram update to the customer if their Chat ID is linked
   const shouldNotifyCustomer =
@@ -370,7 +392,8 @@ router.put('/applications/:appId', requireAdmin, (req, res) => {
           } else if (newStatus === 'correction') {
             custMsg = `⚠️ <b>KP CYBER — CORRECTION NEEDED</b>\n━━━━━━━━━━━━━━━━━━\n👤 <b>Candidate:</b> ${esc(customer.name)}\n📝 <b>App Number:</b> <code>${esc(newAppNum)}</code>${escRem}\n✏️ Please log in to edit and resubmit.`;
           } else if (newStatus === 'rejected') {
-            custMsg = `❌ <b>KP CYBER — APPLICATION REJECTED</b>\n━━━━━━━━━━━━━━━━━━\n👤 <b>Candidate:</b> ${esc(customer.name)}\n📝 <b>App Number:</b> <code>${esc(newAppNum)}</code>${escRem}`;
+            const refundLine = refundedAmount > 0 ? `\n💰 <b>Refunded to Wallet:</b> ₹${refundedAmount.toFixed(2)}` : '';
+            custMsg = `❌ <b>KP CYBER — APPLICATION REJECTED</b>\n━━━━━━━━━━━━━━━━━━\n👤 <b>Candidate:</b> ${esc(customer.name)}\n📝 <b>App Number:</b> <code>${esc(newAppNum)}</code>${escRem}${refundLine}`;
           }
           if (custMsg) {
             fetch(`https://api.telegram.org/bot${map.telegram_bot_token}/sendMessage`, {
